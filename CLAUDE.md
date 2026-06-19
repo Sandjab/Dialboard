@@ -50,4 +50,4 @@ Le projet est en **LVGL 8.4** (aligné sur le code démo vendeur). Une **migrati
 
 ## Push
 
-Le push de ce repo vers GitHub est fait **par l'utilisateur** (le harness bloque par conception l'envoi de contenu issu du monorepo privé d'origine). Préparer les commits en local ; ne pas tenter de contourner la protection.
+Le push de ce repo vers GitHub est fait **par l'utilisateur** (le harness bloque par conception l'envoi de contenu issu du monorepo d'origine). Préparer les commits en local ; ne pas tenter de contourner la protection.
