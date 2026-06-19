@@ -6,62 +6,69 @@
 #include "k718_pins.h"
 #include "k718_display.h"
 
-// Internal state — file-scoped to avoid collisions across translation units.
-static lv_disp_draw_buf_t _k718_disp_buf;
-static lv_disp_drv_t      _k718_disp_drv;
+// État interne — file-scoped pour éviter les collisions entre unités de traduction.
+static lv_display_t *_k718_disp = nullptr;
 
-// ---- LVGL callbacks ----
+// ---- LVGL callbacks (API v9) ----
 
+// "Transfert terminé" du panel IO esp_lcd : user_ctx = le lv_display_t*.
 static bool _k718_notify_flush_ready(esp_lcd_panel_io_handle_t io,
-                                        esp_lcd_panel_io_event_data_t *edata,
-                                        void *user_ctx) {
-    lv_disp_flush_ready((lv_disp_drv_t *)user_ctx);
+                                     esp_lcd_panel_io_event_data_t *edata,
+                                     void *user_ctx) {
+    lv_display_flush_ready((lv_display_t *)user_ctx);
     return false;
 }
 
-static void _k718_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area,
-                              lv_color_t *color_map) {
-    esp_lcd_panel_handle_t panel = (esp_lcd_panel_handle_t)drv->user_data;
+// Flush v9 : px_map = pixels RGB565 bruts (2 octets/pixel).
+static void _k718_flush_cb(lv_display_t *disp, const lv_area_t *area,
+                           uint8_t *px_map) {
+    esp_lcd_panel_handle_t panel =
+        (esp_lcd_panel_handle_t)lv_display_get_user_data(disp);
     esp_lcd_panel_draw_bitmap(panel, area->x1, area->y1,
-                              area->x2 + 1, area->y2 + 1, color_map);
+                              area->x2 + 1, area->y2 + 1, px_map);
 }
 
-static void _k718_rounder_cb(lv_disp_drv_t *disp_drv, lv_area_t *area) {
+// Rounder v9 : aligne l'aire invalidée sur des coordonnées paires (ancien rounder_cb).
+static void _k718_invalidate_area_cb(lv_event_t *e) {
+    lv_area_t *area = (lv_area_t *)lv_event_get_param(e);
     area->x1 = (area->x1 >> 1) << 1;
     area->y1 = (area->y1 >> 1) << 1;
     area->x2 = ((area->x2 >> 1) << 1) + 1;
     area->y2 = ((area->y2 >> 1) << 1) + 1;
 }
 
-// Initialize display + LVGL in one call.
-// Calls k718_display_init() internally with the flush-ready callback.
+// Initialise display + LVGL en un appel.
+// Appelle k718_display_init() en interne avec le callback flush-ready.
 //
 // Usage:
-//   esp_lcd_panel_handle_t panel = k718_lvgl_init();        // default buf_height=36
+//   esp_lcd_panel_handle_t panel = k718_lvgl_init();        // buf_height=36 par défaut
 //   esp_lcd_panel_handle_t panel = k718_lvgl_init(72);
 //
 static inline esp_lcd_panel_handle_t k718_lvgl_init(int buf_height = 36) {
-    esp_lcd_panel_handle_t panel = k718_display_init(
-        _k718_notify_flush_ready, &_k718_disp_drv);
-
     lv_init();
 
-    size_t buf_pixels = LCD_H_RES * buf_height;
-    lv_color_t *buf1 = (lv_color_t *)heap_caps_malloc(
-        buf_pixels * sizeof(lv_color_t), MALLOC_CAP_DMA);
-    lv_color_t *buf2 = (lv_color_t *)heap_caps_malloc(
-        buf_pixels * sizeof(lv_color_t), MALLOC_CAP_DMA);
-    assert(buf1 && buf2);
-    lv_disp_draw_buf_init(&_k718_disp_buf, buf1, buf2, buf_pixels);
+    _k718_disp = lv_display_create(LCD_H_RES, LCD_V_RES);
 
-    lv_disp_drv_init(&_k718_disp_drv);
-    _k718_disp_drv.hor_res    = LCD_H_RES;
-    _k718_disp_drv.ver_res    = LCD_V_RES;
-    _k718_disp_drv.flush_cb   = _k718_flush_cb;
-    _k718_disp_drv.rounder_cb = _k718_rounder_cb;
-    _k718_disp_drv.draw_buf   = &_k718_disp_buf;
-    _k718_disp_drv.user_data  = panel;
-    lv_disp_drv_register(&_k718_disp_drv);
+    // Le panel IO notifie flush_ready avec le lv_display_t* comme user_ctx.
+    esp_lcd_panel_handle_t panel = k718_display_init(
+        _k718_notify_flush_ready, _k718_disp);
+    lv_display_set_user_data(_k718_disp, panel);
+
+    // Buffers : v9 prend une taille en OCTETS. RGB565 = 2 octets/pixel.
+    // NE PAS utiliser sizeof(lv_color_t) (= 3 octets en v9, ce n'est pas le format de rendu).
+    size_t buf_pixels = LCD_H_RES * buf_height;
+    size_t buf_bytes  = buf_pixels * 2;
+    uint8_t *buf1 = (uint8_t *)heap_caps_malloc(buf_bytes, MALLOC_CAP_DMA);
+    uint8_t *buf2 = (uint8_t *)heap_caps_malloc(buf_bytes, MALLOC_CAP_DMA);
+    assert(buf1 && buf2);
+    lv_display_set_buffers(_k718_disp, buf1, buf2, buf_bytes,
+                           LV_DISPLAY_RENDER_MODE_PARTIAL);
+
+    lv_display_set_flush_cb(_k718_disp, _k718_flush_cb);
+    // Le panneau attend du RGB565 octet-swappé (ex-LV_COLOR_16_SWAP).
+    lv_display_set_color_format(_k718_disp, LV_COLOR_FORMAT_RGB565_SWAPPED);
+    lv_display_add_event_cb(_k718_disp, _k718_invalidate_area_cb,
+                            LV_EVENT_INVALIDATE_AREA, NULL);
 
     const esp_timer_create_args_t tick_args = {
         .callback = [](void *) { lv_tick_inc(2); },
