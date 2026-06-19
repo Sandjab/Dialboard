@@ -1,0 +1,17 @@
+{
+  "title": "Claude",
+  "background": "#0B0B0F",
+  "nav": { "wrap": true },
+  "components": {
+    "w5h": {"type":"ring","color":"#38BDF8","pill":true,"countdown":true,
+            "thresholds":[[70,"#22C55E"],[90,"#F59E0B"],[100,"#EF4444"]]},
+    "w7d": {"type":"ring","color":"#A78BFA","pill":true,"countdown":true},
+    "led": {"type":"led_ring"},
+    "buzz":{"type":"sound"}
+  },
+  "pages": [
+    {"name":"usage","place":[
+      {"ref":"w5h","radius":176,"thickness":16,"gap_deg":70},
+      {"ref":"w7d","radius":141,"thickness":16,"gap_deg":70}]}
+  ]
+}

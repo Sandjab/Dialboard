@@ -1,0 +1,143 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { createValidator } from '../js/validate.js';
+
+const schema = JSON.parse(
+  readFileSync(new URL('../../schema/layout.schema.json', import.meta.url))
+);
+const validate = createValidator(schema);
+
+// Layout minimal valide réutilisé par les cas (un composant + une page).
+function base() {
+  return {
+    components: { t: { type: 'readout', unit: 'C' } },
+    pages: [{ name: 'P1', place: [{ ref: 't', anchor: 'CENTER' }] }]
+  };
+}
+
+test('schema : sources top-level valides (url/interval/headers/vars)', () => {
+  const l = base();
+  l.sources = [{
+    name: 'weather',
+    url: 'https://api.example/w?city=Paris',
+    interval_s: 600,
+    headers: { 'X-API-Key': '$weather_key' },
+    vars: { temp: '/main/temp' }
+  }];
+  const r = validate(l);
+  assert.equal(r.valid, true, JSON.stringify(r.errors));
+});
+
+test('schema : une source sans url est rejetée', () => {
+  const l = base();
+  l.sources = [{ name: 'bad', interval_s: 600 }];
+  assert.equal(validate(l).valid, false);
+});
+
+test('schema : interval_s sous le plancher 5 est rejeté', () => {
+  const l = base();
+  l.sources = [{ url: 'http://x', interval_s: 2 }];
+  assert.equal(validate(l).valid, false);
+});
+
+test('schema : champ bind accepté sur un composant data', () => {
+  const l = base();
+  l.components.t.bind = 'temp';
+  const r = validate(l);
+  assert.equal(r.valid, true, JSON.stringify(r.errors));
+});
+
+test('schema : secrets top-level reste interdit (write-only, hors layout)', () => {
+  const l = base();
+  l.secrets = { weather_key: 'xxx' };
+  assert.equal(validate(l).valid, false);
+});
+
+test('schema : composant chart valide (points + bind)', () => {
+  const l = base();
+  l.components.g = { type: 'chart', color: '#38BDF8', min: 0, max: 100, points: 30, bind: 'cpu' };
+  l.pages[0].place.push({ ref: 'g', anchor: 'CENTER', width: 200, height: 100 });
+  const r = validate(l);
+  assert.equal(r.valid, true, JSON.stringify(r.errors));
+});
+
+test('schema : composant meter valide (thresholds + bind)', () => {
+  const l = base();
+  l.components.m = {
+    type: 'meter', color: '#38BDF8', min: 0, max: 100,
+    thresholds: [[50, '#22C55E'], [80, '#F59E0B']], bind: 'temp'
+  };
+  l.pages[0].place.push({ ref: 'm', anchor: 'CENTER', width: 160, height: 160 });
+  const r = validate(l);
+  assert.equal(r.valid, true, JSON.stringify(r.errors));
+});
+
+test('schema : propriete inconnue sur un chart est rejetee', () => {
+  const l = base();
+  l.components.g = { type: 'chart', wat: 1 };
+  l.pages[0].place.push({ ref: 'g' });
+  assert.equal(validate(l).valid, false);
+});
+
+test('schema : bar avec style de label (couleur/police/alignement) valide', () => {
+  const l = base();
+  l.components.b = { type: 'bar', label: 'RAM', label_color: '#FF0000', label_font: 20, label_align: 'BOTTOM_MID' };
+  l.pages[0].place.push({ ref: 'b', anchor: 'CENTER', width: 200, height: 16 });
+  const r = validate(l);
+  assert.equal(r.valid, true, JSON.stringify(r.errors));
+});
+
+test('schema : bar label_align = CENTER rejeté (8 positions extérieures seulement)', () => {
+  const l = base();
+  l.components.b = { type: 'bar', label_align: 'CENTER' };
+  l.pages[0].place.push({ ref: 'b' });
+  assert.equal(validate(l).valid, false);
+});
+
+test('schema : bar label_font hors enum rejeté', () => {
+  const l = base();
+  l.components.b = { type: 'bar', label_font: 17 };
+  l.pages[0].place.push({ ref: 'b' });
+  assert.equal(validate(l).valid, false);
+});
+
+test('schema : composant image valide (src/w/h)', () => {
+  const l = base();
+  l.components.logo = { type: 'image', src: 'deadbeef', w: 120, h: 80 };
+  l.pages[0].place.push({ ref: 'logo', anchor: 'TOP_LEFT' });
+  const r = validate(l);
+  assert.equal(r.valid, true, JSON.stringify(r.errors));
+});
+
+test('schema : composant image — propriété inconnue rejetée', () => {
+  const l = base();
+  l.components.logo = { type: 'image', src: 'deadbeef', zoom: 2 };
+  l.pages[0].place.push({ ref: 'logo', anchor: 'CENTER' });
+  assert.equal(validate(l).valid, false);
+});
+
+test('schema : image_anim valide (src/w/h/frames/period/loop/autoplay)', () => {
+  const l = base();
+  l.components.sp = { type: 'image_anim', src: 'abcd1234', w: 64, h: 64, frames: 6, period: 80, rest_frame: 2, loop: 3, autoplay: true };
+  l.pages[0].place.push({ ref: 'sp', anchor: 'CENTER' });
+  const r = validate(l);
+  assert.equal(r.valid, true, JSON.stringify(r.errors));
+});
+
+test('schema : image_anim rejette frames > 32', () => {
+  const l = base();
+  l.components.sp = { type: 'image_anim', src: 'abcd1234', w: 64, h: 64, frames: 99 };
+  l.pages[0].place.push({ ref: 'sp', anchor: 'CENTER' });
+  assert.equal(validate(l).valid, false);
+});
+
+test('validate : image_anim au-dela du plafond memoire -> erreur', () => {
+  const l = base();
+  // 360*360*3*8 = 3 110 400 octets > 1 572 864
+  l.components.sp = { type: 'image_anim', src: 'abcd1234', w: 360, h: 360, frames: 8 };
+  l.pages[0].place.push({ ref: 'sp', anchor: 'CENTER' });
+  const r = validate(l);
+  assert.equal(r.valid, false);
+  assert.ok(r.errors.some(e => /pack trop gros|trop de frames/.test(e)));
+});

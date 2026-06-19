@@ -1,0 +1,274 @@
+:root {
+  /* Palette empruntée au device qu'on édite (cf. default-layout) : near-black chaud #0B0B0F +
+     violet de l'anneau #A78BFA en accent primaire ; le cyan #38BDF8 (lecture/barre du device)
+     reste en info secondaire. Pas de bleu-nuit Tailwind dans le chrome. */
+  --bg: #0c0c10;
+  --panel: #131319;
+  --panel-2: #0f0f14;
+  --line: #26262f;
+  --ink: #ecebf2;
+  --muted: #8b8794;
+  --accent: #a78bfa;          /* primaire (anneau device) : action primaire + sélection */
+  --accent-strong: #8b5cf6;   /* fond du bouton primaire */
+  --info: #38bdf8;            /* device / info */
+  --ok: #22c55e;
+  --warn: #fbbf24;
+  --err: #f87171;
+  /* Montserrat (déjà embarquée, @font-face plus bas) pour titre+sections : le chrome fait écho à
+     la police de l'aperçu. Aucun asset réseau (le designer est servi hors-ligne depuis le device). */
+  --font-ui: 'Montserrat', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+header h1 { font-family: var(--font-ui); font-size: 16px; font-weight: 500; letter-spacing: .04em; margin: 0; color: var(--ink); }
+header .grow { flex: 1; }
+/* Familles d'actions séparées visuellement : historique · device · fichier. */
+.hgroup { display: flex; align-items: center; gap: 6px; }
+.hgroup + .hgroup { padding-left: 10px; border-left: 1px solid var(--line); }
+.hgroup label { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12.5px; }
+
+/* Boutons : ghost par défaut (calme) ; .primary = action engageante (Pousser) ; .accent = lecture device courante. */
+button { background: transparent; border: 1px solid var(--line); color: var(--muted); border-radius: 6px; padding: 4px 10px; cursor: pointer; font: inherit; transition: border-color .12s, color .12s, background .12s; }
+button:hover:not(:disabled) { border-color: var(--accent); color: var(--ink); background: rgba(167, 139, 250, .08); }
+button:disabled { border-color: var(--line); color: #55525e; cursor: default; }
+button.primary { background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; font-weight: 600; }
+button.primary:hover:not(:disabled) { background: var(--accent); border-color: var(--accent); color: #160a2e; }
+button.accent { border-color: var(--accent); color: var(--ink); }
+input, select { background: var(--panel-2); border: 1px solid var(--line); color: var(--ink); border-radius: 5px; padding: 3px 6px; font: inherit; }
+main { display: grid; grid-template-columns: 170px 1fr 200px; gap: 10px; padding: 10px; min-height: 50vh; }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+.col h2 { font-family: var(--font-ui); font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+.todo { color: #55525e; font-style: italic; }
+footer { padding: 10px 12px; border-top: 1px solid var(--line); }
+textarea { width: 100%; height: 220px; background: #0a0a0e; color: #cbd5e1; border: 1px solid var(--line); border-radius: 8px; font: 12.5px/1.5 var(--font-mono); padding: 10px; }
+.row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+.status, .valid { font-size: 12.5px; }
+.status.ok, .valid.ok { color: var(--ok); }
+.status.err, .valid.err { color: var(--err); }
+.errors { color: var(--err); font: 12px/1.4 monospace; white-space: pre-wrap; margin: 6px 0 0; }
+.warnings { color: #FBBF24; font: 12px/1.4 monospace; white-space: pre-wrap; margin: 4px 0 0; }
+
+/* --- Plan B : webfont + canvas --- */
+@font-face {
+  font-family: 'Montserrat';
+  src: url('vendor/fonts/montserrat-500.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+}
+
+/* Halo violet derrière l'écran rond : la marge généreuse devient atmosphère plutôt que vide résiduel. */
+#canvas-col { display: flex; flex-direction: column; align-items: center; overflow: auto;
+  background: radial-gradient(circle at 50% 34%, rgba(167, 139, 250, .07), transparent 58%), var(--panel); }
+/* Boîte qui RÉSERVE la place du canvas zoomé : le transform du .stage ne crée pas de boîte de mise
+   en page, donc le wrap porte la taille à l'échelle pour pousser le footer et garder le centrage. */
+.stage-wrap {
+  flex: none;
+  width: calc(360px * var(--zoom, 1));
+  height: calc(360px * var(--zoom, 1));
+}
+.stage {
+  position: relative;
+  width: 360px; height: 360px;     /* 1 px CSS = 1 unité écran à zoom 1 (échelle interne 1:1) */
+  /* Zoom d'affichage : on scale visuellement depuis le coin haut-gauche pour que l'unité écran (0,0)
+     reste l'origine. La math d'interaction (canvas.js, palette.js) divise les coords pointeur par ce
+     facteur (stage.rect.width / 360) → le layout reste en unités écran, le zoom n'est que visuel. */
+  transform: scale(var(--zoom, 1));
+  transform-origin: top left;
+  border-radius: 50%;
+  background: #000;
+  transition: box-shadow .12s;
+  /* PAS d'overflow:hidden : il clipperait les poignées de redim (handle-br, poignées
+     de ring) près du bord. Le rendu rond vient du border-radius + .screen-circle ;
+     un widget hors-cercle est signalé par .w.outside, pas clippé. */
+  flex: none;
+  touch-action: none;              /* pointer events propres (pas de scroll/zoom) */
+}
+.screen-circle {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  border: 1px dashed #33333f;      /* matérialise la zone ronde visible */
+  pointer-events: none;
+}
+/* Indice de dépôt : pendant un glisser de la palette, l'écran s'allume. */
+.stage.drop-active { box-shadow: 0 0 0 2px var(--accent), 0 0 28px rgba(167, 139, 250, .45); }
+.stage.drop-active .screen-circle { border-color: var(--accent); border-style: solid; }
+.w { position: absolute; user-select: none; cursor: move; white-space: nowrap; }
+/* Au repos, un widget déplaçable se signale au survol (le ring centré n'est pas déplaçable). */
+.w:not(.w-ring):not(.selected):not(.outside):hover { outline: 1px dashed var(--muted); outline-offset: 2px; }
+.w.selected { outline: 1px solid var(--accent); outline-offset: 2px; }
+.w.snapped { outline: 1px solid var(--ok); }
+.w.outside { outline: 1px dashed var(--err); }  /* coin hors zone ronde */
+
+/* Guide d'ancrage : overlay SVG montré pendant le drag d'un widget. Repères des 9 ancres,
+   ligne vers l'ancre la plus proche, marqueur actif (vert quand magnétisé, cf .w.snapped). */
+.ag { position: absolute; inset: 0; pointer-events: none; overflow: visible; z-index: 5; }
+.ag[hidden] { display: none; }
+.ag-dot { fill: var(--accent); opacity: .4; }
+.ag-line { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.ag-active { fill: var(--accent); fill-opacity: .25; stroke: var(--accent); stroke-width: 2.5; }
+.ag-active.snapped { fill: var(--ok); fill-opacity: .4; stroke: var(--ok); }
+
+.w-bar-label { position: absolute; white-space: nowrap; line-height: 1; font-family: Montserrat, system-ui, sans-serif; pointer-events: none; }
+.w-bar-label--TOP_MID      { bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 6px; }
+.w-bar-label--TOP_LEFT     { bottom: 100%; left: 0;   margin-bottom: 6px; }
+.w-bar-label--TOP_RIGHT    { bottom: 100%; right: 0;  margin-bottom: 6px; }
+.w-bar-label--BOTTOM_MID   { top: 100%; left: 50%; transform: translateX(-50%); margin-top: 6px; }
+.w-bar-label--BOTTOM_LEFT  { top: 100%; left: 0;  margin-top: 6px; }
+.w-bar-label--BOTTOM_RIGHT { top: 100%; right: 0; margin-top: 6px; }
+.w-bar-label--LEFT_MID     { right: 100%; top: 50%; transform: translateY(-50%); margin-right: 6px; }
+.w-bar-label--RIGHT_MID    { left: 100%;  top: 50%; transform: translateY(-50%); margin-left: 6px; }
+.w-bar-track { background: #1F2937; border-radius: 999px; overflow: hidden; }   /* pilule (lv_bar arrondi) */
+.w-bar-fill { height: 100%; border-radius: 999px; }                            /* extrémité droite arrondie */
+
+.w-ring { cursor: default; }       /* ring centré, non déplaçable (view.cpp:51) */
+.w-ring svg { display: block; }
+.w-ring-pill, .w-ring-cap {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  font: 12px Montserrat, system-ui, sans-serif;
+}
+.w-ring-pill { color: #04121A; border-radius: 13px; padding: 2px 8px;
+  transform: translate(-50%, -50%); border: 1px solid #000; }   /* centrée sur la bande + liseré (view.cpp:60,101) */
+.w-ring-center {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  white-space: nowrap;                                          /* lecture centrale center_pct (view.cpp:89) */
+}
+.w-ring-cap { font-size: 14px; }
+
+/* chart : panneau + grille (thème lv_chart par défaut, best-effort) */
+.w-chart { background: #FAFBFC; border: 1px solid #D7DEE8; border-radius: 8px; overflow: hidden; }
+.chart-grid { stroke: #E5E7EB; stroke-width: 1; }
+/* meter : panneau + moyeu + chiffres (thème lv_meter, best-effort) */
+.meter-bg { fill: #F8FAFC; stroke: #D7DEE8; stroke-width: 1; }
+.meter-hub { fill: #374151; }
+.meter-num { fill: #9CA3AF; font: 11px Montserrat, system-ui, sans-serif; text-anchor: middle; dominant-baseline: central; }
+
+.handle {
+  position: absolute; width: 11px; height: 11px; box-sizing: border-box;
+  background: var(--accent); border: 1px solid #04121A; border-radius: 2px; z-index: 5;
+}
+.handle-radius, .handle-thick, .handle-gap { transform: translate(-50%, -50%); }
+.handle-radius, .handle-thick { cursor: ns-resize; }
+.handle-gap { cursor: ew-resize; }
+.handle-br { right: -6px; bottom: -6px; cursor: nwse-resize; }
+
+/* --- Plan C1 : palette --- */
+.palette-hint { font-size: 11px; color: var(--muted); line-height: 1.45; margin: 0 0 8px; }
+.palette-list { display: flex; flex-direction: column; gap: 6px; }
+.palette-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--panel-2); cursor: grab; user-select: none; font-size: 13px;
+}
+.palette-icon { width: 16px; height: 16px; flex: none; color: var(--muted); }   /* monochrome : suit currentColor */
+.palette-item:active { cursor: grabbing; }
+.palette-item:hover { border-color: var(--accent); }
+.palette-item:hover .palette-icon { color: var(--accent); }   /* touche de couleur au survol */
+
+/* --- Plan C1 : inspecteur --- */
+.insp-head { font-size: 12px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+.insp-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 12.5px; }
+.insp-label { flex: 0 0 78px; color: #9aa0aa; }
+.insp-row input[type="text"], .insp-row input[type="number"], .insp-row select { flex: 1; min-width: 0; background: var(--panel-2); border: 1px solid var(--line); color: var(--ink); border-radius: 4px; padding: 2px 5px; }
+.insp-row input[type="color"] { width: 36px; height: 22px; padding: 0; border: 1px solid var(--line); background: none; }
+.insp-row.disabled { opacity: .45; }
+.insp-warn { color: var(--err); font-size: 11px; }
+.insp-bg-hint { color: var(--muted); font-size: 11px; align-self: center; }   /* fond de page hérité du global */
+.insp-bg-reset { padding: 0 7px; line-height: 1.7; }                          /* ↺ réhériter du fond global */
+.insp-bg-thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; margin-left: 6px; vertical-align: middle; }
+.insp-bg-file  { max-width: 150px; }
+.insp-del { margin-top: 10px; width: 100%; border-color: var(--err); color: var(--err); }
+.insp-sub { font-size: 11px; color: var(--muted); margin: 10px 0 4px; text-transform: uppercase; }
+.insp-note { font-size: 11px; color: var(--muted); font-style: italic; margin: 2px 0 6px; }
+.insp-th-rm { flex: 0 0 auto; padding: 0 8px; border-color: var(--line); color: var(--muted); }
+.insp-th-add { width: 100%; margin-top: 2px; }
+/* --- image_anim field --- */
+.insp-aimg-strip { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.insp-aimg-frame { width: 32px; height: 32px; object-fit: cover; border: 1px solid transparent; cursor: pointer; border-radius: 3px; }
+.insp-aimg-frame.is-rest { border-color: var(--accent); }
+.insp-aimg-play { margin-top: 6px; padding: 2px 10px; }
+
+/* --- Plan C2 : onglets de pages --- */
+.pages-bar { display: flex; align-items: center; gap: 12px; padding: 6px 12px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.page-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.page-tab {
+  background: var(--panel-2); border: 1px solid var(--line); color: var(--muted);
+  border-radius: 6px 6px 0 0; padding: 4px 12px; cursor: grab; font-size: 12.5px;
+}
+.page-tab.active { color: var(--ink); border-color: var(--accent); background: var(--panel); }
+.page-tab.dragging { opacity: .45; cursor: grabbing; }                       /* onglet en cours de glisser */
+.page-tab.drag-over { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }  /* cible de dépôt */
+.page-rename { width: 120px; }
+.page-rename.invalid { border-color: var(--err); color: var(--err); }   /* nom de page déjà utilisé */
+.page-ctrls { display: flex; gap: 4px; }
+.page-btn { padding: 3px 9px; font-size: 12px; }
+.page-btn:disabled { border-color: var(--line); color: #55525e; cursor: default; }
+.page-del { border-color: var(--err); color: var(--err); }
+.page-del:disabled { border-color: var(--line); color: #55525e; }
+
+/* --- Plan C2 : bibliothèque de composants --- */
+.lib-title { font-size: 11px; text-transform: uppercase; color: var(--muted); margin: 14px 0 6px; }
+.lib-list { display: flex; flex-direction: column; gap: 5px; }
+.lib-item {
+  padding: 6px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel-2);
+  cursor: grab; user-select: none; font-size: 12px; display: flex; align-items: center; gap: 8px;
+}
+.lib-item:active { cursor: grabbing; }
+.lib-item:hover { border-color: var(--accent); }
+.lib-item:hover .palette-icon { color: var(--accent); }
+.lib-item .lib-type { color: var(--muted); font-size: 10.5px; margin-left: auto; }   /* tag-type poussé à droite */
+.lib-empty { font-size: 11px; color: #55525e; font-style: italic; }
+
+/* --- Panneau Sources (footer) --- */
+.sources-panel { display: flex; flex-direction: column; gap: 10px; padding: 6px 0; }
+.src-card { border: 1px solid var(--line); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.src-head { display: flex; align-items: center; justify-content: space-between; }
+.src-title { font-weight: 600; color: var(--info); }
+.src-del { font-size: 12px; }
+.src-field { display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 8px; }
+.src-field > span { color: #9CA3AF; font-size: 13px; }
+.src-field input { width: 100%; }
+.src-pairs { display: flex; flex-direction: column; gap: 4px; margin-left: 8px; }
+.src-sub { color: #9CA3AF; font-size: 12px; margin-top: 4px; }
+.src-row { display: flex; gap: 6px; align-items: center; }
+.src-row input { flex: 1; min-width: 0; }
+.src-pair-rm, .src-pair-add { flex: 0 0 auto; width: 28px; }
+.src-add { align-self: flex-start; }
+
+/* --- Overlay de capture d'écran (endpoint /screenshot) --- */
+.shot-overlay {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(8, 8, 12, .82);
+}
+.shot-overlay[hidden] { display: none; }
+.shot-box {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px;
+}
+.shot-box img {
+  width: 360px; height: 360px; border-radius: 50%;   /* écran rond 360×360 */
+  background: #000; display: block;
+}
+.shot-nav { display: flex; align-items: center; gap: 10px; }
+.shot-nav span { font-size: 12.5px; color: var(--muted); min-width: 78px; text-align: center; }
+
+/* Barre de santé device (GET /status) */
+.devbar { padding: 5px 12px; font: 12.5px/1.4 ui-monospace, monospace; color: var(--muted);
+  border-bottom: 1px solid var(--line); background: var(--panel-2); }
+.devbar.err { color: var(--err); }
+
+/* Toasts éphémères (cf. toast.js) : empilés en bas-centre, non bloquants, auto-disparition. */
+.toast-host { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+  display: flex; flex-direction: column; gap: 8px; z-index: 1000; pointer-events: none; }
+.toast { padding: 8px 14px; border-radius: 8px; font: 13px/1.4 var(--font-ui); color: var(--ink);
+  background: var(--panel); border: 1px solid var(--line); box-shadow: 0 6px 20px rgba(0, 0, 0, .45);
+  opacity: 0; transform: translateY(8px); transition: opacity .15s, transform .15s; }
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast-err { border-color: var(--err); color: var(--err); }
+.toast-ok { border-color: var(--ok); color: var(--ok); }
+
+/* Composant image : conteneur a la taille du composant (w×h) ; placeholder si pas d'asset. */
+.w-image { overflow: hidden; }
+.w-image--empty { border: 1px dashed #4B5563; box-sizing: border-box; }
