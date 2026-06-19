@@ -28,9 +28,9 @@ static uint8_t*      s_aimg_buf[MAX_COMPONENTS] = {0};
 static lv_image_dsc_t* s_aimg_dsc[MAX_COMPONENTS] = {0};   // tableau de c.aimg_frames descripteurs (PSRAM)
 
 // Styles persistants pour les bandes colorées de la jauge (sections lv_scale, LVGL 9).
-// Doivent survivre au widget -> statiques. Indexés par comp_index (un style/jauge).
-static lv_style_t s_meter_section_style[MAX_COMPONENTS];
-static bool       s_meter_section_init[MAX_COMPONENTS] = {0};
+// Doivent survivre au widget -> statiques. Un style par (composant, bande) pour le tricolore.
+static lv_style_t s_meter_section_style[MAX_COMPONENTS][MAX_THRESHOLDS];
+static bool       s_meter_section_init[MAX_COMPONENTS][MAX_THRESHOLDS] = {{0}};
 
 static const lv_align_t ALIGN_MAP[] = {
     LV_ALIGN_CENTER, LV_ALIGN_TOP_MID, LV_ALIGN_BOTTOM_MID, LV_ALIGN_LEFT_MID,
@@ -257,19 +257,18 @@ static void build_meter(lv_obj_t* parent, Component& c, Placement& q,
     // zones d'arc depuis thresholds : bande i = (prev, limit[i]] couleur i ; prev démarre à vmin
     int prev = c.vmin;
     int idx  = q.comp_index;
-    for (int i = 0; i < c.threshold_count; i++) {
+    for (int i = 0; i < c.threshold_count && i < MAX_THRESHOLDS; i++) {
         lv_scale_section_t* sec = lv_scale_add_section(scale);
         lv_scale_set_section_range(scale, sec, prev, (int)c.thresholds[i].limit);
         if (idx >= 0 && idx < MAX_COMPONENTS) {
-            if (!s_meter_section_init[idx]) {
-                lv_style_init(&s_meter_section_style[idx]);
-                s_meter_section_init[idx] = true;
+            if (!s_meter_section_init[idx][i]) {
+                lv_style_init(&s_meter_section_style[idx][i]);
+                s_meter_section_init[idx][i] = true;
             }
-            // NB : un seul style/jauge (dernière couleur gagne si plusieurs bandes).
-            // Best-effort natif lv_scale assumé ; élargir en [idx][i] si besoin multi-couleurs.
-            lv_style_set_arc_color(&s_meter_section_style[idx],
+            // Un style par bande -> tricolore (vert/orange/rouge) préservé.
+            lv_style_set_arc_color(&s_meter_section_style[idx][i],
                                    lv_color_hex(c.thresholds[i].color));
-            lv_scale_set_section_style_main(scale, sec, &s_meter_section_style[idx]);
+            lv_scale_set_section_style_main(scale, sec, &s_meter_section_style[idx][i]);
         }
         prev = (int)c.thresholds[i].limit;
     }
