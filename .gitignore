@@ -1,4 +1,5 @@
 .pio/
 data/designer/
 data/schema/
+docs/_internal/
 .DS_Store
