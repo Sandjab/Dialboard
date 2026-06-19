@@ -2,7 +2,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
-#include "guition_lvgl.h"
+#include "k718_lvgl.h"
 #include "config.h"
 #include "secrets.h"
 #include "view.h"
@@ -49,7 +49,7 @@ void setup() {
     Serial.begin(115200); delay(200);
     g_ctx_mutex = xSemaphoreCreateMutex();
     Serial.println("\nGuition JC3636K718 - Rich_Telemetry");
-    guition_lvgl_init();
+    k718_lvgl_init();
     touch_begin();
     lv_timer_handler();
     char err[80];

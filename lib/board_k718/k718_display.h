@@ -4,16 +4,16 @@
 #include "esp_lcd_panel_ops.h"
 #include "driver/spi_master.h"
 #include "esp_lcd_sh8601.h"
-#include "guition_pins.h"
-#include "guition_lcd_init.h"
+#include "k718_pins.h"
+#include "k718_lcd_init.h"
 
-// Initialize the ST77916 QSPI display and backlight on the Guition JC3636K718.
+// Initialize the ST77916 QSPI display and backlight on the K718 JC3636K718.
 //
 // Usage:
-//   esp_lcd_panel_handle_t panel = guition_display_init();
-//   esp_lcd_panel_handle_t panel = guition_display_init(flush_ready_cb, &ctx);
+//   esp_lcd_panel_handle_t panel = k718_display_init();
+//   esp_lcd_panel_handle_t panel = k718_display_init(flush_ready_cb, &ctx);
 //
-static inline esp_lcd_panel_handle_t guition_display_init(
+static inline esp_lcd_panel_handle_t k718_display_init(
         esp_lcd_panel_io_color_trans_done_cb_t on_flush_ready = NULL,
         void *user_ctx = NULL) {
 

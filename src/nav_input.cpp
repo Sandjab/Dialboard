@@ -2,7 +2,7 @@
 #include "nav_logic.h"
 #include "view.h"
 #include "bidi_switch_knob.h"
-#include "guition_pins.h"
+#include "k718_pins.h"
 
 static knob_handle_t knob = nullptr;
 

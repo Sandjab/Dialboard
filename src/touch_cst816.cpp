@@ -4,7 +4,7 @@
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_touch.h"
 #include "esp_lcd_touch_cst816s.h"
-#include "guition_pins.h"
+#include "k718_pins.h"
 
 // Bring-up CST816 (I2C addr 0x15) -> esp_lcd_touch -> LVGL pointer indev.
 // Le composant esp_lcd_touch_cst816s est vendorise dans lib/ (absent du registre

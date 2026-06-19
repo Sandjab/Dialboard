@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Adafruit_NeoPixel.h>
-#include "guition_pins.h"
+#include "k718_pins.h"
 
 // RGB ring helpers (13 × WS2812 GRB on PIN_RGB_DATA = GPIO 0).
 //
