@@ -48,7 +48,7 @@ static void start_services() {
 void setup() {
     Serial.begin(115200); delay(200);
     g_ctx_mutex = xSemaphoreCreateMutex();
-    Serial.println("\nGuition JC3636K718 - Rich_Telemetry");
+    Serial.println("\nK718 - Dialboard");
     k718_lvgl_init();
     touch_begin();
     lv_timer_handler();

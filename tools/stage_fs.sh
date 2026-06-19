@@ -2,14 +2,14 @@
 # Stage le designer + le schema dans data/ pour l'image LittleFS, afin que le device
 # serve l'éditeur à http://<ip>/designer/ (même origin, plus de serveur local ni CORS).
 #
-# À lancer AVANT `pio run -e esp32s3 -t uploadfs` (ou `./build.sh guition_knob Rich_Telemetry --uploadfs`)
+# À lancer AVANT `pio run -e esp32s3 -t uploadfs` (ou `./build.sh guition_knob Dialboard --uploadfs`)
 # chaque fois que le designer change. `data/designer` et `data/schema` sont des artefacts
 # régénérables (gitignorés) ; `data/layout.json` (layout par défaut) est conservé.
 #
 # Note serveStatic : pour une URL de répertoire, le WebServer cherche `index.htm` (pas `.html`)
 # → on copie `index.html` sous le nom `index.htm`.
 set -euo pipefail
-cd "$(dirname "$0")/.."   # -> Rich_Telemetry/
+cd "$(dirname "$0")/.."   # -> Dialboard/
 
 rm -rf data/designer data/schema
 mkdir -p data/designer/js data/designer/vendor data/schema

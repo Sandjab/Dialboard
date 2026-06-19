@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pousse les fenetres d'usage Claude (synthetiques) vers Rich_Telemetry.
+"""Pousse les fenetres d'usage Claude (synthetiques) vers Dialboard.
 Usage: python3 tools/push.py http://<ip> [--interval 5]"""
 import sys, time, argparse, urllib.request, json
 

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "rich-telemetry/layout.schema.json",
-  "title": "Rich_Telemetry layout",
+  "title": "Dialboard layout",
   "description": "Contrat partage du layout.json entre le firmware embarque (consommateur, src/dashboard.cpp) et le designer WYSIWYG (producteur, designer/). SOURCE DE VERITE UNIQUE. Derive du parser dash_set_layout() + du README. Le firmware est tolerant (il ignore les cles inconnues) ; ce schema est volontairement plus strict (additionalProperties:false) pour que le designer attrape les fautes de frappe. Toute evolution du contrat = un commit dedie ici, merge sur master, puis rebase des branches embarque/designer.",
   "type": "object",
   "required": ["components", "pages"],
