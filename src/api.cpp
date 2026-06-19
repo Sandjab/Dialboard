@@ -202,55 +202,61 @@ static void put_u32le(uint8_t* p, uint32_t v) {
     p[0] = v & 0xFF; p[1] = (v >> 8) & 0xFF; p[2] = (v >> 16) & 0xFF; p[3] = (v >> 24) & 0xFF;
 }
 static void h_screenshot() {
-    lv_obj_t* scr = lv_scr_act();
-    uint32_t need = lv_snapshot_buf_size_needed(scr, LV_IMG_CF_TRUE_COLOR);
-    if (!need) { S->send(500, "text/plain", "snapshot size unavailable\n"); return; }
-    uint8_t* buf = (uint8_t*)heap_caps_malloc(need, MALLOC_CAP_SPIRAM);
-    if (!buf) { S->send(503, "text/plain", "PSRAM alloc failed\n"); return; }
+    lv_obj_t* scr = lv_screen_active();
+    const uint32_t w = lv_display_get_horizontal_resolution(NULL);
+    const uint32_t h = lv_display_get_vertical_resolution(NULL);
+    // On snapshot en RGB565 NON swappe (rendu deterministe, independant du format du display),
+    // puis on expanse R5G6B5 -> RGB888. Buffer alloue en PSRAM a la main : lv_snapshot_take()
+    // passerait par l'allocateur LVGL (pool builtin 48 Ko) et echouerait sur 360x360.
+    const uint32_t src_stride = lv_draw_buf_width_to_stride(w, LV_COLOR_FORMAT_RGB565);
+    const uint32_t data_size  = src_stride * h;
+    uint8_t* mem = (uint8_t*)heap_caps_malloc(data_size, MALLOC_CAP_SPIRAM);
+    if (!mem) { S->send(503, "text/plain", "PSRAM alloc failed\n"); return; }
 
-    lv_img_dsc_t dsc;
-    if (lv_snapshot_take_to_buf(scr, LV_IMG_CF_TRUE_COLOR, &dsc, buf, need) != LV_RES_OK) {
-        heap_caps_free(buf);
+    lv_draw_buf_t snap;
+    lv_draw_buf_init(&snap, w, h, LV_COLOR_FORMAT_RGB565, src_stride, mem, data_size);
+    if (lv_snapshot_take_to_draw_buf(scr, LV_COLOR_FORMAT_RGB565, &snap) != LV_RESULT_OK) {
+        heap_caps_free(mem);
         S->send(500, "text/plain", "snapshot failed\n");
         return;
     }
-    // Dimensions remplies par take_to_buf (360x360 ici) -- jamais codees en dur.
-    const uint32_t w = dsc.header.w, h = dsc.header.h;
-    const uint32_t stride = w * 3;          // BMP 24-bit ; 360*3 = 1080, deja multiple de 4
-    const uint32_t img_size = stride * h;
 
-    uint8_t hdr[54] = {0};                   // BITMAPFILEHEADER(14) + BITMAPINFOHEADER(40)
+    const uint32_t dst_stride = w * 3;       // BMP 24-bit ; 360*3 = 1080, deja multiple de 4
+    const uint32_t img_size   = dst_stride * h;
+
+    uint8_t hdr[54] = {0};                    // BITMAPFILEHEADER(14) + BITMAPINFOHEADER(40)
     hdr[0] = 'B'; hdr[1] = 'M';
-    put_u32le(hdr + 2, 54 + img_size);       // taille fichier
-    hdr[10] = 54;                            // offset des pixels
-    hdr[14] = 40;                            // taille BITMAPINFOHEADER
+    put_u32le(hdr + 2, 54 + img_size);        // taille fichier
+    hdr[10] = 54;                             // offset des pixels
+    hdr[14] = 40;                             // taille BITMAPINFOHEADER
     put_u32le(hdr + 18, w);
-    put_u32le(hdr + 22, h);                  // h > 0 => bottom-up
-    hdr[26] = 1;                             // planes
-    hdr[28] = 24;                            // bits/pixel
-    put_u32le(hdr + 34, img_size);           // biSizeImage
+    put_u32le(hdr + 22, h);                   // h > 0 => bottom-up
+    hdr[26] = 1;                              // planes
+    hdr[28] = 24;                             // bits/pixel
+    put_u32le(hdr + 34, img_size);            // biSizeImage
 
-    uint8_t* row = (uint8_t*)malloc(stride);
-    if (!row) { heap_caps_free(buf); S->send(503, "text/plain", "row alloc failed\n"); return; }
+    uint8_t* row = (uint8_t*)malloc(dst_stride);
+    if (!row) { heap_caps_free(mem); S->send(503, "text/plain", "row alloc failed\n"); return; }
 
     S->setContentLength(54 + img_size);
     S->send(200, "image/bmp", "");
     S->sendContent((const char*)hdr, 54);
 
-    const lv_color_t* px = (const lv_color_t*)dsc.data;
+    const uint8_t* data = snap.data;
     for (int32_t y = (int32_t)h - 1; y >= 0; y--) {     // bottom-up
-        const lv_color_t* line = px + (uint32_t)y * w;
+        const uint8_t* line = data + (uint32_t)y * src_stride;
         uint8_t* p = row;
         for (uint32_t x = 0; x < w; x++) {
-            uint32_t c = lv_color_to32(line[x]);        // gere LV_COLOR_16_SWAP
-            *p++ = c & 0xFF;            // B
-            *p++ = (c >> 8) & 0xFF;     // G
-            *p++ = (c >> 16) & 0xFF;    // R
+            uint16_t px = (uint16_t)line[x * 2] | ((uint16_t)line[x * 2 + 1] << 8);  // RGB565 LE
+            uint8_t r = (px >> 11) & 0x1F; r = (r << 3) | (r >> 2);
+            uint8_t g = (px >> 5)  & 0x3F; g = (g << 2) | (g >> 4);
+            uint8_t b =  px        & 0x1F; b = (b << 3) | (b >> 2);
+            *p++ = b; *p++ = g; *p++ = r;     // BMP = BGR
         }
-        S->sendContent((const char*)row, stride);
+        S->sendContent((const char*)row, dst_stride);
     }
     free(row);
-    heap_caps_free(buf);
+    heap_caps_free(mem);
 }
 
 // --- POST /bgimage?key=<hex> : upload d'un fond RGB565 (360x360, 259200 octets) ---
