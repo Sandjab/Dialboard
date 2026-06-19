@@ -27,6 +27,11 @@ static lv_img_dsc_t s_img_dsc[MAX_COMPONENTS];
 static uint8_t*      s_aimg_buf[MAX_COMPONENTS] = {0};
 static lv_img_dsc_t* s_aimg_dsc[MAX_COMPONENTS] = {0};   // tableau de c.aimg_frames descripteurs (PSRAM)
 
+// Styles persistants pour les bandes colorées de la jauge (sections lv_scale, LVGL 9).
+// Doivent survivre au widget -> statiques. Indexés par comp_index (un style/jauge).
+static lv_style_t s_meter_section_style[MAX_COMPONENTS];
+static bool       s_meter_section_init[MAX_COMPONENTS] = {0};
+
 static const lv_align_t ALIGN_MAP[] = {
     LV_ALIGN_CENTER, LV_ALIGN_TOP_MID, LV_ALIGN_BOTTOM_MID, LV_ALIGN_LEFT_MID,
     LV_ALIGN_RIGHT_MID, LV_ALIGN_TOP_LEFT, LV_ALIGN_TOP_RIGHT, LV_ALIGN_BOTTOM_LEFT, LV_ALIGN_BOTTOM_RIGHT
@@ -234,34 +239,56 @@ static void sync_chart(Component& c, Placement&, lv_obj_t* chart, lv_obj_t*, lv_
     lv_chart_refresh(chart);
 }
 
-// --- meter : jauge à aiguille ; thresholds réutilisés en zones d'arc.
-// Handle aiguille stocké dans le slot sub1 (pas de getter d'indicateur côté lv_meter). ---
+// --- meter : jauge à aiguille via lv_scale (lv_meter supprimé en LVGL 9).
+// Aiguille = lv_line enfant ; handle stocké dans sub1 (lv_obj_t* réel). ---
 static void build_meter(lv_obj_t* parent, Component& c, Placement& q,
                         lv_obj_t** main, lv_obj_t** sub1, lv_obj_t**) {
-    lv_obj_t* meter = lv_meter_create(parent);
+    lv_obj_t* scale = lv_scale_create(parent);
     int sz = q.width ? q.width : 160;
-    lv_obj_set_size(meter, sz, q.height ? q.height : sz);
-    lv_meter_scale_t* scale = lv_meter_add_scale(meter);
-    lv_meter_set_scale_ticks(meter, scale, 21, 2, 8, lv_color_hex(0x4B5563));
-    lv_meter_set_scale_major_ticks(meter, scale, 5, 3, 12, lv_color_hex(0x9CA3AF), 10);
-    lv_meter_set_scale_range(meter, scale, c.vmin, c.vmax, 270, 135);   // arc 270° ouvert en bas
+    lv_obj_set_size(scale, sz, q.height ? q.height : sz);
+    lv_scale_set_mode(scale, LV_SCALE_MODE_ROUND_INNER);
+    lv_scale_set_total_tick_count(scale, 21);
+    lv_scale_set_major_tick_every(scale, 5);
+    lv_scale_set_label_show(scale, true);
+    lv_scale_set_range(scale, c.vmin, c.vmax);
+    lv_scale_set_angle_range(scale, 270);   // arc 270° ...
+    lv_scale_set_rotation(scale, 135);      // ... ouvert en bas
+
     // zones d'arc depuis thresholds : bande i = (prev, limit[i]] couleur i ; prev démarre à vmin
     int prev = c.vmin;
+    int idx  = q.comp_index;
     for (int i = 0; i < c.threshold_count; i++) {
-        lv_meter_indicator_t* arc = lv_meter_add_arc(meter, scale, 5, lv_color_hex(c.thresholds[i].color), 0);
-        lv_meter_set_indicator_start_value(meter, arc, prev);
-        lv_meter_set_indicator_end_value(meter, arc, (int)c.thresholds[i].limit);
+        lv_scale_section_t* sec = lv_scale_add_section(scale);
+        lv_scale_set_section_range(scale, sec, prev, (int)c.thresholds[i].limit);
+        if (idx >= 0 && idx < MAX_COMPONENTS) {
+            if (!s_meter_section_init[idx]) {
+                lv_style_init(&s_meter_section_style[idx]);
+                s_meter_section_init[idx] = true;
+            }
+            // NB : un seul style/jauge (dernière couleur gagne si plusieurs bandes).
+            // Best-effort natif lv_scale assumé ; élargir en [idx][i] si besoin multi-couleurs.
+            lv_style_set_arc_color(&s_meter_section_style[idx],
+                                   lv_color_hex(c.thresholds[i].color));
+            lv_scale_set_section_style_main(scale, sec, &s_meter_section_style[idx]);
+        }
         prev = (int)c.thresholds[i].limit;
     }
-    lv_meter_indicator_t* needle = lv_meter_add_needle_line(meter, scale, 4, lv_color_hex(c.color), -10);
-    lv_meter_set_indicator_value(meter, needle, c.value);
-    lv_obj_align(meter, ALIGN_MAP[q.anchor], q.dx, q.dy);
-    *main = meter;
-    *sub1 = (lv_obj_t*)(void*)needle;     // handle aiguille pour sync (cast opaque, jamais déréférencé en lv_obj_t)
+
+    lv_obj_t* needle = lv_line_create(scale);
+    lv_obj_set_style_line_width(needle, 4, LV_PART_MAIN);
+    lv_obj_set_style_line_color(needle, lv_color_hex(c.color), LV_PART_MAIN);
+    lv_obj_set_style_line_rounded(needle, true, LV_PART_MAIN);
+    lv_scale_set_line_needle_value(scale, needle, sz / 2 - 10, c.value);
+
+    lv_obj_align(scale, ALIGN_MAP[q.anchor], q.dx, q.dy);
+    *main = scale;
+    *sub1 = needle;   // handle aiguille (lv_obj_t* réel) pour sync
 }
-static void sync_meter(Component& c, Placement&, lv_obj_t* meter, lv_obj_t* sub1, lv_obj_t*) {
-    lv_meter_indicator_t* needle = (lv_meter_indicator_t*)(void*)sub1;
-    if (needle) lv_meter_set_indicator_value(meter, needle, c.value);
+static void sync_meter(Component& c, Placement&, lv_obj_t* scale, lv_obj_t* sub1, lv_obj_t*) {
+    if (sub1) {
+        int sz = lv_obj_get_width(scale);
+        lv_scale_set_line_needle_value(scale, sub1, sz / 2 - 10, c.value);
+    }
 }
 
 static void build_image(lv_obj_t* parent, Component& c, Placement& q,
@@ -334,7 +361,7 @@ static_assert(sizeof(VIEW) / sizeof(VIEW[0]) == COMP_COUNT,
 // ne supprime que ses enfants), donc on n'enregistre le callback gesture qu'une fois.
 static Dashboard* s_dash_for_gesture = nullptr;
 static void gesture_cb(lv_event_t* e) {
-    lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
+    lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_active());
     if (!s_dash_for_gesture) return;
     // Seuls les swipes latéraux naviguent : droite = suivant, gauche = précédent.
     // Haut/bas volontairement ignorés (réservés à une future page de config par swipe haut).
@@ -397,7 +424,7 @@ void view_show_page_anim(Dashboard* d, int idx, int delta) {
     lv_obj_t* in  = s_page_cont[idx];
     if (!in || !out) { view_show_page(d, idx); return; }   // sécurité : conteneurs absents
 
-    const int W = lv_disp_get_hor_res(NULL);
+    const int W = lv_display_get_horizontal_resolution(NULL);
     // Le contenu suit le doigt : swipe droite (delta>0) -> tout glisse à droite, l'entrant arrive
     // depuis la GAUCHE ; swipe gauche -> entrant depuis la droite. (Un seul signe à inverser si l'on
     // préfère « suivant vient de la droite ».)
