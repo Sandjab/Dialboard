@@ -1,0 +1,32 @@
+{
+  "title": "LVGL9 parity",
+  "background": "#0B0B0F",
+  "nav": { "wrap": true },
+  "components": {
+    "m1":   {"type":"meter","color":"#38BDF8","min":0,"max":100,
+             "thresholds":[[50,"#22C55E"],[80,"#F59E0B"],[100,"#EF4444"]]},
+    "b1":   {"type":"bar","label":"CPU","min":0,"max":100,"color":"#38BDF8"},
+    "c1":   {"type":"chart","color":"#A78BFA","min":0,"max":100,"points":30},
+    "r1":   {"type":"ring","color":"#38BDF8","pill":true,
+             "thresholds":[[70,"#22C55E"],[90,"#F59E0B"],[100,"#EF4444"]]},
+    "l1":   {"type":"label","text":"Dialboard","font":28,"color":"#E5E7EB"},
+    "ro1":  {"type":"readout","label":"TEMP","unit":"C","font":36,"color":"#38BDF8"},
+    "img1": {"type":"image","w":120,"h":120},
+    "aimg1":{"type":"image_anim","w":120,"h":120,"frames":4}
+  },
+  "pages": [
+    {"name":"gauge","place":[
+      {"ref":"m1","anchor":"CENTER","width":240,"height":240}]},
+    {"name":"barchart","place":[
+      {"ref":"b1","anchor":"TOP_MID","dy":70,"width":220,"height":24},
+      {"ref":"c1","anchor":"CENTER","dy":40,"width":240,"height":150}]},
+    {"name":"ring","place":[
+      {"ref":"r1","radius":170,"thickness":16,"gap_deg":70}]},
+    {"name":"text","place":[
+      {"ref":"l1","anchor":"CENTER","dy":-40},
+      {"ref":"ro1","anchor":"CENTER","dy":30}]},
+    {"name":"images","place":[
+      {"ref":"img1","anchor":"LEFT_MID","dx":30},
+      {"ref":"aimg1","anchor":"RIGHT_MID","dx":-30}]}
+  ]
+}
