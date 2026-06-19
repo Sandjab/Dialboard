@@ -13,7 +13,7 @@
 
 static esp_lcd_touch_handle_t tp = nullptr;
 
-static void touch_read_cb(lv_indev_drv_t*, lv_indev_data_t* data) {
+static void touch_read_cb(lv_indev_t*, lv_indev_data_t* data) {
     uint16_t x[1], y[1]; uint8_t cnt = 0;
     esp_lcd_touch_read_data(tp);
     bool pressed = esp_lcd_touch_get_coordinates(tp, x, y, nullptr, &cnt, 1);
@@ -47,9 +47,7 @@ void touch_begin() {
         return;   // CST816 absent/échec : pas d'indev tactile (encodeur + REST restent dispos)
     }
 
-    static lv_indev_drv_t drv;
-    lv_indev_drv_init(&drv);
-    drv.type = LV_INDEV_TYPE_POINTER;
-    drv.read_cb = touch_read_cb;
-    lv_indev_drv_register(&drv);
+    lv_indev_t *indev = lv_indev_create();
+    lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(indev, touch_read_cb);
 }
