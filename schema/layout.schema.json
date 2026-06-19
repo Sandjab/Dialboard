@@ -1,0 +1,292 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "rich-telemetry/layout.schema.json",
+  "title": "Rich_Telemetry layout",
+  "description": "Contrat partage du layout.json entre le firmware embarque (consommateur, src/dashboard.cpp) et le designer WYSIWYG (producteur, designer/). SOURCE DE VERITE UNIQUE. Derive du parser dash_set_layout() + du README. Le firmware est tolerant (il ignore les cles inconnues) ; ce schema est volontairement plus strict (additionalProperties:false) pour que le designer attrape les fautes de frappe. Toute evolution du contrat = un commit dedie ici, merge sur master, puis rebase des branches embarque/designer.",
+  "type": "object",
+  "required": ["components", "pages"],
+  "additionalProperties": false,
+  "properties": {
+    "title": { "type": "string", "description": "Titre du dashboard (defaut \"\")." },
+    "background": { "$ref": "#/$defs/hexColor", "description": "Couleur de fond (defaut #000000)." },
+    "nav": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "wrap": { "type": "boolean", "description": "Navigation circulaire (derniere page -> premiere). Defaut true." }
+      }
+    },
+    "components": {
+      "type": "object",
+      "description": "Map id -> definition. AUCUNE position ici (la position vit dans pages[].place[]). Un meme id place sur plusieurs pages = un seul exemplaire, etat partage.",
+      "minProperties": 1,
+      "additionalProperties": { "$ref": "#/$defs/component" }
+    },
+    "pages": {
+      "type": "array",
+      "description": "Liste ordonnee de pages.",
+      "items": { "$ref": "#/$defs/page" }
+    },
+    "sources": {
+      "type": "array",
+      "description": "Pull reseau (P2/P3). Chaque source fetch son url a son interval et ecrit ses vars dans le contexte ; un composant bind:\"var\" lit la valeur. SECRETS NON inclus ici : poses via POST /secrets (write-only), references par $nom dans headers.",
+      "maxItems": 6,
+      "items": { "$ref": "#/$defs/source" }
+    }
+  },
+  "$defs": {
+    "hexColor": {
+      "type": "string",
+      "pattern": "^#[0-9A-Fa-f]{6}$",
+      "description": "Couleur #RRGGBB."
+    },
+    "ascii": {
+      "type": "string",
+      "pattern": "^[\\x00-\\x7F]*$",
+      "description": "ASCII uniquement : les polices Montserrat embarquees ne couvrent pas les accents/symboles non-ASCII."
+    },
+    "font": {
+      "enum": [14, 20, 28, 36, 48],
+      "description": "Taille de police LVGL embarquee. Defaut 20. Une valeur intermediaire est arrondie a la taille disponible inferieure (min 14)."
+    },
+    "threshold": {
+      "type": "array",
+      "description": "[limite, \"#hex\"] : la couleur s'applique quand la valeur passe SOUS la limite.",
+      "items": [
+        { "type": "number" },
+        { "$ref": "#/$defs/hexColor" }
+      ],
+      "minItems": 2,
+      "maxItems": 2,
+      "additionalItems": false
+    },
+    "anchor": {
+      "enum": [
+        "CENTER",
+        "TOP_MID", "BOTTOM_MID", "LEFT_MID", "RIGHT_MID",
+        "TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT"
+      ],
+      "description": "Ancrage LVGL du placement. Defaut CENTER. (parse_anchor, dashboard.cpp)"
+    },
+    "anchorOut": {
+      "enum": [
+        "TOP_LEFT", "TOP_MID", "TOP_RIGHT",
+        "LEFT_MID", "RIGHT_MID",
+        "BOTTOM_LEFT", "BOTTOM_MID", "BOTTOM_RIGHT"
+      ],
+      "description": "Position d'un libelle autour de son widget (LV_ALIGN_OUT_*). Les 8 bords/coins exterieurs, sans CENTER."
+    },
+    "component": {
+      "type": "object",
+      "required": ["type"],
+      "oneOf": [
+        { "$ref": "#/$defs/comp_label" },
+        { "$ref": "#/$defs/comp_readout" },
+        { "$ref": "#/$defs/comp_bar" },
+        { "$ref": "#/$defs/comp_ring" },
+        { "$ref": "#/$defs/comp_led_ring" },
+        { "$ref": "#/$defs/comp_sound" },
+        { "$ref": "#/$defs/comp_chart" },
+        { "$ref": "#/$defs/comp_meter" },
+        { "$ref": "#/$defs/comp_image" },
+        { "$ref": "#/$defs/comp_image_anim" }
+      ]
+    },
+    "comp_label": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "label" },
+        "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
+        "text": { "$ref": "#/$defs/ascii", "description": "Texte statique (peut etre remplace via /update avec une string)." },
+        "font": { "$ref": "#/$defs/font" },
+        "color": { "$ref": "#/$defs/hexColor" }
+      }
+    },
+    "comp_readout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "readout" },
+        "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
+        "label": { "$ref": "#/$defs/ascii", "description": "Libelle affiche devant la valeur (ex. \"CPU\")." },
+        "unit": { "$ref": "#/$defs/ascii", "description": "Unite ASCII (%, GB, C, Mbps)." },
+        "font": { "$ref": "#/$defs/font" },
+        "color": { "$ref": "#/$defs/hexColor" }
+      }
+    },
+    "comp_bar": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "bar" },
+        "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
+        "label": { "$ref": "#/$defs/ascii", "description": "Libelle affiche au-dessus de la barre." },
+        "min": { "type": "number", "description": "Defaut 0." },
+        "max": { "type": "number", "description": "Defaut 100." },
+        "color": { "$ref": "#/$defs/hexColor" },
+        "label_color": { "$ref": "#/$defs/hexColor", "description": "Couleur du libelle. Defaut #9AA0AA." },
+        "label_font": { "$ref": "#/$defs/font", "description": "Taille de police du libelle. Defaut 14." },
+        "label_align": { "$ref": "#/$defs/anchorOut", "description": "Position du libelle autour de la barre. Defaut TOP_MID." }
+      }
+    },
+    "comp_ring": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "ring" },
+        "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
+        "color": { "$ref": "#/$defs/hexColor" },
+        "font": { "$ref": "#/$defs/font", "description": "Taille du chiffre central (center_pct)." },
+        "pill": { "type": "boolean", "description": "Affiche un pill de pourcentage sur la partie haute de la bande." },
+        "countdown": { "type": "boolean", "description": "Decremente reset_in_s d'une unite/s et l'affiche dans l'ouverture." },
+        "min": { "type": "number", "description": "Defaut 0." },
+        "max": { "type": "number", "description": "Defaut 100." },
+        "thresholds": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/threshold" }
+        },
+        "center_pct": { "type": "boolean", "description": "Affiche value+unit au centre de l'anneau, en grand (police = font du composant). Exclusif avec pill (center_pct prioritaire). La couleur suit le seuil par defaut. Unites non-ASCII (degre, micro) non rendues." },
+        "center_color": { "$ref": "#/$defs/hexColor", "description": "Couleur du chiffre central (center_pct). Surcharge la couleur deduite du seuil. Absent = suit le seuil (ou color)." }
+      }
+    },
+    "comp_led_ring": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "led_ring" },
+        "color": { "$ref": "#/$defs/hexColor", "description": "Couleur par defaut." },
+        "brightness": { "type": "integer", "minimum": 0, "maximum": 255, "description": "Luminosite par defaut (defaut 64). Anneau physique 13x WS2812. Mode/valeur pousses via /update : off|solid|progress|spinner|blink|breathe." }
+      }
+    },
+    "comp_sound": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "sound" }
+      },
+      "description": "Buzzer physique, tir unique. Pas de geometrie. Declenche via /update : {\"tone\":Hz,\"ms\":N} ou {\"name\":\"ok|alert|error\"}."
+    },
+    "comp_chart": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "description": "Graphe d'historique (lv_chart LINE). L'historique vit dans le device ; /update pousse un scalaire (append). Place via width/height/anchor/dx/dy.",
+      "properties": {
+        "type": { "const": "chart" },
+        "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id." },
+        "color": { "$ref": "#/$defs/hexColor", "description": "Couleur de la serie." },
+        "min": { "type": "number", "description": "Borne basse de l'axe Y. Defaut 0." },
+        "max": { "type": "number", "description": "Borne haute de l'axe Y. Defaut 100." },
+        "points": { "type": "integer", "minimum": 1, "maximum": 60, "description": "Longueur de la fenetre d'historique. Defaut 30, borne CHART_MAX_POINTS=60." }
+      }
+    },
+    "comp_meter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "description": "Jauge analogique a aiguille (lv_meter, arc 270°). thresholds reutilises en zones d'arc colorees (bande (prev, limite]). Place via width/height/anchor/dx/dy.",
+      "properties": {
+        "type": { "const": "meter" },
+        "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id." },
+        "color": { "$ref": "#/$defs/hexColor", "description": "Couleur de l'aiguille." },
+        "min": { "type": "number", "description": "Borne basse de l'echelle. Defaut 0." },
+        "max": { "type": "number", "description": "Borne haute de l'echelle. Defaut 100." },
+        "thresholds": {
+          "type": "array",
+          "description": "Zones d'arc colorees : chaque [limite, \"#hex\"] colore la bande de la limite precedente (vmin au depart) jusqu'a limite.",
+          "items": { "$ref": "#/$defs/threshold" }
+        }
+      }
+    },
+    "comp_image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "description": "Image bitmap statique RGB565A8 (alpha). Rasterisee par le navigateur a w×h exacts (etirement libre), uploadee via POST /image?key=. La taille vit sur le composant (couplee a l'asset : LVGL 8 ne sait pas etirer un lv_img non-uniformement). Le placement ne porte que la position.",
+      "properties": {
+        "type": { "const": "image" },
+        "src": { "$ref": "#/$defs/ascii", "description": "Cle d'asset (hash FNV-1a du contenu RGB565A8). Absente tant qu'aucune image n'est choisie." },
+        "w": { "type": "integer", "minimum": 1, "maximum": 360, "description": "Largeur en pixels (= largeur de l'asset). Defaut 120." },
+        "h": { "type": "integer", "minimum": 1, "maximum": 360, "description": "Hauteur en pixels (= hauteur de l'asset). Defaut 120." }
+      }
+    },
+    "comp_image_anim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "description": "Image animee : pack RGB565A8 multi-frames (N frames brutes concatenees), rasterise par le navigateur a w×h, uploade via POST /aimg?key=. Runtime via /update : {\"frame\":K} | {\"play\":true,\"loop\":L,\"period\":ms} | {\"stop\":true}. bind = frame d'etat au repos (clamp 0..frames-1). Place via anchor/dx/dy.",
+      "properties": {
+        "type": { "const": "image_anim" },
+        "src": { "$ref": "#/$defs/ascii", "description": "Cle d'asset (hash FNV-1a du pack). Absente tant qu'aucune animation n'est choisie." },
+        "w": { "type": "integer", "minimum": 1, "maximum": 360, "description": "Largeur d'une frame (px) = largeur de l'asset." },
+        "h": { "type": "integer", "minimum": 1, "maximum": 360, "description": "Hauteur d'une frame (px) = hauteur de l'asset." },
+        "frames": { "type": "integer", "minimum": 1, "maximum": 32, "description": "Nombre de frames du pack. Borne AIMG_MAX_FRAMES=32." },
+        "period": { "type": "integer", "minimum": 1, "description": "Temps inter-frame par defaut (ms). Defaut 100. Surchargable via /update." },
+        "rest_frame": { "type": "integer", "minimum": 0, "description": "Frame affichee au repos / apres un play fini. Defaut 0." },
+        "loop": { "type": "integer", "minimum": 0, "description": "Nb de passes par defaut d'un play. 0 = infini (jusqu'a stop). Defaut 0." },
+        "autoplay": { "type": "boolean", "description": "Demarre la lecture au chargement de la page. Defaut false." },
+        "bind": { "$ref": "#/$defs/ascii", "description": "Variable du contexte (pull) : selectionne la frame d'etat (clamp 0..frames-1) quand l'anim est a l'arret." }
+      }
+    },
+    "page": {
+      "type": "object",
+      "required": ["name", "place"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "description": "Nom de page (cible de POST /page {\"name\":...})." },
+        "background": { "$ref": "#/$defs/hexColor", "description": "Couleur de fond de la page (optionnel ; herite du background global du layout si absent)." },
+        "background_image": { "$ref": "#/$defs/ascii", "description": "Cle d'asset image de fond (hash de contenu, hex). Bytes RGB565 360x360 uploades via POST /bgimage?key=. Absent = pas d'image (la couleur de fond s'applique)." },
+        "place": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/placement" }
+        }
+      }
+    },
+    "placement": {
+      "type": "object",
+      "required": ["ref"],
+      "additionalProperties": false,
+      "description": "Place un composant (par ref) sur une page, avec sa geometrie. led_ring et sound n'ont pas de geometrie.",
+      "properties": {
+        "ref": { "type": "string", "description": "id d'un composant declare dans components. Doit resoudre, sinon le firmware rejette le layout." },
+        "anchor": { "$ref": "#/$defs/anchor" },
+        "dx": { "type": "integer", "description": "Offset horizontal depuis l'ancrage (defaut 0)." },
+        "dy": { "type": "integer", "description": "Offset vertical depuis l'ancrage (defaut 0)." },
+        "width": { "type": "integer", "description": "Largeur (bar). Defaut 0." },
+        "height": { "type": "integer", "description": "Hauteur (bar). Defaut 0." },
+        "radius": { "type": "integer", "description": "Rayon (ring). Anneaux concentriques = meme centre, radius differents. Defaut 0." },
+        "thickness": { "type": "integer", "description": "Epaisseur de bande (ring). Defaut 16." },
+        "gap_deg": { "type": "integer", "description": "Angle d'ouverture (ring). Position determinee par start_angle. Defaut 70." },
+        "start_angle": { "type": "integer", "description": "Oriente l'ouverture : offset en degres, horaire, depuis le bas. 0=bas, 90=gauche, 180=haut, 270=droite. Defaut 0." }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["url"],
+      "additionalProperties": false,
+      "description": "Une source de pull (1 source = 1 url). url requis (le firmware rejette une source sans url).",
+      "properties": {
+        "name": { "type": "string", "description": "Nom de la source (libelle ; apparait dans GET /status)." },
+        "url": { "type": "string", "description": "URL HTTP(S) a interroger." },
+        "interval_s": { "type": "integer", "minimum": 5, "description": "Periode de fetch en secondes. Defaut 60. Plancher impose 5 (CTX_MIN_INTERVAL_S)." },
+        "headers": {
+          "type": "object",
+          "description": "En-tetes HTTP. Une valeur \"$nom\" reference un secret du store write-only (resolu au fetch).",
+          "additionalProperties": { "type": "string" }
+        },
+        "vars": {
+          "type": "object",
+          "description": "Map nom_de_variable -> JSON Pointer (RFC 6901, ex. \"/main/temp\") extrait de la reponse.",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    }
+  }
+}

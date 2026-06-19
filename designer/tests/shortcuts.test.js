@@ -1,0 +1,63 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { resolveShortcut, isEditableTarget } from '../js/shortcuts.js';
+
+test('Cmd+Z (macOS) → undo', () => {
+  assert.equal(resolveShortcut({ key: 'z', metaKey: true, editable: false }), 'undo');
+});
+
+test('Ctrl+Z (Windows/Linux) → undo', () => {
+  assert.equal(resolveShortcut({ key: 'z', ctrlKey: true, editable: false }), 'undo');
+});
+
+test('Cmd+Shift+Z → redo (key remonte en maj sous Shift)', () => {
+  assert.equal(resolveShortcut({ key: 'Z', metaKey: true, shiftKey: true, editable: false }), 'redo');
+});
+
+test('Ctrl+Shift+Z → redo', () => {
+  assert.equal(resolveShortcut({ key: 'z', ctrlKey: true, shiftKey: true, editable: false }), 'redo');
+});
+
+test('Delete → delete', () => {
+  assert.equal(resolveShortcut({ key: 'Delete', editable: false }), 'delete');
+});
+
+test('Backspace → delete (grande touche Suppr du Mac)', () => {
+  assert.equal(resolveShortcut({ key: 'Backspace', editable: false }), 'delete');
+});
+
+test('dans un champ éditable : Cmd+Z laisse l’undo natif (null)', () => {
+  assert.equal(resolveShortcut({ key: 'z', metaKey: true, editable: true }), null);
+});
+
+test('dans un champ éditable : Backspace efface du texte (null)', () => {
+  assert.equal(resolveShortcut({ key: 'Backspace', editable: true }), null);
+});
+
+test('z seul (sans modificateur) → null', () => {
+  assert.equal(resolveShortcut({ key: 'z', editable: false }), null);
+});
+
+test('Cmd+A (autre raccourci) → null', () => {
+  assert.equal(resolveShortcut({ key: 'a', metaKey: true, editable: false }), null);
+});
+
+test('Cmd+Backspace hors champ → null (réservé à l’édition de texte)', () => {
+  assert.equal(resolveShortcut({ key: 'Backspace', metaKey: true, editable: false }), null);
+});
+
+test('isEditableTarget : INPUT / TEXTAREA / SELECT', () => {
+  assert.equal(isEditableTarget({ tagName: 'INPUT' }), true);
+  assert.equal(isEditableTarget({ tagName: 'TEXTAREA' }), true);
+  assert.equal(isEditableTarget({ tagName: 'SELECT' }), true);
+});
+
+test('isEditableTarget : contenteditable', () => {
+  assert.equal(isEditableTarget({ tagName: 'DIV', isContentEditable: true }), true);
+  assert.equal(isEditableTarget({ tagName: 'DIV', isContentEditable: false }), false);
+});
+
+test('isEditableTarget : bouton / null → false', () => {
+  assert.equal(isEditableTarget({ tagName: 'BUTTON' }), false);
+  assert.equal(isEditableTarget(null), false);
+});

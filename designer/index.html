@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rich_Telemetry — Designer</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Rich_Telemetry Designer</h1>
+    <span class="grow"></span>
+    <!-- Historique -->
+    <div class="hgroup">
+      <button id="undo" disabled title="Annuler (Ctrl+Z)">↶ Undo</button>
+      <button id="redo" disabled title="Rétablir">↷ Redo</button>
+    </div>
+    <!-- Device (réseau) : tout dépend du champ URL -->
+    <div class="hgroup">
+      <label>Device <input id="base" type="text" placeholder="http://192.168.1.35" size="20" /></label>
+      <button id="load" class="accent" title="Lit le layout actuel du device (GET /layout)">Charger</button>
+      <button id="push" class="primary" title="Écrit le layout dans la mémoire persistante du device (POST /layout)">Pousser</button>
+      <button id="values" title="Pousse les valeurs d'aperçu (mocks) au device via POST /update">Valeurs test</button>
+      <button id="statusbtn" title="Lit GET /status (santé device + état des sources)">Statut</button>
+      <button id="capture" title="Capture l'écran du device (GET /screenshot)">Capture écran</button>
+    </div>
+    <!-- Fichier local -->
+    <div class="hgroup">
+      <button id="export" title="Enregistre le layout dans un fichier .json local">Exporter</button>
+      <button id="import" title="Charge un layout depuis un fichier .json local">Importer</button>
+      <input id="import-file" type="file" accept="application/json,.json" hidden />
+    </div>
+    <!-- Affichage : zoom du canvas (visuel uniquement, n'affecte pas le layout) -->
+    <div class="hgroup">
+      <label>Zoom
+        <select id="zoom" title="Échelle d'affichage du canvas (n'affecte pas le layout)">
+          <option value="1">1×</option>
+          <option value="1.5">1,5×</option>
+          <option value="2">2×</option>
+        </select>
+      </label>
+    </div>
+    <span id="status" class="status"></span>
+  </header>
+
+  <div id="devbar" class="devbar" hidden></div>
+
+  <nav id="pages" class="pages-bar"></nav>
+
+  <main>
+    <aside id="palette" class="col"><h2>Palette</h2></aside>
+    <section id="canvas-col" class="col">
+      <h2>Canvas</h2>
+      <div id="stage-wrap" class="stage-wrap">
+        <div id="stage" class="stage">
+          <div class="screen-circle"></div>
+        </div>
+      </div>
+    </section>
+    <aside id="inspector" class="col"><h2>Inspecteur</h2></aside>
+  </main>
+
+  <footer>
+    <details>
+      <summary>Device (sorties physiques)</summary>
+      <div id="device" class="sources-panel"></div>
+    </details>
+    <details>
+      <summary>Sources (pull réseau)</summary>
+      <div id="sources" class="sources-panel"></div>
+    </details>
+    <details>
+      <summary>JSON avancé</summary>
+      <textarea id="json" spellcheck="false"></textarea>
+      <div class="row">
+        <button id="apply">Appliquer le JSON</button>
+        <span id="valid" class="valid"></span>
+      </div>
+      <pre id="errors" class="errors"></pre>
+      <pre id="warnings" class="warnings"></pre>
+    </details>
+  </footer>
+
+  <div id="shot-overlay" class="shot-overlay" hidden>
+    <div class="shot-box">
+      <img id="shot" alt="Capture écran du device" />
+      <div class="shot-nav">
+        <button id="shot-prev" title="Page précédente sur le device">◀</button>
+        <span id="shot-page"></span>
+        <button id="shot-next" title="Page suivante sur le device">▶</button>
+        <button id="shot-close">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
