@@ -17,15 +17,15 @@ static lv_obj_t* s_sub2  [MAX_PAGES][MAX_PLACEMENTS_PER_PAGE];
 static lv_obj_t* s_dots = nullptr;
 
 static uint8_t*     s_bg_buf[MAX_PAGES] = {0};   // RGB565 en PSRAM par page (nullptr = pas d'image)
-static lv_img_dsc_t s_bg_dsc[MAX_PAGES];
+static lv_image_dsc_t s_bg_dsc[MAX_PAGES];
 
 // Images placees : RGB565A8 en PSRAM, indexees par composant (un component partage = un seul buffer).
 static uint8_t*     s_img_buf[MAX_COMPONENTS] = {0};
-static lv_img_dsc_t s_img_dsc[MAX_COMPONENTS];
+static lv_image_dsc_t s_img_dsc[MAX_COMPONENTS];
 
 // Images animees : pack RGB565A8 multi-frames en PSRAM + un descripteur lv_img par frame.
 static uint8_t*      s_aimg_buf[MAX_COMPONENTS] = {0};
-static lv_img_dsc_t* s_aimg_dsc[MAX_COMPONENTS] = {0};   // tableau de c.aimg_frames descripteurs (PSRAM)
+static lv_image_dsc_t* s_aimg_dsc[MAX_COMPONENTS] = {0};   // tableau de c.aimg_frames descripteurs (PSRAM)
 
 // Styles persistants pour les bandes colorées de la jauge (sections lv_scale, LVGL 9).
 // Doivent survivre au widget -> statiques. Indexés par comp_index (un style/jauge).
@@ -235,7 +235,7 @@ static void sync_chart(Component& c, Placement&, lv_obj_t* chart, lv_obj_t*, lv_
     if (n > CHART_MAX_POINTS) n = CHART_MAX_POINTS;
     if (n < 1) n = 1;
     for (int i = 0; i < n; i++)
-        ser->y_points[i] = (i < c.hist_count) ? c.hist[i] : LV_CHART_POINT_NONE;
+        lv_chart_set_value_by_id(chart, ser, i, (i < c.hist_count) ? c.hist[i] : LV_CHART_POINT_NONE);
     lv_chart_refresh(chart);
 }
 
@@ -293,10 +293,10 @@ static void sync_meter(Component& c, Placement&, lv_obj_t* scale, lv_obj_t* sub1
 
 static void build_image(lv_obj_t* parent, Component& c, Placement& q,
                         lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
-    lv_obj_t* img = lv_img_create(parent);
+    lv_obj_t* img = lv_image_create(parent);
     int idx = q.comp_index;
     if (idx >= 0 && idx < MAX_COMPONENTS && s_img_buf[idx]) {
-        lv_img_set_src(img, &s_img_dsc[idx]);     // lv_img dimensionne via header.w/h
+        lv_image_set_src(img, &s_img_dsc[idx]);     // lv_img dimensionne via header.w/h
     } else {
         // Asset non charge : placeholder borde a w×h (ou 120 par defaut).
         lv_obj_set_size(img, c.image_w > 0 ? c.image_w : 120, c.image_h > 0 ? c.image_h : 120);
@@ -310,12 +310,12 @@ static void build_image(lv_obj_t* parent, Component& c, Placement& q,
 
 static void build_image_anim(lv_obj_t* parent, Component& c, Placement& q,
                              lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
-    lv_obj_t* img = lv_img_create(parent);
+    lv_obj_t* img = lv_image_create(parent);
     int idx = q.comp_index;
     if (idx >= 0 && idx < MAX_COMPONENTS && s_aimg_buf[idx] && s_aimg_dsc[idx]) {
         int fr = c.value;
         if (fr < 0 || fr >= c.aimg_frames) fr = 0;
-        lv_img_set_src(img, &s_aimg_dsc[idx][fr]);
+        lv_image_set_src(img, &s_aimg_dsc[idx][fr]);
     } else {                                              // asset non charge : placeholder borde
         lv_obj_set_size(img, c.image_w > 0 ? c.image_w : 120, c.image_h > 0 ? c.image_h : 120);
         lv_obj_set_style_border_width(img, 1, 0);
@@ -330,7 +330,7 @@ static void sync_image_anim(Component& c, Placement& q, lv_obj_t* main, lv_obj_t
     if (idx < 0 || idx >= MAX_COMPONENTS || !s_aimg_buf[idx] || !s_aimg_dsc[idx]) return;
     int fr = c.value;
     if (fr < 0 || fr >= c.aimg_frames) fr = 0;
-    lv_img_set_src(main, &s_aimg_dsc[idx][fr]);           // dsc distinct/frame -> refresh garanti
+    lv_image_set_src(main, &s_aimg_dsc[idx][fr]);           // dsc distinct/frame -> refresh garanti
 }
 
 // Vtable vue indexée par CompType. Types physiques (led_ring/sound) : build/sync = nullptr
@@ -470,9 +470,11 @@ static bool bg_load_page(Dashboard* d, int p) {
     f.close();
     if (rd != BG_IMG_BYTES) { heap_caps_free(buf); return false; }
     s_bg_buf[p] = buf;
-    lv_img_dsc_t& dsc = s_bg_dsc[p];
+    lv_image_dsc_t& dsc = s_bg_dsc[p];
     memset(&dsc, 0, sizeof(dsc));
-    dsc.header.cf  = LV_IMG_CF_TRUE_COLOR;
+    dsc.header.magic  = LV_IMAGE_HEADER_MAGIC;
+    dsc.header.cf     = LV_COLOR_FORMAT_RGB565;
+    dsc.header.stride = BG_IMG_W * 2;
     dsc.header.w   = BG_IMG_W;
     dsc.header.h   = BG_IMG_H;
     dsc.data       = buf;
@@ -500,10 +502,11 @@ static bool img_load_component(Dashboard* d, int idx) {
     f.close();
     if (rd != need) { heap_caps_free(buf); return false; }
     s_img_buf[idx] = buf;
-    lv_img_dsc_t& dsc = s_img_dsc[idx];
+    lv_image_dsc_t& dsc = s_img_dsc[idx];
     memset(&dsc, 0, sizeof(dsc));
-    dsc.header.always_zero = 0;
-    dsc.header.cf  = LV_IMG_CF_TRUE_COLOR_ALPHA;
+    dsc.header.magic  = LV_IMAGE_HEADER_MAGIC;
+    dsc.header.cf     = LV_COLOR_FORMAT_RGB565A8;
+    dsc.header.stride = c.image_w * 2;
     dsc.header.w   = c.image_w;
     dsc.header.h   = c.image_h;
     dsc.data       = buf;
@@ -532,13 +535,14 @@ static bool aimg_load_component(Dashboard* d, int idx) {
     size_t rd = f.read(buf, need);
     f.close();
     if (rd != need) { heap_caps_free(buf); return false; }
-    lv_img_dsc_t* dscs = (lv_img_dsc_t*)heap_caps_malloc(sizeof(lv_img_dsc_t) * (size_t)c.aimg_frames, MALLOC_CAP_SPIRAM);
+    lv_image_dsc_t* dscs = (lv_image_dsc_t*)heap_caps_malloc(sizeof(lv_image_dsc_t) * (size_t)c.aimg_frames, MALLOC_CAP_SPIRAM);
     if (!dscs) { heap_caps_free(buf); return false; }
     for (int fr = 0; fr < c.aimg_frames; fr++) {
-        lv_img_dsc_t& dsc = dscs[fr];
+        lv_image_dsc_t& dsc = dscs[fr];
         memset(&dsc, 0, sizeof(dsc));
-        dsc.header.always_zero = 0;
-        dsc.header.cf  = LV_IMG_CF_TRUE_COLOR_ALPHA;
+        dsc.header.magic  = LV_IMAGE_HEADER_MAGIC;
+        dsc.header.cf     = LV_COLOR_FORMAT_RGB565A8;
+        dsc.header.stride = c.image_w * 2;
         dsc.header.w   = c.image_w;
         dsc.header.h   = c.image_h;
         dsc.data       = buf + (size_t)fr * frame_bytes;
