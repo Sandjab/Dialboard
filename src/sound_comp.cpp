@@ -3,7 +3,7 @@
 #include <math.h>
 #include <string.h>
 #include "driver/i2s_std.h"
-#include "guition_pins.h"
+#include "k718_pins.h"
 
 static constexpr uint32_t SR = 44100;
 static constexpr size_t   FRAMES = 256;

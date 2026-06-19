@@ -19,7 +19,7 @@
 #define UNKNOWN_CSV_LEN         128
 
 #define HTTP_PORT               80
-#define MDNS_HOST               "guition"
+#define MDNS_HOST               "dialboard"
 #define WIFI_BOOT_TIMEOUT_MS    20000
 #define LAYOUT_PATH             "/layout.json"
 #define SECRETS_PATH            "/secrets.json"
