@@ -262,11 +262,7 @@ export function buildMeter(comp, placement, mock = MOCKS.meter) {
   const svg = document.createElementNS(SVGNS, 'svg');
   svg.setAttribute('width', w); svg.setAttribute('height', h);
   svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
-  // fond circulaire (panneau du thème lv_meter)
-  const bg = document.createElementNS(SVGNS, 'circle');
-  bg.setAttribute('cx', cx); bg.setAttribute('cy', cy); bg.setAttribute('r', size / 2 - 1);
-  bg.setAttribute('class', 'meter-bg');
-  svg.appendChild(bg);
+  // LVGL 9 : lv_scale n'a pas de fond plein ni de moyeu (contrairement à l'ancien lv_meter).
   const mkPath = (d, stroke, sw) => {
     const p = document.createElementNS(SVGNS, 'path');
     p.setAttribute('d', d); p.setAttribute('fill', 'none');
@@ -310,10 +306,6 @@ export function buildMeter(comp, placement, mock = MOCKS.meter) {
   needle.setAttribute('stroke-width', 4);
   needle.setAttribute('stroke-linecap', 'round');
   svg.appendChild(needle);
-  const hub = document.createElementNS(SVGNS, 'circle');  // moyeu
-  hub.setAttribute('cx', cx); hub.setAttribute('cy', cy); hub.setAttribute('r', 6);
-  hub.setAttribute('class', 'meter-hub');
-  svg.appendChild(hub);
   wrap.appendChild(svg);
   return wrap;
 }
