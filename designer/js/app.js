@@ -39,7 +39,7 @@ async function main() {
   let schema;
   try {
     const r = await fetch('../schema/layout.schema.json');
-    if (!r.ok) throw new Error(`HTTP ${r.status} — servir depuis Rich_Telemetry/, pas designer/`);
+    if (!r.ok) throw new Error(`HTTP ${r.status} — servir depuis Dialboard/, pas designer/`);
     schema = await r.json();
   } catch (e) {
     const s = document.getElementById('status');

@@ -1,6 +1,6 @@
-# Rich_Telemetry — Designer
+# Dialboard — Designer
 
-IHM WYSIWYG **autonome** pour concevoir le `layout.json` de Rich_Telemetry et le pousser au device. Web app statique : aucune dépendance, aucun build, cross-platform (navigateur). **Ne touche pas au firmware.**
+IHM WYSIWYG **autonome** pour concevoir le `layout.json` de Dialboard et le pousser au device. Web app statique : aucune dépendance, aucun build, cross-platform (navigateur). **Ne touche pas au firmware.**
 
 > État : **éditeur WYSIWYG multi-pages complet** (Plans A → C2). Palette + bibliothèque de composants réutilisables, canvas drag-and-drop avec snap aux ancrages, inspecteur (props/géométrie/seuils/aperçu mock), onglets de pages (créer/renommer/réordonner/supprimer), export/import `layout.json`, validation live ajv avec messages humanisés, undo/redo. Le panneau *JSON avancé* reste disponible. Le load/push `/layout` vers le device nécessite le CORS firmware (voir plus bas). Détails : `specs/` et `plans/`.
 
@@ -12,11 +12,11 @@ device à **`http://<ip>/designer/`** : même origin (aucun CORS), aucun serveur
 Statut / Capture écran fonctionnent sans configuration.
 
 **En local (édition hors device).** Le designer charge le schéma partagé via `../schema/layout.schema.json` ;
-il faut donc **servir depuis le dossier parent** `Rich_Telemetry/` (pas depuis `designer/`), et ne pas
+il faut donc **servir depuis le dossier parent** `Dialboard/` (pas depuis `designer/`), et ne pas
 l'ouvrir en `file://` :
 
 ```bash
-cd devices/guition_knob/projects/Rich_Telemetry
+cd /path/to/Dialboard
 python3 -m http.server 8000
 # puis http://localhost:8000/designer/
 ```
@@ -38,7 +38,7 @@ Le format est défini par **`../schema/layout.schema.json`** — la *source de v
 | Santé du device + état des sources de pull | Statut | `GET <device>/status` |
 | Capture pixel-perfect de l'écran | Capture écran | `GET <device>/screenshot` |
 
-mDNS `guition.local` peut être filtré sur certains LAN → utilise l'IP DHCP directe.
+mDNS `dialboard.local` peut être filtré sur certains LAN → utilise l'IP DHCP directe.
 
 ## CORS — résolu
 

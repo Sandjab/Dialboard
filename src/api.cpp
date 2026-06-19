@@ -70,8 +70,8 @@ static void h_status() {
 static void h_root() {
     String ip = WiFi.localIP().toString();
     String html =
-        "<!doctype html><meta charset=utf-8><title>Rich_Telemetry</title>"
-        "<h2>Guition K718 - Rich_Telemetry</h2>"
+        "<!doctype html><meta charset=utf-8><title>Dialboard</title>"
+        "<h2>K718 - Dialboard</h2>"
         "<p>POST /update (valeurs partielles), POST /layout, POST /page.</p>"
         "<pre>curl -X POST http://" + ip + "/update -H 'Content-Type: application/json' \\\n"
         "  -d '{\"w5h\":{\"pct\":63,\"reset_in_s\":6600}}'</pre>"
