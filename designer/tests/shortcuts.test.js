@@ -69,3 +69,19 @@ test('isEditableTarget : bouton / null → false', () => {
   assert.equal(isEditableTarget({ tagName: 'BUTTON' }), false);
   assert.equal(isEditableTarget(null), false);
 });
+
+test('Cmd+D → duplicate', () => {
+  assert.equal(resolveShortcut({ key: 'd', metaKey: true, editable: false }), 'duplicate');
+});
+test('Ctrl+C → copy', () => {
+  assert.equal(resolveShortcut({ key: 'c', ctrlKey: true, editable: false }), 'copy');
+});
+test('Cmd+V → paste', () => {
+  assert.equal(resolveShortcut({ key: 'v', metaKey: true, editable: false }), 'paste');
+});
+test('Cmd+C dans un champ éditable → null (copie de texte native)', () => {
+  assert.equal(resolveShortcut({ key: 'c', metaKey: true, editable: true }), null);
+});
+test('Cmd+Shift+D → null (non mappé, évite les raccourcis navigateur)', () => {
+  assert.equal(resolveShortcut({ key: 'd', metaKey: true, shiftKey: true, editable: false }), null);
+});
