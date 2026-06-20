@@ -5,7 +5,8 @@ import {
   setComponentProp, setPlacementProp, setThresholds,
   addPage, removePage, renamePage, reorderPages, uniquePageName, pageNameTaken,
   setPageBackground, effectivePageBg,
-  setPageBackgroundImage, effectivePageBgImage
+  setPageBackgroundImage, effectivePageBgImage,
+  placeComponentCopy
 } from '../js/mutations.js';
 
 const fresh = () => ({ components: {}, pages: [{ name: 'P1', place: [] }] });
@@ -254,4 +255,43 @@ test('setSourceProp / setSourceHeaders no-op sur index invalide', () => {
   setSourceProp(s, 3, 'url', 'http://x');   // ne doit pas throw
   setSourceHeaders(s, 3, { a: 'b' });
   assert.deepEqual(s.sources, []);
+});
+
+test('placeComponentCopy : id neuf, copie indépendante, offset, ref re-pointé', () => {
+  const s = fresh();
+  s.components.bar1 = { type: 'bar', color: '#38BDF8', label: 'CPU' };
+  const placement = { ref: 'bar1', anchor: 'CENTER', dx: 10, dy: 20 };
+  const idx = placeComponentCopy(s, 0, s.components.bar1, placement);
+
+  assert.equal(idx, 0);                              // index = dernier placement de la page
+  const copy = s.pages[0].place[0];
+  assert.equal(copy.ref, 'bar2');                    // uniqueId(bar), bar1 pris
+  assert.equal(copy.dx, 18);                         // 10 + 8
+  assert.equal(copy.dy, 28);                         // 20 + 8
+  s.components.bar2.color = '#FF0000';
+  assert.equal(s.components.bar1.color, '#38BDF8');  // original intact (copie indépendante)
+});
+
+test('placeComponentCopy : placement sans dx/dy → offset depuis 0', () => {
+  const s = fresh();
+  s.components.label1 = { type: 'label', text: 'Hi' };
+  const idx = placeComponentCopy(s, 0, s.components.label1, { ref: 'label1', anchor: 'CENTER' });
+  assert.equal(idx, 0);
+  assert.equal(s.pages[0].place[0].dx, 8);
+  assert.equal(s.pages[0].place[0].dy, 8);
+});
+
+test('placeComponentCopy : page absente → -1', () => {
+  const s = fresh();
+  assert.equal(placeComponentCopy(s, 9, { type: 'label' }, { ref: 'x' }), -1);
+});
+
+test('placeComponentCopy : compDef absent → -1', () => {
+  const s = fresh();
+  assert.equal(placeComponentCopy(s, 0, null, { ref: 'x' }), -1);
+});
+
+test('placeComponentCopy : placement absent → -1', () => {
+  const s = fresh();
+  assert.equal(placeComponentCopy(s, 0, { type: 'label' }, null), -1);
 });
