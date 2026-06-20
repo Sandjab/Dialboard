@@ -70,7 +70,7 @@ export function createPages(root, model, { getActivePage, setPage } = {}) {
         // Double-clic sur l'onglet → édition inline directe du nom (raccourci du bouton « Renommer »).
         tab.addEventListener('dblclick', () => { setPage(i); renaming = i; render(); });
         // --- Réordonnancement par glisser-déposer (alternative directe aux boutons ◀ ▶) ---
-        // type 'text/rt-page' distinct des drags de la palette ('rt-type'/'rt-ref') → pas d'interférence.
+        // type 'text/rt-page' distinct des drags de la palette ('rt-type') → pas d'interférence.
         tab.addEventListener('dragstart', e => {
           dragFrom = i;
           e.dataTransfer.effectAllowed = 'move';
