@@ -156,13 +156,15 @@ textarea { width: 100%; height: 220px; background: #0a0a0e; color: #cbd5e1; bord
 
 /* --- Plan C1 : palette --- */
 .palette-hint { font-size: 11px; color: var(--muted); line-height: 1.45; margin: 0 0 8px; }
-.palette-list { display: flex; flex-direction: column; gap: 6px; }
+/* Tuiles en grille 2 colonnes : icône (agrandie) au-dessus du nom. Plus dense que la colonne
+   unique quand la palette grossit, sans sacrifier le label (cf. comparatif des layouts). */
+.palette-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .palette-item {
-  display: flex; align-items: center; gap: 9px;
-  padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
-  background: var(--panel-2); cursor: grab; user-select: none; font-size: 13px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
+  padding: 10px 6px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--panel-2); cursor: grab; user-select: none; font-size: 12px;
 }
-.palette-icon { width: 16px; height: 16px; flex: none; color: var(--muted); }   /* monochrome : suit currentColor */
+.palette-icon { width: 22px; height: 22px; flex: none; color: var(--muted); }   /* monochrome : suit currentColor */
 .palette-item:active { cursor: grabbing; }
 .palette-item:hover { border-color: var(--accent); }
 .palette-item:hover .palette-icon { color: var(--accent); }   /* touche de couleur au survol */
