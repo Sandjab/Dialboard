@@ -45,6 +45,16 @@ export function placeComponentCopy(state, pageIndex, compDef, placement) {
   return page.place.length - 1;
 }
 
+// Duplique le composant d'un placement EXISTANT en une copie indépendante sur la même page.
+// Retourne l'index du nouveau placement, ou -1 si le placement / composant est introuvable.
+export function duplicateComponent(state, pageIndex, placeIndex) {
+  const placement = state.pages?.[pageIndex]?.place?.[placeIndex];
+  if (!placement) return -1;
+  const compDef = state.components?.[placement.ref];
+  if (!compDef) return -1;
+  return placeComponentCopy(state, pageIndex, compDef, placement);
+}
+
 // Édite une prop de composant. Valeur vide (''/null/undefined) => suppression de la clé
 // (le firmware retombe alors sur son défaut ; évite de produire des clés invalides).
 export function setComponentProp(state, id, key, value) {
