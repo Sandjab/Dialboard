@@ -124,7 +124,9 @@ textarea { width: 100%; height: 220px; background: #0a0a0e; color: #cbd5e1; bord
 
 .w-ring { cursor: default; }       /* ring centré, non déplaçable (view.cpp:51) */
 .w-ring svg { display: block; }
-.w-ring-pill, .w-ring-cap {
+/* Pastille seule (pas le cap) : le cap est un <g> SVG aux glyphes déjà centrés en absolu ;
+   lui appliquer translateX(-50%) le décalerait de -50% de la viewBox = -r (cap rogné à gauche). */
+.w-ring-pill {
   position: absolute; left: 50%; transform: translateX(-50%);
   font: 12px Montserrat, system-ui, sans-serif;
 }
@@ -134,7 +136,6 @@ textarea { width: 100%; height: 220px; background: #0a0a0e; color: #cbd5e1; bord
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
   white-space: nowrap;                                          /* lecture centrale center_pct (view.cpp:89) */
 }
-.w-ring-cap { font-size: 14px; }
 
 /* chart : panneau + grille (thème lv_chart par défaut, best-effort) */
 .w-chart { background: #FAFBFC; border: 1px solid #D7DEE8; border-radius: 8px; overflow: hidden; }
