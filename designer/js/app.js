@@ -16,7 +16,7 @@ import { createDevicePanel } from './device-panel.js';
 import { stripPhysicalPlacements } from './physical.js';
 import { showToast } from './toast.js';
 import { resolveShortcut, isEditableTarget } from './shortcuts.js';
-import { removePlacement } from './mutations.js';
+import { placeComponentCopy, duplicateComponent, removePlacementAndOrphan } from './mutations.js';
 
 const $ = id => document.getElementById(id);
 
@@ -69,7 +69,7 @@ async function main() {
     getActivePage: canvas.getActivePage
   });
 
-  // Palette : glisser un type (création) ou un composant de la bibliothèque (partage) sur le canvas,
+  // Palette : glisser un type depuis la palette sur le canvas pour créer un composant
   // sur la page active, puis sélection du nouveau placement.
   createPalette($('palette'), model, {
     stage: $('stage'),
@@ -104,8 +104,12 @@ async function main() {
   $('undo').onclick = () => { $('json').blur(); model.undo(); };
   $('redo').onclick = () => { $('json').blur(); model.redo(); };
 
-  // Raccourcis clavier globaux : Cmd/Ctrl+Z = annuler, Cmd/Ctrl+Shift+Z = rétablir, Échap = désélectionner,
-  // Suppr = retirer le composant sélectionné de la page active. Inactifs dans un champ (édition native).
+  // Presse-papier interne (session) : copie indépendante d'un composant + son placement, sans id.
+  let clipboard = null;
+
+  // Raccourcis clavier globaux : Cmd/Ctrl+Z = annuler, +Shift+Z = rétablir, Échap = désélectionner,
+  // Cmd/Ctrl+D = dupliquer, +C = copier, +V = coller (copies indépendantes ; coller sur la page
+  // active = réutilisation cross-page), Suppr = retirer de la page active. Inactifs dans un champ.
   document.addEventListener('keydown', e => {
     const action = resolveShortcut({
       key: e.key, metaKey: e.metaKey, ctrlKey: e.ctrlKey, shiftKey: e.shiftKey,
@@ -114,18 +118,45 @@ async function main() {
     if (!action) return;
     if (action === 'undo') { e.preventDefault(); if (model.canUndo()) model.undo(); return; }
     if (action === 'redo') { e.preventDefault(); if (model.canRedo()) model.redo(); return; }
-    if (action === 'deselect') {                         // Échap : ne consomme la touche que s'il y a une sélection
+    if (action === 'deselect') {
       if (canvas.getSelected() == null) return;
       e.preventDefault();
       canvas.selectPlacement(null);
       return;
     }
-    // delete : ne consomme la touche que s'il y a une sélection (sinon Suppr reste inerte).
+    if (action === 'copy') {
+      const sel = canvas.getSelected();
+      if (sel == null) return;
+      const pl = model.state.pages?.[canvas.getActivePage()]?.place?.[sel];
+      const cd = pl && model.state.components?.[pl.ref];
+      if (!cd) return;
+      e.preventDefault();
+      clipboard = { compDef: structuredClone(cd), placement: structuredClone(pl) };
+      return;
+    }
+    if (action === 'paste') {
+      if (!clipboard) return;
+      e.preventDefault();
+      let ni = -1;
+      model.commit(s => { ni = placeComponentCopy(s, canvas.getActivePage(), clipboard.compDef, clipboard.placement); });
+      if (ni >= 0) canvas.selectPlacement(ni);          // sélectionne la copie après re-render
+      return;
+    }
+    if (action === 'duplicate') {
+      const sel = canvas.getSelected();
+      if (sel == null) return;
+      e.preventDefault();
+      let ni = -1;
+      model.commit(s => { ni = duplicateComponent(s, canvas.getActivePage(), sel); });
+      if (ni >= 0) canvas.selectPlacement(ni);
+      return;
+    }
+    // delete : ne consomme la touche que s'il y a une sélection.
     const sel = canvas.getSelected();
     if (sel == null) return;
     e.preventDefault();
     canvas.selectPlacement(null);                       // désélectionne avant le commit (cf. inspector.js)
-    model.commit(s => removePlacement(s, canvas.getActivePage(), sel));
+    model.commit(s => removePlacementAndOrphan(s, canvas.getActivePage(), sel));
   });
 
   // Clic ailleurs que sur un composant → désélectionne : zone vide du disque, coins, marge, palette,
