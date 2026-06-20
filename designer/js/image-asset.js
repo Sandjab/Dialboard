@@ -8,9 +8,8 @@ import { SWAP, fnv1a64Hex } from './bg-image.js';
 // RGBA8888 (Uint8ClampedArray) -> RGB565A8 PLANAIRE (Uint8Array, 3 octets/px) : plan couleur
 // (px·2 octets) PUIS plan alpha (px·1 octet). C'est le layout qu'attend LVGL 9 (« color array
 // followed by alpha array »). NB : en v8 l'alpha etait entrelace par pixel ; LVGL 9 est planaire.
-// BYTE ORDER : le plan couleur est encode a l'OPPOSE de `swap` (octet faible d'abord quand swap=true).
-// Verifie on-device : LVGL 9 lit le plan couleur de RGB565A8 en little-endian natif, contrairement au
-// fond RGB565 plein (bg-image.js) qui suit `swap`. Sans cette inversion : teinte fausse + frange de bord.
+// Le plan couleur suit la MÊME convention que le fond RGB565 (bg-image.js, `swap`=SWAP=false =
+// little-endian natif, ce que LVGL 9 lit pour toute source) ; le plan alpha A8 n'a pas de byte order.
 export function rgba8888ToRgb565a8(rgba, swap = SWAP) {
   const px = rgba.length >> 2;
   const out = new Uint8Array(px * 3);
@@ -18,22 +17,22 @@ export function rgba8888ToRgb565a8(rgba, swap = SWAP) {
   for (let i = 0; i < px; i++) {
     const r = rgba[i * 4], g = rgba[i * 4 + 1], b = rgba[i * 4 + 2], a = rgba[i * 4 + 3];
     const v = ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3);
-    if (swap) { out[i * 2] = v & 0xFF;        out[i * 2 + 1] = (v >> 8) & 0xFF; }   // !swap : faible d'abord
-    else      { out[i * 2] = (v >> 8) & 0xFF; out[i * 2 + 1] = v & 0xFF; }
+    if (swap) { out[i * 2] = (v >> 8) & 0xFF; out[i * 2 + 1] = v & 0xFF; }
+    else      { out[i * 2] = v & 0xFF;        out[i * 2 + 1] = (v >> 8) & 0xFF; }
     out[aoff + i] = a;
   }
   return out;
 }
 
-// RGB565A8 PLANAIRE -> RGBA8888 (pour reconstruire un apercu). Symetrique de l'encode (plan couleur a
-// l'oppose de `swap`, plan alpha apres) -> le round-trip d'apercu reste fidele au rendu device.
+// RGB565A8 PLANAIRE -> RGBA8888 (pour reconstruire un apercu). Symetrique de l'encode (meme byte order
+// que le fond, plan alpha apres) -> le round-trip d'apercu reste fidele au rendu device.
 export function rgb565a8ToRgba8888(bytes, swap = SWAP) {
   const px = (bytes.length / 3) | 0;
   const out = new Uint8ClampedArray(px * 4);
   const aoff = px * 2;                          // le plan alpha suit le plan couleur
   for (let i = 0, o = 0; i < px; i++) {
     const b0 = bytes[i * 2], b1 = bytes[i * 2 + 1], a = bytes[aoff + i];
-    const v = swap ? (b1 << 8) | b0 : (b0 << 8) | b1;
+    const v = swap ? (b0 << 8) | b1 : (b1 << 8) | b0;
     const r5 = (v >> 11) & 0x1F, g6 = (v >> 5) & 0x3F, b5 = v & 0x1F;
     out[o++] = r5 << 3; out[o++] = g6 << 2; out[o++] = b5 << 3; out[o++] = a;
   }
