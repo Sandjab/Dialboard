@@ -26,6 +26,14 @@ test('Backspace → delete (grande touche Suppr du Mac)', () => {
   assert.equal(resolveShortcut({ key: 'Backspace', editable: false }), 'delete');
 });
 
+test('Échap → deselect', () => {
+  assert.equal(resolveShortcut({ key: 'Escape', editable: false }), 'deselect');
+});
+
+test('dans un champ éditable : Échap laisse le comportement natif (null)', () => {
+  assert.equal(resolveShortcut({ key: 'Escape', editable: true }), null);
+});
+
 test('dans un champ éditable : Cmd+Z laisse l’undo natif (null)', () => {
   assert.equal(resolveShortcut({ key: 'z', metaKey: true, editable: true }), null);
 });
