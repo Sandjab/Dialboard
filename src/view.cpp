@@ -115,6 +115,7 @@ static void build_ring(lv_obj_t* parent, Component& c, Placement& q,
     lv_arclabel_set_angle_size(*cap, q.gap_deg);
     lv_arclabel_set_dir(*cap, LV_ARCLABEL_DIR_COUNTER_CLOCKWISE);           // texte lisible (sourire) dans l'ouverture du bas
     lv_arclabel_set_text_horizontal_align(*cap, LV_ARCLABEL_TEXT_ALIGN_CENTER);
+    lv_arclabel_set_text_vertical_align(*cap, LV_ARCLABEL_TEXT_ALIGN_CENTER);   // baseline centrée sur le rayon (descend le texte dans l'ouverture)
     lv_arclabel_set_text(*cap, "");
 
     if (c.center_pct) {                       // lecture centrale (prioritaire sur la pastille)
