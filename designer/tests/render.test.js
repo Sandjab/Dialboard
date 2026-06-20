@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   pickFontPx, barFill, pickThresholdColor, formatValue, formatRemaining,
-  ringSweepDeg, pointOnArc, arcPath, ringPaths, sparklinePoints, meterAngle
+  ringSweepDeg, pointOnArc, arcPath, ringPaths, sparklinePoints, meterAngle, capArcPath
 } from '../js/render.js';
 
 test('pickFontPx retombe sur les 5 tailles LVGL', () => {
@@ -78,4 +78,14 @@ test('meterAngle : 270° de 135° (min) a 405° (max), convention pointOnArc', (
   assert.equal(meterAngle(0, 0, 100), 135);
   assert.equal(meterAngle(50, 0, 100), 270);
   assert.equal(meterAngle(100, 0, 100), 405);
+});
+
+test('capArcPath : arc inférieur symétrique, rayon r−th, baseline en bas', () => {
+  const d = capArcPath(80, 16, 70);            // r=80, th=16 → baseline rayon 64
+  const m = d.match(/^M ([\d.]+) ([\d.]+) A 64 64 0 0 0 ([\d.]+) ([\d.]+)$/);
+  assert.ok(m, `path inattendu : ${d}`);
+  const [x1, y1, x2, y2] = [m[1], m[2], m[3], m[4]].map(Number);
+  assert.ok(Math.abs((x1 + x2) / 2 - 80) < 1e-6, 'extrémités symétriques autour du centre (x=r)');
+  assert.ok(Math.abs(y1 - y2) < 1e-6, 'extrémités à même hauteur');
+  assert.ok(y1 > 80, 'baseline dans la moitié basse (y > r)');
 });
