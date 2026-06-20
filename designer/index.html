@@ -15,11 +15,14 @@
       <button id="undo" disabled title="Annuler (Ctrl+Z)">↶ Undo</button>
       <button id="redo" disabled title="Rétablir">↷ Redo</button>
     </div>
-    <!-- Device (réseau) : tout dépend du champ URL -->
+    <!-- Device — I/O du layout (lecture/écriture) : tout dépend du champ URL -->
     <div class="hgroup">
       <label>Device <input id="base" type="text" placeholder="http://192.168.1.35" size="20" /></label>
       <button id="load" class="accent" title="Lit le layout actuel du device (GET /layout)">Charger</button>
       <button id="push" class="primary" title="Écrit le layout dans la mémoire persistante du device (POST /layout)">Pousser</button>
+    </div>
+    <!-- Device — inspection / test (ne modifie pas le layout) -->
+    <div class="hgroup">
       <button id="values" title="Pousse les valeurs d'aperçu (mocks) au device via POST /update">Valeurs test</button>
       <button id="statusbtn" title="Lit GET /status (santé device + état des sources)">Statut</button>
       <button id="capture" title="Capture l'écran du device (GET /screenshot)">Capture écran</button>

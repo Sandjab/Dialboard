@@ -148,6 +148,16 @@ async function main() {
   zoomSel.value = savedZoom; applyZoom(savedZoom);
   zoomSel.onchange = () => { applyZoom(zoomSel.value); try { localStorage.setItem(ZOOM_KEY, zoomSel.value); } catch (e) {} };
 
+  // URL du device : pré-remplie pour éviter le piège « URL device ? » dès la 1re action. Quand le designer
+  // est servi PAR le device (embarqué : http://<ip>/designer/), location.origin EST le device. En dev local
+  // (localhost/file), on restaure plutôt la dernière URL saisie (localStorage) ; sinon le placeholder reste.
+  const BASE_KEY = 'rt-designer-base';
+  const baseInput = $('base');
+  let savedBase = ''; try { savedBase = localStorage.getItem(BASE_KEY) || ''; } catch (e) {}
+  const isLocalDev = location.protocol === 'file:' || /\/\/(localhost|127\.0\.0\.1)\b/.test(location.origin);
+  baseInput.value = savedBase || (isLocalDev ? '' : location.origin);
+  baseInput.addEventListener('change', () => { try { localStorage.setItem(BASE_KEY, baseInput.value); } catch (e) {} });
+
   // La barre #status garde la trace (dont la progression « … » sans kind) ; un verdict ok/err part aussi
   // en toast (échec rouge / succès vert) — plus visible que la petite barre. Cf. toast.js.
   const setStatus = (msg, kind) => {
