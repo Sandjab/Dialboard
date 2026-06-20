@@ -111,9 +111,9 @@ static void build_ring(lv_obj_t* parent, Component& c, Placement& q,
     lv_obj_set_style_text_font(*cap, &lv_font_montserrat_14, 0);
     lv_obj_set_style_text_color(*cap, lv_color_hex(c.color), 0);
     lv_arclabel_set_radius(*cap, q.radius - q.thickness);
-    lv_arclabel_set_angle_start(*cap, 90 + q.start_angle - q.gap_deg / 2);
+    lv_arclabel_set_angle_start(*cap, 90 + q.start_angle - q.gap_deg / 2);  // COUNTER_CW : bord gauche de l'ouverture (symétrique CW)
     lv_arclabel_set_angle_size(*cap, q.gap_deg);
-    lv_arclabel_set_dir(*cap, LV_ARCLABEL_DIR_CLOCKWISE);
+    lv_arclabel_set_dir(*cap, LV_ARCLABEL_DIR_COUNTER_CLOCKWISE);           // texte lisible (sourire) dans l'ouverture du bas
     lv_arclabel_set_text_horizontal_align(*cap, LV_ARCLABEL_TEXT_ALIGN_CENTER);
     lv_arclabel_set_text(*cap, "");
 
