@@ -6,7 +6,8 @@ import {
   addPage, removePage, renamePage, reorderPages, uniquePageName, pageNameTaken,
   setPageBackground, effectivePageBg,
   setPageBackgroundImage, effectivePageBgImage,
-  placeComponentCopy
+  placeComponentCopy,
+  duplicateComponent
 } from '../js/mutations.js';
 
 const fresh = () => ({ components: {}, pages: [{ name: 'P1', place: [] }] });
@@ -294,4 +295,23 @@ test('placeComponentCopy : compDef absent → -1', () => {
 test('placeComponentCopy : placement absent → -1', () => {
   const s = fresh();
   assert.equal(placeComponentCopy(s, 0, { type: 'label' }, null), -1);
+});
+
+test('duplicateComponent : copie indépendante depuis un placement existant', () => {
+  const s = fresh();
+  s.components.label1 = { type: 'label', text: 'Bonjour' };
+  s.pages[0].place.push({ ref: 'label1', anchor: 'CENTER', dx: 0, dy: 0 });
+  const idx = duplicateComponent(s, 0, 0);
+
+  assert.equal(idx, 1);                               // ajouté après l'original
+  assert.equal(s.pages[0].place[1].ref, 'label2');
+  assert.equal(s.components.label2.text, 'Bonjour');  // contenu copié
+  s.components.label2.text = 'Modifié';
+  assert.equal(s.components.label1.text, 'Bonjour');  // original intact
+});
+
+test('duplicateComponent : placeIndex invalide → -1, aucun ajout', () => {
+  const s = fresh();
+  assert.equal(duplicateComponent(s, 0, 5), -1);
+  assert.equal(s.pages[0].place.length, 0);
 });
