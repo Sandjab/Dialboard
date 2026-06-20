@@ -104,8 +104,8 @@ async function main() {
   $('undo').onclick = () => { $('json').blur(); model.undo(); };
   $('redo').onclick = () => { $('json').blur(); model.redo(); };
 
-  // Raccourcis clavier globaux : Cmd/Ctrl+Z = annuler, Cmd/Ctrl+Shift+Z = rétablir, Suppr = retirer
-  // le composant sélectionné de la page active. Inactifs dans un champ (on garde l'édition native).
+  // Raccourcis clavier globaux : Cmd/Ctrl+Z = annuler, Cmd/Ctrl+Shift+Z = rétablir, Échap = désélectionner,
+  // Suppr = retirer le composant sélectionné de la page active. Inactifs dans un champ (édition native).
   document.addEventListener('keydown', e => {
     const action = resolveShortcut({
       key: e.key, metaKey: e.metaKey, ctrlKey: e.ctrlKey, shiftKey: e.shiftKey,
@@ -114,12 +114,27 @@ async function main() {
     if (!action) return;
     if (action === 'undo') { e.preventDefault(); if (model.canUndo()) model.undo(); return; }
     if (action === 'redo') { e.preventDefault(); if (model.canRedo()) model.redo(); return; }
+    if (action === 'deselect') {                         // Échap : ne consomme la touche que s'il y a une sélection
+      if (canvas.getSelected() == null) return;
+      e.preventDefault();
+      canvas.selectPlacement(null);
+      return;
+    }
     // delete : ne consomme la touche que s'il y a une sélection (sinon Suppr reste inerte).
     const sel = canvas.getSelected();
     if (sel == null) return;
     e.preventDefault();
     canvas.selectPlacement(null);                       // désélectionne avant le commit (cf. inspector.js)
     model.commit(s => removePlacement(s, canvas.getActivePage(), sel));
+  });
+
+  // Clic ailleurs que sur un composant → désélectionne : zone vide du disque, coins, marge, palette,
+  // en-tête… Exclus : un composant (.w — son propre pointerdown le sélectionne) et l'inspecteur
+  // (il édite la sélection, le désélectionner au clic le rendrait inutilisable).
+  document.addEventListener('pointerdown', e => {
+    if (canvas.getSelected() == null) return;
+    if (e.target.closest('.w') || e.target.closest('#inspector')) return;
+    canvas.selectPlacement(null);
   });
 
   // Zoom d'affichage du canvas (visuel uniquement — le layout reste en unités écran). Persisté comme
