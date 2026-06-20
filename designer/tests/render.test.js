@@ -80,9 +80,9 @@ test('meterAngle : 270° de 135° (min) a 405° (max), convention pointOnArc', (
   assert.equal(meterAngle(100, 0, 100), 405);
 });
 
-test('capArcPath : arc inférieur symétrique, rayon r−th, baseline en bas', () => {
-  const d = capArcPath(80, 16, 70);            // r=80, th=16 → baseline rayon 64
-  const m = d.match(/^M ([\d.]+) ([\d.]+) A 64 64 0 0 0 ([\d.]+) ([\d.]+)$/);
+test('capArcPath : arc inférieur symétrique, rayon r−th/2 (milieu de bande)', () => {
+  const d = capArcPath(80, 16, 70);            // r=80, th=16 → arc médian rayon 72
+  const m = d.match(/^M ([\d.]+) ([\d.]+) A 72 72 0 0 0 ([\d.]+) ([\d.]+)$/);
   assert.ok(m, `path inattendu : ${d}`);
   const [x1, y1, x2, y2] = [m[1], m[2], m[3], m[4]].map(Number);
   assert.ok(Math.abs((x1 + x2) / 2 - 80) < 1e-6, 'extrémités symétriques autour du centre (x=r)');
