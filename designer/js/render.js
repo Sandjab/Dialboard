@@ -71,27 +71,17 @@ export function arcPath(cx, cy, r, startDeg, sweepDeg) {
   return `M ${f(x1)} ${f(y1)} A ${r} ${r} 0 ${large} 1 ${f(x2)} ${f(y2)}`;
 }
 
-// ring cap : placement courbe glyphe-par-glyphe dans l'ouverture du bas (le firmware courbe via
-// lv_arclabel ; en SVG textPath le centrage est non fiable → on place chaque glyphe en absolu).
-// Reçoit les largeurs des glyphes (mesurées hors fonction, donc PURE et testable) ; retourne
-// {x, y, rot} par glyphe. Centre du wrap = (r, r) ; baseline au rayon (r − th) = bord intérieur de
-// bande. Texte centré sur le bas (90°), lisible gauche→droite (sourire), chaque glyphe tangent à
-// l'arc (haut vers le centre). Le designer ignore start_angle (ouverture toujours en bas).
-export function capGlyphLayout(widths, r, th) {
-  const br = r - th;                                   // rayon de la baseline
-  const totalW = widths.reduce((a, b) => a + b, 0);
-  const totalAng = totalW / br;                        // largeur angulaire totale (rad)
-  const BOTTOM = Math.PI / 2;                          // bas du cercle (90°) en convention écran
-  let acc = 0;
-  return widths.map(w => {
-    const ang = BOTTOM + totalAng / 2 - (acc + w / 2) / br;   // du bord gauche vers le bord droit
-    acc += w;
-    return {
-      x: r + br * Math.cos(ang),
-      y: r + br * Math.sin(ang),
-      rot: (ang - BOTTOM) * 180 / Math.PI              // 0 au bas ; glyphe tangent (haut vers le centre)
-    };
-  });
+// ring cap : chemin SVG de la baseline du texte courbe, dans l'ouverture du bas. Arc inférieur
+// tracé gauche→droite (sweep-flag 0) pour un texte lisible (sourire), rayon (r − th) comme le
+// firmware (lv_arclabel_set_radius = q.radius − q.thickness, view.cpp). Centre du wrap = (r, r).
+// Le designer ignore start_angle (ouverture toujours en bas, comme ringPaths).
+export function capArcPath(r, th, gap) {
+  const br = r - th;
+  const half = gap / 2;
+  const [x1, y1] = pointOnArc(r, r, br, 90 + half);   // extrémité gauche-bas
+  const [x2, y2] = pointOnArc(r, r, br, 90 - half);   // extrémité droite-bas
+  const f = n => n.toFixed(2);
+  return `M ${f(x1)} ${f(y1)} A ${br} ${br} 0 0 0 ${f(x2)} ${f(y2)}`;
 }
 
 // ring : chemins fond + indicateur (rayon de tracé au milieu de la bande). Centralise la géométrie
@@ -130,33 +120,8 @@ export function meterAngle(value, min, max) {
 
 const FONT = px => `${px}px Montserrat, system-ui, sans-serif`;
 const SVGNS = 'http://www.w3.org/2000/svg';
-const CAP_FONT_PX = 14;   // police du cap (≡ montserrat_14 firmware)
 
-// Construit le groupe SVG du cap courbe : un <text> par glyphe, placé en absolu (capGlyphLayout).
-// Le texte + la couleur sont stockés en data-* pour que canvas.js puisse reconstruire au resize.
-export function buildCapGlyphs(text, r, th, color) {
-  const ctx = (buildCapGlyphs._ctx ||= document.createElement('canvas').getContext('2d'));
-  ctx.font = `${CAP_FONT_PX}px Montserrat, system-ui, sans-serif`;
-  const chars = [...text];
-  const layout = capGlyphLayout(chars.map(c => ctx.measureText(c).width), r, th);
-  const g = document.createElementNS(SVGNS, 'g');
-  g.setAttribute('class', 'w-ring-cap');
-  g.dataset.capText = text; g.dataset.capColor = color;
-  chars.forEach((ch, i) => {
-    const { x, y, rot } = layout[i];
-    const t = document.createElementNS(SVGNS, 'text');
-    t.setAttribute('x', x.toFixed(2)); t.setAttribute('y', y.toFixed(2));
-    t.setAttribute('fill', color);
-    t.setAttribute('font-size', String(CAP_FONT_PX));
-    t.setAttribute('font-family', 'Montserrat, system-ui, sans-serif');
-    t.setAttribute('text-anchor', 'middle');
-    t.setAttribute('dominant-baseline', 'central');
-    t.setAttribute('transform', `rotate(${rot.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)})`);
-    t.textContent = ch;
-    g.appendChild(t);
-  });
-  return g;
-}
+let capSeq = 0;   // ids uniques pour les <textPath> de cap (un par rendu de ring)
 
 export function buildLabel(comp) {
   const n = document.createElement('div');
@@ -245,8 +210,27 @@ export function buildRing(comp, placement, mock = MOCKS.ring) {
     wrap.appendChild(pill);
   }
   const capText = (comp.cap_prefix || '') + (comp.countdown ? formatRemaining(mock.reset_in_s) : '');
-  if (capText)                                // texte courbe dans l'ouverture du bas (view.cpp build_ring/sync_ring)
-    svg.appendChild(buildCapGlyphs(capText, r, th, comp.color || '#38BDF8'));
+  if (capText) {                              // texte courbe dans l'ouverture du bas (view.cpp build_ring/sync_ring)
+    const capId = `cap-arc-${capSeq++}`;
+    const path = document.createElementNS(SVGNS, 'path');
+    path.setAttribute('id', capId);
+    path.setAttribute('class', 'cap-arc');
+    path.setAttribute('d', capArcPath(r, th, gap));
+    path.setAttribute('fill', 'none');
+    const text = document.createElementNS(SVGNS, 'text');
+    text.setAttribute('class', 'w-ring-cap');
+    text.setAttribute('fill', comp.color || '#38BDF8');
+    text.setAttribute('font-size', '14');
+    text.setAttribute('font-family', 'Montserrat, system-ui, sans-serif');
+    const tp = document.createElementNS(SVGNS, 'textPath');
+    tp.setAttribute('href', `#${capId}`);
+    tp.setAttribute('startOffset', '50%');
+    tp.setAttribute('text-anchor', 'middle');   // centre le texte sur le milieu de l'arc (bas) ↔ h_align CENTER firmware
+    tp.textContent = capText;
+    text.appendChild(tp);
+    svg.appendChild(path);
+    svg.appendChild(text);
+  }
   return wrap;
 }
 
