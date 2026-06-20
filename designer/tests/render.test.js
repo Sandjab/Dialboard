@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   pickFontPx, barFill, pickThresholdColor, formatValue, formatRemaining,
-  ringSweepDeg, pointOnArc, arcPath, ringPaths, sparklinePoints, meterAngle, capGlyphLayout
+  ringSweepDeg, pointOnArc, arcPath, ringPaths, sparklinePoints, meterAngle, capArcPath
 } from '../js/render.js';
 
 test('pickFontPx retombe sur les 5 tailles LVGL', () => {
@@ -80,21 +80,12 @@ test('meterAngle : 270° de 135° (min) a 405° (max), convention pointOnArc', (
   assert.equal(meterAngle(100, 0, 100), 405);
 });
 
-test('capGlyphLayout : glyphes centrés sur le bas, symétriques, droit au centre', () => {
-  // 4 glyphes de 10px, r=80, th=16 → baseline rayon 64. Texte pair → centre entre glyphes 1 et 2.
-  const L = capGlyphLayout([10, 10, 10, 10], 80, 16);
-  assert.equal(L.length, 4);
-  assert.ok(L.every(g => g.y > 80), 'tous les glyphes dans la moitié basse (y > r)');
-  // symétrie horizontale : 1er et dernier équidistants du centre (x = r = 80)
-  assert.ok(Math.abs((L[0].x + L[3].x) / 2 - 80) < 1e-9, 'glyphes symétriques autour du bas');
-  // rotations symétriques opposées ; sourire : glyphe gauche penche d'un côté, droit de l'autre
-  assert.ok(Math.abs(L[0].rot + L[3].rot) < 1e-9, 'rotations opposées aux extrémités');
-  assert.ok(L[0].rot > 0 && L[3].rot < 0, 'rotation croît du bord droit vers le bord gauche');
-});
-
-test('capGlyphLayout : un seul glyphe est posé au bas, droit', () => {
-  const [g] = capGlyphLayout([12], 80, 16);
-  assert.ok(Math.abs(g.x - 80) < 1e-9, 'centré en x = r');
-  assert.ok(Math.abs(g.y - 144) < 1e-9, 'baseline en bas (r + (r - th) = 80 + 64)');
-  assert.ok(Math.abs(g.rot) < 1e-9, 'droit au bas');
+test('capArcPath : arc inférieur symétrique, rayon r−th, baseline en bas', () => {
+  const d = capArcPath(80, 16, 70);            // r=80, th=16 → baseline rayon 64
+  const m = d.match(/^M ([\d.]+) ([\d.]+) A 64 64 0 0 0 ([\d.]+) ([\d.]+)$/);
+  assert.ok(m, `path inattendu : ${d}`);
+  const [x1, y1, x2, y2] = [m[1], m[2], m[3], m[4]].map(Number);
+  assert.ok(Math.abs((x1 + x2) / 2 - 80) < 1e-6, 'extrémités symétriques autour du centre (x=r)');
+  assert.ok(Math.abs(y1 - y2) < 1e-6, 'extrémités à même hauteur');
+  assert.ok(y1 > 80, 'baseline dans la moitié basse (y > r)');
 });
