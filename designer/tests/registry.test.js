@@ -48,3 +48,8 @@ test('chaque entrée a les clés requises et un defaults() cohérent', () => {
     assert.equal(def.defaults().type, type, `${type}.defaults().type doit valoir '${type}'`);
   }
 });
+
+test('registre : ring expose cap_prefix (légende courbe)', () => {
+  const keys = COMPONENTS.ring.compFields.map(f => f[0]);
+  assert.ok(keys.includes('cap_prefix'), 'cap_prefix absent des compFields du ring');
+});

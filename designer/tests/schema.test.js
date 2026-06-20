@@ -141,3 +141,18 @@ test('validate : image_anim au-dela du plafond memoire -> erreur', () => {
   assert.equal(r.valid, false);
   assert.ok(r.errors.some(e => /pack trop gros|trop de frames/.test(e)));
 });
+
+test('schema : comp_ring accepte cap_prefix ASCII', () => {
+  const l = base();
+  l.components = { g: { type: 'ring', cap_prefix: 'RST ' } };
+  l.pages = [{ name: 'P1', place: [{ ref: 'g', radius: 140 }] }];
+  const r = validate(l);
+  assert.equal(r.valid, true, JSON.stringify(r.errors));
+});
+
+test('schema : comp_ring cap_prefix non-ASCII rejeté', () => {
+  const l = base();
+  l.components = { g: { type: 'ring', cap_prefix: 'café' } };
+  l.pages = [{ name: 'P1', place: [{ ref: 'g', radius: 140 }] }];
+  assert.equal(validate(l).valid, false);
+});

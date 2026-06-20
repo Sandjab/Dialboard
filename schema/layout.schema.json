@@ -151,7 +151,8 @@
           "items": { "$ref": "#/$defs/threshold" }
         },
         "center_pct": { "type": "boolean", "description": "Affiche value+unit au centre de l'anneau, en grand (police = font du composant). Exclusif avec pill (center_pct prioritaire). La couleur suit le seuil par defaut. Unites non-ASCII (degre, micro) non rendues." },
-        "center_color": { "$ref": "#/$defs/hexColor", "description": "Couleur du chiffre central (center_pct). Surcharge la couleur deduite du seuil. Absent = suit le seuil (ou color)." }
+        "center_color": { "$ref": "#/$defs/hexColor", "description": "Couleur du chiffre central (center_pct). Surcharge la couleur deduite du seuil. Absent = suit le seuil (ou color)." },
+        "cap_prefix": { "$ref": "#/$defs/ascii", "description": "Préfixe statique de la légende courbe (texte courbe = cap_prefix + caption). ASCII, défaut \"\"." }
       }
     },
     "comp_led_ring": {
