@@ -208,19 +208,6 @@ textarea { width: 100%; height: 220px; background: #0a0a0e; color: #cbd5e1; bord
 .page-del { border-color: var(--err); color: var(--err); }
 .page-del:disabled { border-color: var(--line); color: #55525e; }
 
-/* --- Plan C2 : bibliothèque de composants --- */
-.lib-title { font-size: 11px; text-transform: uppercase; color: var(--muted); margin: 14px 0 6px; }
-.lib-list { display: flex; flex-direction: column; gap: 5px; }
-.lib-item {
-  padding: 6px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel-2);
-  cursor: grab; user-select: none; font-size: 12px; display: flex; align-items: center; gap: 8px;
-}
-.lib-item:active { cursor: grabbing; }
-.lib-item:hover { border-color: var(--accent); }
-.lib-item:hover .palette-icon { color: var(--accent); }
-.lib-item .lib-type { color: var(--muted); font-size: 10.5px; margin-left: auto; }   /* tag-type poussé à droite */
-.lib-empty { font-size: 11px; color: #55525e; font-style: italic; }
-
 /* --- Panneau Sources (footer) --- */
 .sources-panel { display: flex; flex-direction: column; gap: 10px; padding: 6px 0; }
 .src-card { border: 1px solid var(--line); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
