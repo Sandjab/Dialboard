@@ -71,12 +71,14 @@ export function arcPath(cx, cy, r, startDeg, sweepDeg) {
   return `M ${f(x1)} ${f(y1)} A ${r} ${r} 0 ${large} 1 ${f(x2)} ${f(y2)}`;
 }
 
-// ring cap : chemin SVG de la baseline du texte courbe, dans l'ouverture du bas. Arc inférieur
-// tracé gauche→droite (sweep-flag 0) pour un texte lisible (sourire), rayon (r − th) comme le
-// firmware (lv_arclabel_set_radius = q.radius − q.thickness, view.cpp). Centre du wrap = (r, r).
-// Le designer ignore start_angle (ouverture toujours en bas, comme ringPaths).
+// ring cap : chemin SVG de l'arc MÉDIAN du texte courbe, dans l'ouverture du bas. Arc inférieur
+// tracé gauche→droite (sweep-flag 0) pour un texte lisible (sourire), rayon (r − th/2) = milieu de
+// la bande comme le firmware (lv_arclabel_set_radius = q.radius − q.thickness/2, view.cpp). Le texte
+// est centré sur cet arc (dominant-baseline:central ↔ vertical_align CENTER), donc le milieu des
+// lettres tombe sur le cercle médian de l'anneau quelles que soient l'épaisseur et la fonte.
+// Centre du wrap = (r, r). Le designer ignore start_angle (ouverture toujours en bas, comme ringPaths).
 export function capArcPath(r, th, gap) {
-  const br = r - th;
+  const br = r - th / 2;
   const half = gap / 2;
   const [x1, y1] = pointOnArc(r, r, br, 90 + half);   // extrémité gauche-bas
   const [x2, y2] = pointOnArc(r, r, br, 90 - half);   // extrémité droite-bas
@@ -225,7 +227,8 @@ export function buildRing(comp, placement, mock = MOCKS.ring) {
     const tp = document.createElementNS(SVGNS, 'textPath');
     tp.setAttribute('href', `#${capId}`);
     tp.setAttribute('startOffset', '50%');
-    tp.setAttribute('text-anchor', 'middle');   // centre le texte sur le milieu de l'arc (bas) ↔ h_align CENTER firmware
+    tp.setAttribute('text-anchor', 'middle');         // centre le texte sur le milieu de l'arc (bas) ↔ h_align CENTER firmware
+    tp.setAttribute('dominant-baseline', 'central');  // centre le texte VERTICALEMENT sur l'arc (rayon r-th) ↔ v_align CENTER firmware (sinon baseline sur l'arc → texte trop rentré)
     tp.textContent = capText;
     text.appendChild(tp);
     svg.appendChild(path);

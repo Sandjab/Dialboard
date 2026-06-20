@@ -103,19 +103,20 @@ static void build_ring(lv_obj_t* parent, Component& c, Placement& q,
     *main = arc;
 
     // Cap = texte courbe (lv_arclabel) dans l'ouverture du bas. L'objet partage le centre du ring
-    // (même taille + center), et le texte suit un arc de rayon (radius - thickness) couvrant
-    // l'ouverture (gap_deg) centrée sur (90 + start_angle). Géométrie à régler on-device.
+    // (même taille + center), et le texte suit l'arc MÉDIAN de la bande (rayon radius - thickness/2)
+    // couvrant l'ouverture (gap_deg) centrée sur (90 + start_angle). Avec vertical_align CENTER, le
+    // milieu des lettres tombe sur le cercle médian de l'anneau quelles que soient l'épaisseur et la fonte.
     *cap = lv_arclabel_create(parent);
     lv_obj_set_size(*cap, q.radius * 2, q.radius * 2);
     lv_obj_center(*cap);
     lv_obj_set_style_text_font(*cap, &lv_font_montserrat_14, 0);
     lv_obj_set_style_text_color(*cap, lv_color_hex(c.color), 0);
-    lv_arclabel_set_radius(*cap, q.radius - q.thickness);
+    lv_arclabel_set_radius(*cap, q.radius - q.thickness / 2);   // arc médian de la bande (comme la pill)
     lv_arclabel_set_angle_start(*cap, 90 + q.start_angle - q.gap_deg / 2);  // COUNTER_CW : bord gauche de l'ouverture (symétrique CW)
     lv_arclabel_set_angle_size(*cap, q.gap_deg);
     lv_arclabel_set_dir(*cap, LV_ARCLABEL_DIR_COUNTER_CLOCKWISE);           // texte lisible (sourire) dans l'ouverture du bas
     lv_arclabel_set_text_horizontal_align(*cap, LV_ARCLABEL_TEXT_ALIGN_CENTER);
-    lv_arclabel_set_text_vertical_align(*cap, LV_ARCLABEL_TEXT_ALIGN_CENTER);   // baseline centrée sur le rayon (descend le texte dans l'ouverture)
+    lv_arclabel_set_text_vertical_align(*cap, LV_ARCLABEL_TEXT_ALIGN_CENTER);   // milieu des lettres sur le rayon (cercle médian de la bande)
     lv_arclabel_set_text(*cap, "");
 
     if (c.center_pct) {                       // lecture centrale (prioritaire sur la pastille)
