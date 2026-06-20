@@ -5,7 +5,7 @@ import {
   ringRadiusAt, ringThicknessAt, gapDegAt, cornersOutsideCircle, SCREEN
 } from './geometry.js';
 import {
-  ringPaths, pickThresholdColor, capArcPath
+  ringPaths, pickThresholdColor, buildCapGlyphs
 } from './render.js';
 import { getMock } from './mocks.js';
 import { COMPONENTS } from './registry.js';
@@ -260,7 +260,8 @@ export function createCanvas({ stage }, model, { onSelect, onLiveMove } = {}) {
     t.setAttribute('d', p.track); t.setAttribute('stroke-width', g.th);
     ind.setAttribute('d', p.indicator); ind.setAttribute('stroke-width', g.th); ind.setAttribute('stroke', col);
     const pill = node.querySelector('.w-ring-pill'); if (pill) pill.style.top = (g.th / 2) + 'px';
-    const capArc = svg.querySelector('.cap-arc'); if (capArc) capArc.setAttribute('d', capArcPath(g.r, g.th, g.gap));
+    const cap = svg.querySelector('g.w-ring-cap');   // reconstruit le cap courbe au rayon/épaisseur courants
+    if (cap) cap.replaceWith(buildCapGlyphs(cap.dataset.capText, g.r, g.th, cap.dataset.capColor));
     positionRingHandles(node, g);
   }
 
