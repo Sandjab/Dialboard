@@ -26,6 +26,25 @@ export function removePlacement(state, pageIndex, placeIndex) {
   page.place.splice(placeIndex, 1);
 }
 
+// Décalage (unités écran) appliqué à une copie pour qu'elle ne masque pas l'original.
+const COPY_OFFSET = 8;
+
+// Crée une copie INDÉPENDANTE d'un composant + place cette copie sur une page. Brique commune
+// de duplicateComponent et du coller (paste) : la copie reçoit un id neuf (uniqueId), le
+// placement est cloné, re-pointé sur le nouvel id et décalé. dx/dy sont des clés valides pour
+// tout placement (schéma $defs/placement) ; pour un ring centré l'offset est inerte (copie
+// concentrique). Retourne l'index du nouveau placement, ou -1 si la page/def est absente.
+export function placeComponentCopy(state, pageIndex, compDef, placement) {
+  const page = state.pages?.[pageIndex];
+  if (!page || !compDef || !placement) return -1;
+  const id = uniqueId(state, compDef.type);
+  addComponent(state, id, structuredClone(compDef));
+  const copy = { ...structuredClone(placement), ref: id,
+                 dx: (placement.dx || 0) + COPY_OFFSET, dy: (placement.dy || 0) + COPY_OFFSET };
+  addPlacement(state, pageIndex, copy);
+  return page.place.length - 1;
+}
+
 // Édite une prop de composant. Valeur vide (''/null/undefined) => suppression de la clé
 // (le firmware retombe alors sur son défaut ; évite de produire des clés invalides).
 export function setComponentProp(state, id, key, value) {
