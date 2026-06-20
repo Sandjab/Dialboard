@@ -13,7 +13,7 @@ export function createPalette(root, model, { stage, getActivePage, onCreated } =
   // Indice : le geste central (glisser-déposer sur l'écran) n'est pas évident sans mode d'emploi.
   const hint = document.createElement('div');
   hint.className = 'palette-hint';
-  hint.textContent = 'Glisse un élément sur l’écran pour l’ajouter.';
+  hint.textContent = 'Glisse un élément sur l’écran pour créer un composant.';
   root.appendChild(hint);
 
   // --- Section créateurs de type (statique) ---
@@ -38,6 +38,12 @@ export function createPalette(root, model, { stage, getActivePage, onCreated } =
   libTitle.className = 'lib-title';
   libTitle.textContent = 'Bibliothèque';
   root.appendChild(libTitle);
+  // Distinction clé : la Palette CRÉE un composant neuf ; la Bibliothèque PLACE un composant déjà
+  // défini (même id/état) → le réutiliser sur plusieurs pages. Le hint lève la confusion entre les deux.
+  const libHint = document.createElement('div');
+  libHint.className = 'palette-hint';
+  libHint.textContent = 'Glisse un composant déjà créé pour le réutiliser (partagé entre pages).';
+  root.appendChild(libHint);
   const libList = document.createElement('div');
   libList.className = 'lib-list';
   root.appendChild(libList);
