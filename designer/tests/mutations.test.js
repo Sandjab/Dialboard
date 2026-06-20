@@ -7,7 +7,8 @@ import {
   setPageBackground, effectivePageBg,
   setPageBackgroundImage, effectivePageBgImage,
   placeComponentCopy,
-  duplicateComponent
+  duplicateComponent,
+  removePlacementAndOrphan
 } from '../js/mutations.js';
 
 const fresh = () => ({ components: {}, pages: [{ name: 'P1', place: [] }] });
@@ -314,4 +315,31 @@ test('duplicateComponent : placeIndex invalide → -1, aucun ajout', () => {
   const s = fresh();
   assert.equal(duplicateComponent(s, 0, 5), -1);
   assert.equal(s.pages[0].place.length, 0);
+});
+
+test('removePlacementAndOrphan : 1:1 → retire le placement ET le composant', () => {
+  const s = fresh();
+  s.components.bar1 = { type: 'bar' };
+  s.pages[0].place.push({ ref: 'bar1', anchor: 'CENTER' });
+  removePlacementAndOrphan(s, 0, 0);
+  assert.equal(s.pages[0].place.length, 0);
+  assert.equal(s.components.bar1, undefined);
+});
+
+test('removePlacementAndOrphan : composant encore référencé ailleurs → conservé', () => {
+  const s = { components: { bar1: { type: 'bar' } },
+              pages: [{ name: 'P1', place: [{ ref: 'bar1' }] },
+                      { name: 'P2', place: [{ ref: 'bar1' }] }] };
+  removePlacementAndOrphan(s, 0, 0);                  // retire l'occurrence page 1
+  assert.equal(s.pages[0].place.length, 0);
+  assert.ok(s.components.bar1);                       // page 2 l'utilise encore → conservé
+});
+
+test('removePlacementAndOrphan : composant physique jamais supprimé', () => {
+  const s = fresh();
+  s.components.led_ring1 = { type: 'led_ring' };
+  s.pages[0].place.push({ ref: 'led_ring1' });        // cas théorique (un physique placé)
+  removePlacementAndOrphan(s, 0, 0);
+  assert.equal(s.pages[0].place.length, 0);
+  assert.ok(s.components.led_ring1);                  // physique → conservé
 });
