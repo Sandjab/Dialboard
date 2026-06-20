@@ -54,6 +54,7 @@ export const COMPONENTS = {
                  ['font', 'Police centre', 'font', c => !!c.center_pct],     // dimensionne le chiffre central
                  ['center_color', 'Couleur centre', 'color', c => !!c.center_pct],
                  ['countdown', 'Countdown', 'bool'], ['min', 'Min', 'num'], ['max', 'Max', 'num'],
+                 ['cap_prefix', 'Préfixe légende', 'asciitext'],
                  ['bind', 'Variable (pull)', 'asciitext']],
     placeFields: [['radius', 'Rayon', 'num'], ['thickness', 'Épaisseur', 'num'], ['gap_deg', 'Ouverture°', 'num'], ['start_angle', 'Angle départ°', 'num']],
     mockFields: [['value', 'Valeur % (aperçu)'], ['reset_in_s', 'Countdown (s)']],
