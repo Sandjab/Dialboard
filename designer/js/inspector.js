@@ -1,7 +1,7 @@
 // Inspecteur : édite le composant + le placement sélectionnés. Pilote les champs par des tables de
 // descripteurs (DRY). Chaque édition committée = UN commit (sur 'change', pas par frappe → pas de
 // flood undo). Le signalement ASCII est live (sur 'input'). S'abonne au modèle pour se rafraîchir.
-import { setComponentProp, setPlacementProp, setThresholds, removePlacement, setPageBackground, setPageBackgroundImage } from './mutations.js';
+import { setComponentProp, setPlacementProp, setThresholds, removePlacementAndOrphan, setPageBackground, setPageBackgroundImage } from './mutations.js';
 import { imageFileToBg, previewUrl } from './bg-image.js';
 import { imageFileToAsset, previewUrl as imagePreviewUrl } from './image-asset.js';
 import { decodeGif, decodeImages, framesToAsset, previewUrls as aimgPreviewUrls } from './image-anim-asset.js';
@@ -341,7 +341,7 @@ export function createInspector(root, model, { rerenderCanvas, clearSelection, g
       const i = sel.placeIndex;
       sel = null;
       clearSelection && clearSelection();                 // désélectionne AVANT le commit (évite le flash, note C1-c)
-      model.commit(s => removePlacement(s, getActivePage(), i));
+      model.commit(s => removePlacementAndOrphan(s, getActivePage(), i));
     });
     body.appendChild(del);
     root.appendChild(body);
