@@ -1,9 +1,10 @@
 // Conversion image -> RGB565 pour les fonds de page. Le NAVIGATEUR fait tout le decodage
 // (createImageBitmap + canvas) ; le device ne stocke/affiche que du RGB565 deja pret.
-// LV_COLOR_16_SWAP=1 sur le device => octets ranges octet-fort-en-premier (SWAP=true).
+// LVGL 9 lit les sources d'image en little-endian natif (octet faible d'abord) => SWAP=false. Le
+// display (RGB565_SWAPPED, k718_lvgl.h) gere le swap vers le panneau au flush, separement des sources.
 
 export const BG_W = 360, BG_H = 360, BG_BYTES = BG_W * BG_H * 2;
-export const SWAP = true;   // LV_COLOR_16_SWAP=1 ; bascule a false si Task 14 montre des couleurs fausses
+export const SWAP = false;   // little-endian natif : layout homogene fond (RGB565) + images (RGB565A8)
 
 // Rectangle source pour un fit "cover" (remplit dst, crop centre). Retourne {sx,sy,sw,sh} entiers.
 export function coverRect(srcW, srcH, dstW, dstH) {

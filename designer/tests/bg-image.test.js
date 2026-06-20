@@ -12,7 +12,7 @@ test('coverRect : déjà au bon ratio → pleine source', () => {
   assert.deepEqual(coverRect(360, 360, 360, 360), { sx: 0, sy: 0, sw: 360, sh: 360 });
 });
 
-// SWAP=true (LV_COLOR_16_SWAP=1) : octet fort en premier.
+// Tests avec swap explicite : true = octet fort d'abord, false = octet faible d'abord (little-endian).
 test('rgba→565 : blanc opaque', () => {
   assert.deepEqual([...rgba8888ToRgb565(new Uint8ClampedArray([255,255,255,255]), true)], [0xFF, 0xFF]);
 });
@@ -43,6 +43,6 @@ test('fnv1a64Hex : déterministe et 16 hex', () => {
   assert.equal(h, fnv1a64Hex(new Uint8Array([1,2,3,4])));
 });
 
-test('SWAP par défaut = true (LV_COLOR_16_SWAP=1)', () => {
-  assert.equal(SWAP, true);
+test('SWAP par défaut = false (LVGL 9 lit les sources en little-endian natif)', () => {
+  assert.equal(SWAP, false);
 });
