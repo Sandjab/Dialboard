@@ -23,6 +23,7 @@ struct Component {
     uint32_t center_color;
     int32_t  vmin, vmax;
     bool     pill, center_pct, countdown, center_color_set;
+    char     cap_prefix[CAPTION_LEN];  // ring : prefixe statique de la legende courbe (cap_prefix + caption)
     Threshold thresholds[MAX_THRESHOLDS];
     int      threshold_count;
     uint16_t font;

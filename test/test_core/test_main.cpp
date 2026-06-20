@@ -136,6 +136,23 @@ void test_ring_center_color_defaults_to_color(void) {
     TEST_ASSERT_FALSE(d.components[ig].center_color_set);
     TEST_ASSERT_EQUAL_HEX32(0x38BDF8, d.components[ig].center_color);  // retombe sur color
 }
+static const char* LAYOUT_RING_CAP =
+  "{\"title\":\"T\",\"background\":\"#000000\","
+  "\"components\":{\"g\":{\"type\":\"ring\",\"cap_prefix\":\"RST \"}},"
+  "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"g\",\"radius\":140}]}]}";
+
+void test_ring_cap_prefix_parsed(void) {
+    Dashboard d{}; char err[80];
+    TEST_ASSERT_TRUE(dash_set_layout(&d, LAYOUT_RING_CAP, err, sizeof(err)));
+    int ig = dash_find(&d, "g");
+    TEST_ASSERT_EQUAL_STRING("RST ", d.components[ig].cap_prefix);
+}
+void test_ring_cap_prefix_default_empty(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, LAYOUT_OK, err, sizeof(err));   // LAYOUT_OK ne définit pas cap_prefix
+    int iw = dash_find(&d, "w5h");
+    TEST_ASSERT_EQUAL_STRING("", d.components[iw].cap_prefix);
+}
 void test_layout_unknown_type_rejected(void) {
     Dashboard d{}; char err[80];
     const char* bad = "{\"components\":{\"x\":{\"type\":\"frobnicator\"}},\"pages\":[]}";
@@ -701,6 +718,8 @@ int main(int, char**) {
     RUN_TEST(test_ring_start_angle_default_zero);
     RUN_TEST(test_ring_center_color_set);
     RUN_TEST(test_ring_center_color_defaults_to_color);
+    RUN_TEST(test_ring_cap_prefix_parsed);
+    RUN_TEST(test_ring_cap_prefix_default_empty);
     RUN_TEST(test_layout_unknown_type_rejected);
     RUN_TEST(test_schema_types_all_resolve);
     RUN_TEST(test_ctx_set_find_num);
