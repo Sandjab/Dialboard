@@ -15,6 +15,7 @@
 // Widgets "extra" utilises par chart/jauge
 #define LV_USE_CHART           1
 #define LV_USE_SCALE           1
+#define LV_USE_ARCLABEL        1
 
 // Capture d'ecran a la demande (endpoint GET /screenshot) : re-render off-screen via lv_snapshot
 #define LV_USE_SNAPSHOT        1

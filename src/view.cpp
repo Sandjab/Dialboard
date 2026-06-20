@@ -67,21 +67,13 @@ const char* view_default_layout() {
         "{\"ref\":\"w7d\",\"radius\":141,\"thickness\":16,\"gap_deg\":70}]}]}";
 }
 
-// Place les labels d'une couronne autour de son ouverture. L'ouverture est centrée
-// sur l'angle (90 + start_angle) en convention LVGL (0=droite, 90=bas, horaire).
-// - cap (légende/countdown) : DANS l'ouverture.
-// - slot2 : soit la pastille (à l'opposé de l'ouverture), soit la lecture centrale
-//   (au centre géométrique) selon slot2_center.
-// À rappeler après chaque set_text (LVGL recentre sur la taille réelle du label).
-static void ring_place_labels(lv_obj_t* arc, lv_obj_t* cap, lv_obj_t* slot2,
+// Place le slot2 d'une couronne (pastille à l'opposé de l'ouverture, ou lecture centrale).
+// Le cap (légende courbe) est un lv_arclabel positionné par sa géométrie propre (build_ring),
+// indépendant de la taille du texte → il n'est plus géré ici.
+// À rappeler après chaque set_text du slot2 (LVGL recentre sur la taille réelle).
+static void ring_place_labels(lv_obj_t* arc, lv_obj_t* slot2,
                               const Placement& q, bool slot2_center) {
     const float DEG2RAD = 0.01745329252f;
-    int r = q.radius - q.thickness;
-    if (cap) {
-        float a = (90 + q.start_angle) * DEG2RAD;          // dans l'ouverture
-        lv_obj_align_to(cap, arc, LV_ALIGN_CENTER,
-                        (int)roundf(r * cosf(a)), (int)roundf(r * sinf(a)));
-    }
     if (slot2) {
         if (slot2_center) {
             lv_obj_align_to(slot2, arc, LV_ALIGN_CENTER, 0, 0);   // centre
@@ -110,10 +102,20 @@ static void build_ring(lv_obj_t* parent, Component& c, Placement& q,
     lv_obj_set_style_pad_all(arc, 0, LV_PART_MAIN);   // bord externe de la bande au bord du widget → milieu exact = radius - thickness/2 (sinon le padding par défaut décale la pill)
     *main = arc;
 
-    *cap = lv_label_create(parent);
+    // Cap = texte courbe (lv_arclabel) dans l'ouverture du bas. L'objet partage le centre du ring
+    // (même taille + center), et le texte suit un arc de rayon (radius - thickness) couvrant
+    // l'ouverture (gap_deg) centrée sur (90 + start_angle). Géométrie à régler on-device.
+    *cap = lv_arclabel_create(parent);
+    lv_obj_set_size(*cap, q.radius * 2, q.radius * 2);
+    lv_obj_center(*cap);
     lv_obj_set_style_text_font(*cap, &lv_font_montserrat_14, 0);
     lv_obj_set_style_text_color(*cap, lv_color_hex(c.color), 0);
-    lv_label_set_text(*cap, "");
+    lv_arclabel_set_radius(*cap, q.radius - q.thickness);
+    lv_arclabel_set_angle_start(*cap, 90 + q.start_angle - q.gap_deg / 2);
+    lv_arclabel_set_angle_size(*cap, q.gap_deg);
+    lv_arclabel_set_dir(*cap, LV_ARCLABEL_DIR_CLOCKWISE);
+    lv_arclabel_set_text_horizontal_align(*cap, LV_ARCLABEL_TEXT_ALIGN_CENTER);
+    lv_arclabel_set_text(*cap, "");
 
     if (c.center_pct) {                       // lecture centrale (prioritaire sur la pastille)
         *pill = lv_label_create(parent);
@@ -138,7 +140,7 @@ static void build_ring(lv_obj_t* parent, Component& c, Placement& q,
         lv_obj_set_style_pad_hor(*pill, 8, 0); lv_obj_set_style_pad_ver(*pill, pv, 0);
         lv_label_set_text(*pill, "0%");
     }
-    ring_place_labels(arc, *cap, (c.center_pct || c.pill) ? *pill : nullptr, q, c.center_pct);
+    ring_place_labels(arc, (c.center_pct || c.pill) ? *pill : nullptr, q, c.center_pct);
 }
 
 // build/sync extraits des anciens switch de view_rebuild/view_sync, à l'identique.
@@ -196,7 +198,11 @@ static void sync_ring(Component& c, Placement& q, lv_obj_t* w, lv_obj_t* sub1, l
     uint32_t col = threshold_color(c.thresholds, c.threshold_count, c.value, c.color);
     lv_obj_set_style_arc_color(w, lv_color_hex(col), LV_PART_INDICATOR);
     lv_arc_set_value(w, c.value);
-    if (sub1) lv_label_set_text(sub1, c.caption);
+    if (sub1) {
+        char cap_buf[CAPTION_LEN * 2];                             // cap_prefix + caption (chacun < CAPTION_LEN)
+        snprintf(cap_buf, sizeof(cap_buf), "%s%s", c.cap_prefix, c.caption);
+        lv_arclabel_set_text(sub1, cap_buf);
+    }
     if (sub2) {
         if (c.center_pct) {
             char cb[24]; format_value((double)c.value, c.unit, cb, sizeof(cb));
@@ -209,7 +215,7 @@ static void sync_ring(Component& c, Placement& q, lv_obj_t* w, lv_obj_t* sub1, l
             lv_obj_set_style_bg_color(sub2, lv_color_hex(col), 0);
         }
     }
-    ring_place_labels(w, sub1, sub2, q, c.center_pct);
+    ring_place_labels(w, sub2, q, c.center_pct);
 }
 
 // --- chart : l'historique vit dans le modèle (Component.hist) ; build crée le widget,
