@@ -2,6 +2,8 @@
 // appelées via model.commit(s => mutate(s, ...)). Séparées de model.js (state/undo/events) pour
 // rester testables sous node --test. Toute clé posée doit rester valide vis-à-vis du schéma.
 
+import { COMPONENTS } from './registry.js';
+
 // id unique pour un nouveau composant : <type><n>, n = 1er entier libre.
 export function uniqueId(state, type) {
   const comps = state.components || {};
@@ -53,6 +55,21 @@ export function duplicateComponent(state, pageIndex, placeIndex) {
   const compDef = state.components?.[placement.ref];
   if (!compDef) return -1;
   return placeComponentCopy(state, pageIndex, compDef, placement);
+}
+
+// Retire un placement, puis supprime son composant s'il n'est plus référencé par aucun placement
+// (toutes pages) ET qu'il n'est pas physique. Modèle 1:1 : le composant est en pratique toujours
+// supprimé ; la garde « encore référencé » protège un éventuel ref hérité partagé (zéro casse, sans
+// migration) ; la garde « physique » est défensive (led_ring/sound ne sont jamais placés).
+export function removePlacementAndOrphan(state, pageIndex, placeIndex) {
+  const placement = state.pages?.[pageIndex]?.place?.[placeIndex];
+  if (!placement) return;
+  const ref = placement.ref;
+  removePlacement(state, pageIndex, placeIndex);
+  const stillUsed = (state.pages || []).some(p => (p.place || []).some(pl => pl.ref === ref));
+  if (stillUsed) return;
+  const comp = state.components?.[ref];
+  if (comp && !COMPONENTS[comp.type]?.physical) delete state.components[ref];
 }
 
 // Édite une prop de composant. Valeur vide (''/null/undefined) => suppression de la clé
