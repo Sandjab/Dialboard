@@ -131,7 +131,11 @@
         "color": { "$ref": "#/$defs/hexColor" },
         "label_color": { "$ref": "#/$defs/hexColor", "description": "Couleur du libelle. Defaut #9AA0AA." },
         "label_font": { "$ref": "#/$defs/font", "description": "Taille de police du libelle. Defaut 14." },
-        "label_align": { "$ref": "#/$defs/anchorOut", "description": "Position du libelle autour de la barre. Defaut TOP_MID." }
+        "label_align": { "$ref": "#/$defs/anchorOut", "description": "Position du libelle autour de la barre. Defaut TOP_MID." },
+        "thresholds": { "type": "array", "items": { "$ref": "#/$defs/threshold" }, "description": "Couleur de l'indicateur quand la valeur passe sous une limite (comme le ring). Vide = couleur unie." },
+        "mode": { "enum": ["normal", "symmetrical"], "description": "normal = remplit depuis le bord ; symmetrical = depuis 0 (min negatif requis). Defaut normal. (lv_bar_set_mode)" },
+        "orientation": { "enum": ["horizontal", "vertical"], "description": "Sens de la barre. Defaut horizontal. (lv_bar_set_orientation)" },
+        "anim_ms": { "type": "integer", "minimum": 0, "description": "Duree (ms) d'animation de la valeur a chaque maj. Defaut 0 = instantane." }
       }
     },
     "comp_ring": {
@@ -151,9 +155,11 @@
           "type": "array",
           "items": { "$ref": "#/$defs/threshold" }
         },
-        "center_pct": { "type": "boolean", "description": "Affiche value+unit au centre de l'anneau, en grand (police = font du composant). Exclusif avec pill (center_pct prioritaire). La couleur suit le seuil par defaut. Unites non-ASCII (degre, micro) non rendues." },
+        "center_pct": { "type": "boolean", "description": "Affiche value+unit au centre de l'anneau, en grand (police = font du composant). Peut coexister avec pill. La couleur suit le seuil par defaut. Unites non-ASCII (degre, micro) non rendues." },
         "center_color": { "$ref": "#/$defs/hexColor", "description": "Couleur du chiffre central (center_pct). Surcharge la couleur deduite du seuil. Absent = suit le seuil (ou color)." },
-        "cap_prefix": { "$ref": "#/$defs/ascii", "description": "Préfixe statique de la légende courbe (texte courbe = cap_prefix + caption). ASCII, défaut \"\"." }
+        "cap_prefix": { "$ref": "#/$defs/ascii", "description": "Préfixe statique de la légende courbe (texte courbe = cap_prefix + caption). ASCII, défaut \"\"." },
+        "mode": { "enum": ["normal", "symmetrical", "reverse"], "description": "Sens de remplissage de l'indicateur. normal = horaire ; reverse = anti-horaire ; symmetrical = depuis le milieu. Defaut normal. (lv_arc_set_mode)" },
+        "rounded": { "type": "boolean", "description": "Extremites de l'indicateur arrondies. Defaut true (rendu actuel). (style arc_rounded)" }
       }
     },
     "comp_led_ring": {

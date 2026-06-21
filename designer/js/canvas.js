@@ -56,6 +56,7 @@ function createGuide() {
 export function createCanvas({ stage }, model, { onSelect, onLiveMove } = {}) {
   let selected = null;    // index du placement sélectionné sur la page active
   let activePage = 0;     // page affichée par le canvas (source de vérité de l'éditeur, hors layout)
+  let preview = null;     // aperçu transitoire {ref, patch} d'une prop (color picker live) — JAMAIS dans le modèle (undo intact)
 
   const placements = () => model.state.pages?.[activePage]?.place ?? [];
   const comps = () => model.state.components || {};
@@ -105,7 +106,9 @@ export function createCanvas({ stage }, model, { onSelect, onLiveMove } = {}) {
       const def = COMPONENTS[comp.type];
       if (!def) return;                          // type inconnu : signalé par la validation, on ne le dessine pas (repli défini, pas un buildLabel silencieux)
       if (def.physical) return;   // physiques édités dans le panneau « Device » ; jamais rendus sur une page
-      const node = buildNode(pl, comp);
+      // Aperçu live d'une propriété (ex. color picker) : surcharge transitoire, hors modèle (undo intact).
+      const rcomp = (preview && preview.ref === pl.ref) ? { ...comp, ...preview.patch } : comp;
+      const node = buildNode(pl, rcomp);
       node.dataset.pi = i;
       node.dataset.ref = pl.ref;               // permet la lookup par ref (ex: apercu image_anim)
       stage.appendChild(node);                   // append avant de mesurer
@@ -141,6 +144,7 @@ export function createCanvas({ stage }, model, { onSelect, onLiveMove } = {}) {
     select(i);
     const def = COMPONENTS[comp.type];
     if (def.centered || def.physical) return;             // ring centré / physique : non déplaçable
+    node = nodeFor(i) || node;   // select() a pu re-render (blur+commit d'une édition en attente d'un AUTRE widget, cf. F1) → reprendre le nœud vivant avant capture/drag
     e.preventDefault();
     const s = zoomScale();                          // constant durant le geste (le zoom ne change pas en plein drag)
     const sr = stage.getBoundingClientRect();
@@ -254,7 +258,7 @@ export function createCanvas({ stage }, model, { onSelect, onLiveMove } = {}) {
     const svg = node.querySelector('svg');
     svg.setAttribute('width', size); svg.setAttribute('height', size);
     svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
-    const p = ringPaths(g.r, g.th, g.gap, mockVal, comp.min ?? 0, comp.max ?? 100);
+    const p = ringPaths(g.r, g.th, g.gap, mockVal, comp.min ?? 0, comp.max ?? 100, comp.mode || 'normal');
     const col = pickThresholdColor(comp.thresholds, mockVal, comp.color || '#38BDF8');
     const t = svg.querySelector('.ring-track'), ind = svg.querySelector('.ring-ind');
     t.setAttribute('d', p.track); t.setAttribute('stroke-width', g.th);
@@ -319,5 +323,9 @@ export function createCanvas({ stage }, model, { onSelect, onLiveMove } = {}) {
   // La webfont Montserrat (font-display:swap) charge en asynchrone : le 1er render mesure
   // avant le swap → centrage à ~8px près. Re-render une fois la police prête (fidélité).
   if (document.fonts?.ready) document.fonts.ready.then(render);
-  return { render, getSelected: () => selected, selectPlacement: select, setPage, getActivePage: () => activePage };
+  return {
+    render, getSelected: () => selected, selectPlacement: select, setPage, getActivePage: () => activePage,
+    previewProp(ref, patch) { preview = { ref, patch }; render(); },   // aperçu live (canvas seul, sans commit ni undo)
+    clearPreview() { preview = null; },                                // à appeler avant le commit : le commit re-render l'état réel
+  };
 }

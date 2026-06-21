@@ -49,6 +49,18 @@ export function barFill(value, min = 0, max = 100) {
   return Math.max(0, Math.min(1, (value - min) / (max - min)));
 }
 
+// bar : géométrie du remplissage en fractions 0..1 le long de l'axe (0 = bord min). normal = du bord
+// à la valeur ; symmetrical = entre la position du 0 et la valeur (min négatif). Miroir lv_bar
+// LV_BAR_MODE_NORMAL/SYMMETRICAL. Renvoie {start, len}.
+export function barGeometry(value, min = 0, max = 100, mode = 'normal') {
+  const v = barFill(value, min, max);
+  if (mode === 'symmetrical') {
+    const zero = barFill(0, min, max);
+    return { start: Math.min(zero, v), len: Math.abs(v - zero) };
+  }
+  return { start: 0, len: v };
+}
+
 // ring : couleur de seuil — 1er seuil dont value < limite, sinon couleur de base. Miroir threshold_color (color.cpp:13).
 export function pickThresholdColor(thresholds, value, base) {
   for (const [limit, color] of thresholds || []) {
@@ -79,6 +91,21 @@ export function formatRemaining(s) {
 // ring : balayage (deg) de l'indicateur = fraction × (360 − gap). L'ouverture (gap) reste en bas.
 export function ringSweepDeg(value, min, max, gapDeg) {
   return barFill(value, min, max) * (360 - gapDeg);
+}
+
+// ring : angles de l'indicateur (deg) selon le mode. start = début de l'arc de fond, span = balayage
+// total (360 − gap), fillFrac = fraction 0..1. Miroir lv_arc NORMAL (horaire), REVERSE (anti-horaire,
+// depuis le max) et SYMMETRICAL (depuis le milieu de l'arc). Renvoie {startDeg, sweepDeg} (sweep ≥ 0,
+// tracé horaire par arcPath).
+export function arcIndicatorAngles(mode, start, span, fillFrac) {
+  const f = Math.max(0, Math.min(1, fillFrac));
+  if (mode === 'reverse') return { startDeg: start + (1 - f) * span, sweepDeg: f * span };
+  if (mode === 'symmetrical') {
+    const mid = start + span / 2;
+    return f >= 0.5 ? { startDeg: mid, sweepDeg: (f - 0.5) * span }
+                    : { startDeg: start + f * span, sweepDeg: (0.5 - f) * span };
+  }
+  return { startDeg: start, sweepDeg: f * span };
 }
 
 // Point sur un cercle, convention écran (0°=droite, 90°=bas car y vers le bas) — identique à LVGL.
@@ -113,13 +140,15 @@ export function capArcPath(r, th, gap) {
 
 // ring : chemins fond + indicateur (rayon de tracé au milieu de la bande). Centralise la géométrie
 // d'arc partagée par buildRing (initial) et canvas.js paintRing (live resize). Miroir view.cpp:54.
-export function ringPaths(r, th, gap, value, min, max) {
+export function ringPaths(r, th, gap, value, min, max, mode = 'normal') {
   const rr = r - th / 2;           // rayon au centre de la bande
   const start = 90 + gap / 2;      // lv_arc_set_bg_angles(arc, 90 + gap/2, 90 − gap/2)
+  const span = 360 - gap;
+  const ind = arcIndicatorAngles(mode, start, span, barFill(value, min, max));
   return {
     rr, start,
-    track:     arcPath(r, r, rr, start, 360 - gap),
-    indicator: arcPath(r, r, rr, start, ringSweepDeg(value, min, max, gap))
+    track:     arcPath(r, r, rr, start, span),
+    indicator: arcPath(r, r, rr, ind.startDeg, ind.sweepDeg)
   };
 }
 
@@ -178,8 +207,16 @@ export function buildBar(comp, placement, mock = MOCKS.bar) {
   track.style.height = (placement.height || 16)  + 'px';
   const fill = document.createElement('div');
   fill.className = 'w-bar-fill';
-  fill.style.width = (barFill(mock.value, comp.min ?? 0, comp.max ?? 100) * 100) + '%';
-  fill.style.background = comp.color || '#38BDF8';
+  const { start, len } = barGeometry(mock.value, comp.min ?? 0, comp.max ?? 100, comp.mode || 'normal');
+  const pct = n => (n * 100) + '%';
+  if (comp.orientation === 'vertical') {       // lv_bar vertical : remplit depuis le bas
+    fill.style.left = '0'; fill.style.width = '100%';
+    fill.style.bottom = pct(start); fill.style.height = pct(len);
+  } else {
+    fill.style.top = '0'; fill.style.height = '100%';
+    fill.style.left = pct(start); fill.style.width = pct(len);
+  }
+  fill.style.background = pickThresholdColor(comp.thresholds, mock.value, comp.color || '#38BDF8'); // seuil comme le ring
   track.appendChild(fill);
   wrap.appendChild(track);                    // track d'abord = référence de taille du wrap
   if (comp.label) {                           // label hors flux (absolu) → ne fausse pas le placement de la barre
@@ -206,8 +243,9 @@ export function buildRing(comp, placement, mock = MOCKS.ring) {
   svg.setAttribute('width', size);
   svg.setAttribute('height', size);
   svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
-  const { track, indicator } = ringPaths(r, th, gap, mock.value, comp.min ?? 0, comp.max ?? 100);
+  const { track, indicator } = ringPaths(r, th, gap, mock.value, comp.min ?? 0, comp.max ?? 100, comp.mode || 'normal');
   const col = pickThresholdColor(comp.thresholds, mock.value, comp.color || '#38BDF8');
+  const cap = (comp.rounded ?? true) ? 'round' : 'butt';   // arc_rounded firmware (défaut arrondi)
   const mk = (cls, d, stroke) => {
     const p = document.createElementNS(SVGNS, 'path');
     p.setAttribute('class', cls);
@@ -215,26 +253,27 @@ export function buildRing(comp, placement, mock = MOCKS.ring) {
     p.setAttribute('fill', 'none');
     p.setAttribute('stroke', stroke);
     p.setAttribute('stroke-width', th);
-    p.setAttribute('stroke-linecap', 'round');
+    p.setAttribute('stroke-linecap', cap);
     return p;
   };
   svg.appendChild(mk('ring-track', track, '#1F2937')); // fond firmware (view.cpp:58)
   svg.appendChild(mk('ring-ind', indicator, col));
   wrap.appendChild(svg);
-  if (comp.center_pct) {                       // lecture centrale (prioritaire sur la pastille, view.cpp:89)
-    const ctr = document.createElement('div');
-    ctr.className = 'w-ring-center';
-    ctr.style.font = FONT(pickFontPx(comp.font ?? 20));
-    ctr.style.color = comp.center_color || col; // center_color surcharge le seuil (view.cpp:168)
-    ctr.textContent = formatValue(mock.value, comp.unit || '');
-    wrap.appendChild(ctr);
-  } else if (comp.pill) {                       // pastille % en haut de bande (view.cpp:66-74)
+  if (comp.pill) {                              // pastille % en haut de bande (coexiste avec le centre)
     const pill = document.createElement('div');
     pill.className = 'w-ring-pill';
     pill.textContent = `${Math.trunc(mock.value)}%`; // tronque comme (long)c.value, view.cpp:220
     pill.style.background = col;
     pill.style.top = (th / 2) + 'px';           // centre de la pill sur le milieu de la bande (view.cpp:60)
     wrap.appendChild(pill);
+  }
+  if (comp.center_pct) {                        // lecture centrale (coexiste avec la pastille)
+    const ctr = document.createElement('div');
+    ctr.className = 'w-ring-center';
+    ctr.style.font = FONT(pickFontPx(comp.font ?? 20));
+    ctr.style.color = comp.center_color || col; // center_color surcharge le seuil (view.cpp:168)
+    ctr.textContent = formatValue(mock.value, comp.unit || '');
+    wrap.appendChild(ctr);
   }
   const capText = (comp.cap_prefix || '') + (comp.countdown ? formatRemaining(mock.reset_in_s) : '');
   if (capText) {                              // texte courbe dans l'ouverture du bas (view.cpp build_ring/sync_ring)

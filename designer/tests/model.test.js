@@ -92,3 +92,53 @@ test('loadJSON est annulable (crée une entrée undo)', () => {
   m.undo();
   assert.equal(m.state.title, before);
 });
+
+// --- Coalescence d'undo (F2 : flèches/spinner d'un champ numérique ne doivent pas inonder l'undo) ---
+
+test('commits de même clé de coalescence fusionnent en UNE entrée d’undo', () => {
+  const m = createModel();
+  const base = m.state.title;
+  m.commit(s => { s.title = '1'; }, { coalesce: 'k' });
+  m.commit(s => { s.title = '2'; }, { coalesce: 'k' });
+  m.commit(s => { s.title = '3'; }, { coalesce: 'k' });
+  assert.equal(m.state.title, '3');
+  m.undo();                              // UNE annulation revient à l'état pré-édition
+  assert.equal(m.state.title, base);
+  assert.equal(m.canUndo(), false);      // pas d'entrées intermédiaires
+});
+
+test('clés de coalescence différentes = entrées séparées', () => {
+  const m = createModel();
+  m.commit(s => { s.title = 'A'; }, { coalesce: 'x' });
+  m.commit(s => { s.title = 'B'; }, { coalesce: 'y' });
+  m.undo();
+  assert.equal(m.state.title, 'A');
+});
+
+test('un commit sans clé casse la coalescence', () => {
+  const m = createModel();
+  m.commit(s => { s.title = 'A'; }, { coalesce: 'k' });
+  m.commit(s => { s.title = 'B'; });            // sans clé → entrée neuve
+  m.commit(s => { s.title = 'C'; }, { coalesce: 'k' });   // ne refusionne pas avec 'A'
+  m.undo(); assert.equal(m.state.title, 'B');
+  m.undo(); assert.equal(m.state.title, 'A');
+});
+
+test('breakCoalesce() coupe la chaîne malgré une clé identique (fin de session au blur)', () => {
+  const m = createModel();
+  const base = m.state.title;
+  m.commit(s => { s.title = 'A'; }, { coalesce: 'k' });
+  m.breakCoalesce();
+  m.commit(s => { s.title = 'B'; }, { coalesce: 'k' });
+  m.undo(); assert.equal(m.state.title, 'A');
+  m.undo(); assert.equal(m.state.title, base);
+});
+
+test('undo réinitialise la coalescence (le commit suivant ne refusionne pas par-dessus le redo)', () => {
+  const m = createModel();
+  const base = m.state.title;
+  m.commit(s => { s.title = 'A'; }, { coalesce: 'k' });
+  m.undo();                                      // revient à base, lastCoalesce remis à null
+  m.commit(s => { s.title = 'B'; }, { coalesce: 'k' });
+  m.undo(); assert.equal(m.state.title, base);   // B était bien une entrée neuve
+});

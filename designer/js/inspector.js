@@ -10,6 +10,12 @@ import { ANCHORS, ANCHORS_OUT } from './geometry.js';
 import { getMock, setMock } from './mocks.js';
 
 const FONTS = [14, 20, 28, 36, 48];
+// Selects à options fixes (value firmware → libellé FR). Étend le motif anchor/anchorOut.
+const SELECTS = {
+  barmode: [['normal', 'Normal'], ['symmetrical', 'Symétrique']],
+  orient:  [['horizontal', 'Horizontal'], ['vertical', 'Vertical']],
+  arcmode: [['normal', 'Normal'], ['symmetrical', 'Symétrique'], ['reverse', 'Inversé']],
+};
 const nonAscii = v => /[^\x00-\x7F]/.test(v ?? '');
 
 // Construit un <input>/<select> selon kind. onChange reçoit la valeur typée. Les éditeurs textuels
@@ -37,6 +43,11 @@ function makeInput(kind, value, onChange) {
   } else if (kind === 'num') {
     el = document.createElement('input'); el.type = 'number'; el.value = value ?? '';
     el.addEventListener('change', () => onChange(el.value === '' ? '' : Number(el.value)));
+  } else if (SELECTS[kind]) {
+    el = document.createElement('select');
+    const opts = SELECTS[kind];
+    for (const [val, txt] of opts) { const o = document.createElement('option'); o.value = val; o.textContent = txt; if (val === (value ?? opts[0][0])) o.selected = true; el.appendChild(o); }
+    el.addEventListener('change', () => onChange(el.value));
   } else { // text / asciitext
     el = document.createElement('input'); el.type = 'text'; el.value = value ?? '';
     el.addEventListener('change', () => onChange(el.value));
@@ -59,14 +70,40 @@ function fieldRow(label, input, { ascii } = {}) {
   return row;
 }
 
-export function createInspector(root, model, { rerenderCanvas, clearSelection, getActivePage = () => 0 } = {}) {
+export function createInspector(root, model, { rerenderCanvas, clearSelection, getActivePage = () => 0, previewProp, clearPreview } = {}) {
   let sel = null; // { placeIndex, ref } ou null
   let placementInputs = {}; // { anchor, dx, dy } → <input>/<select> de la rubrique Placement, pour la MAJ live au drag
 
   const comp = () => sel && model.state.components[sel.ref];
   const place = () => sel && model.state.pages?.[getActivePage()]?.place?.[sel.placeIndex];
 
-  function select(s) { sel = s; render(); }
+  function select(s) {
+    // Changement de sélection : si un champ de l'inspecteur a encore le focus, le blur AVANT de
+    // changer `sel`. Sinon (F1) deux pièges quand on clique un autre widget déplaçable (son
+    // pointerdown fait preventDefault → le focus ne part pas) : (a) le garde-focus de render()
+    // bloque la reconstruction → l'inspecteur reste figé sur l'ANCIEN composant alors que le canvas
+    // a déjà sélectionné le nouveau ; (b) une édition en attente (change non encore émis) se
+    // committerait sur le NOUVEAU composant (clé étrangère → layout invalide). Blur ici committe
+    // l'édition en attente sur l'ANCIEN composant (sel encore inchangé) puis lève le garde.
+    const changed = sel?.ref !== s?.ref || sel?.placeIndex !== s?.placeIndex;
+    if (changed && root.contains(document.activeElement) && document.activeElement !== document.body) {
+      document.activeElement.blur();
+    }
+    sel = s;
+    render();
+  }
+
+  // Un champ de l'inspecteur perd le focus :
+  //  - num   (F2) : fin de session d'édition → casse la coalescence d'undo (les flèches/spinner suivants
+  //                 repartent sur une nouvelle entrée d'undo).
+  //  - color (F3) : un aperçu live non committé (picker annulé après avoir bougé le curseur → pas de
+  //                 'change') resterait « collé » au canvas ; on restaure l'état réel du modèle.
+  root.addEventListener('focusout', e => {
+    const t = e.target;
+    if (!t || t.tagName !== 'INPUT') return;
+    if (t.type === 'number') model.breakCoalesce();
+    else if (t.type === 'color') { clearPreview?.(); rerenderCanvas?.(); }
+  });
 
   // Sous-titre de section.
   function sub(body, text) { const h = document.createElement('div'); h.className = 'insp-sub'; h.textContent = text; body.appendChild(h); }
@@ -149,7 +186,8 @@ export function createInspector(root, model, { rerenderCanvas, clearSelection, g
       sub(body, 'Placement');
       if (c.type === 'ring') note(body, 'Anneau centré : ancrage/dx/dy ignorés par le firmware.');
       for (const [key, label, kind] of gf) {
-        const input = makeInput(kind, p[key], v => model.commit(s => setPlacementProp(s, getActivePage(), sel.placeIndex, key, v)));
+        const opts = kind === 'num' ? { coalesce: 'num' } : undefined;   // F2 : flèches/spinner d'un champ num = 1 entrée d'undo
+        const input = makeInput(kind, p[key], v => model.commit(s => setPlacementProp(s, getActivePage(), sel.placeIndex, key, v), opts));
         placementInputs[key] = input;   // réf. pour setLivePlacement (drag)
         body.appendChild(fieldRow(label, input));
       }
@@ -157,15 +195,19 @@ export function createInspector(root, model, { rerenderCanvas, clearSelection, g
 
     // --- Seuils ring/meter (liste éditable de [limite, #couleur]) ---
     // ring : couleur si valeur < limite ; meter : zone d'arc (limite précédente → limite).
-    if (c.type === 'ring' || c.type === 'meter') {
+    if (c.type === 'ring' || c.type === 'meter' || c.type === 'bar') {
       sub(body, c.type === 'meter' ? 'Zones (couleur de la limite précédente à la limite)'
                                    : 'Seuils (couleur si valeur < limite)');
       const ths = (c.thresholds || []).map(t => [t[0], t[1]]); // copie locale éditable
-      const commitThs = () => model.commit(s => setThresholds(s, sel.ref, ths.filter(t => t[1])));
+      const commitThs = (opts) => model.commit(s => setThresholds(s, sel.ref, ths.filter(t => t[1])), opts);
       ths.forEach((t, idx) => {
         const row = document.createElement('div'); row.className = 'insp-row';
-        const lim = makeInput('num', t[0], v => { ths[idx][0] = v === '' ? 0 : v; commitThs(); });
-        const col = makeInput('color', t[1], v => { ths[idx][1] = v; commitThs(); });
+        const lim = makeInput('num', t[0], v => { ths[idx][0] = v === '' ? 0 : v; commitThs({ coalesce: 'num' }); });   // F2
+        const col = makeInput('color', t[1], v => { clearPreview?.(); ths[idx][1] = v; commitThs(); });
+        // Aperçu live de la couleur du seuil : override du tableau thresholds complet (canvas seul, hors modèle).
+        col.addEventListener('input', () => previewProp?.(sel.ref, {
+          thresholds: ths.map((tt, i) => i === idx ? [tt[0], col.value.toUpperCase()] : [tt[0], tt[1]]).filter(tt => tt[1])
+        }));
         const rm = document.createElement('button'); rm.className = 'insp-th-rm'; rm.textContent = '×';
         rm.addEventListener('click', () => { ths.splice(idx, 1); commitThs(); });
         row.appendChild(lim); row.appendChild(col); row.appendChild(rm);
@@ -315,7 +357,11 @@ export function createInspector(root, model, { rerenderCanvas, clearSelection, g
     for (const [key, label, kind, enableWhen] of COMPONENTS[c.type].compFields) {
       if (kind === 'image') { body.appendChild(imageField(label, c)); continue; }   // picker bespoke
       if (kind === 'image_anim') { body.appendChild(imageAnimField(label, c)); continue; }   // editeur bespoke
-      const input = makeInput(kind, c[key], v => model.commit(s => setComponentProp(s, sel.ref, key, v)));
+      // Color picker : aperçu live sur 'input' (canvas seul, hors modèle → pas de flood undo) ; commit
+      // unique sur 'change' (makeInput), précédé d'un clearPreview pour que le commit re-rende l'état réel.
+      const commit = v => { if (kind === 'color') clearPreview?.(); model.commit(s => setComponentProp(s, sel.ref, key, v), kind === 'num' ? { coalesce: 'num' } : undefined); };   // F2 : coalesce num
+      const input = makeInput(kind, c[key], commit);
+      if (kind === 'color') input.addEventListener('input', () => previewProp?.(sel.ref, { [key]: input.value.toUpperCase() }));
       const row = fieldRow(label, input, { ascii: kind === 'asciitext' });
       rows[key] = { input, row, enableWhen };
       body.appendChild(row);
