@@ -205,7 +205,6 @@ textarea { width: 100%; height: 220px; background: #0a0a0e; color: #cbd5e1; bord
 .insp-bg-file  { max-width: 150px; }
 .insp-del { margin-top: 10px; width: 100%; border-color: var(--err); color: var(--err); }
 .insp-devvis { margin-top: 8px; width: 100%; padding: 6px; background: #16161c; color: #E5E7EB; border: 1px solid #2a2a33; border-radius: 6px; cursor: pointer; }
-.insp-devvis:hover { border-color: var(--accent); }
 .insp-sub { font-size: 11px; color: var(--muted); margin: 10px 0 4px; text-transform: uppercase; }
 .insp-note { font-size: 11px; color: var(--muted); font-style: italic; margin: 2px 0 6px; }
 .insp-th-rm { flex: 0 0 auto; padding: 0 8px; border-color: var(--line); color: var(--muted); }

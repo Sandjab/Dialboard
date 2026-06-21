@@ -71,6 +71,7 @@ async function main() {
     clearPreview: canvas.clearPreview,
     pushVisible: async (id, visible) => {
       if (!$('base').value) { setStatus('URL device ?', 'err'); return false; }
+      setStatus('Visibilité…');
       try {
         await pushValues($('base').value, { [id]: { visible } });
         setStatus(visible ? 'Affiché sur le device' : 'Caché sur le device', 'ok');
