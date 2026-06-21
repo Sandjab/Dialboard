@@ -128,9 +128,10 @@ export function createCanvas({ stage }, model, { onSelect, onLiveMove } = {}) {
     node.classList.add('selected');
     const pl = placements()[selected];
     const comp = comps()[pl.ref];
-    if (comp.type === 'bar')  addBarHandles(node, selected, pl);
-    if (comp.type === 'ring') addRingHandles(node, selected, comp, pl);
+    if (comp.type === 'bar')   addBarHandles(node, selected, pl);
+    if (comp.type === 'ring')  addRingHandles(node, selected, comp, pl);
     if (comp.type === 'image') addImageHandles(node, pl, comp);
+    if (comp.type === 'chart') addChartHandles(node, selected, pl);
   }
 
   function select(i) {
@@ -181,62 +182,80 @@ export function createCanvas({ stage }, model, { onSelect, onLiveMove } = {}) {
     node.addEventListener('pointerup', up);
   }
 
-  // --- Resize bar : 3 poignées → E=largeur seule, S=hauteur seule, SE(coin)=les deux ---
+  // --- Resize générique : poignées E=largeur seule, S=hauteur seule, SE(coin)=les deux ---
   // resizeBox pousse width par dx et height par dy ; on annule l'axe non concerné selon la poignée.
-  // Le coin (handle-br) est ajouté EN DERNIER → au-dessus de E/S là où ils se frôlent sur une barre fine.
-  const BAR_HANDLES = [['handle-e', 'x'], ['handle-s', 'y'], ['handle-br', 'both']];
-  function addBarHandles(node, i, pl) {
-    for (const [cls, axis] of BAR_HANDLES) {
+  // Le coin (handle-br) est ajouté EN DERNIER → au-dessus de E/S là où ils se frôlent sur un widget fin.
+  // L'adaptateur découple le mécanisme (poignées + drag) des spécificités du composant :
+  //   start()        → { width, height } de départ (matérialise les défauts).
+  //   preview(dim)    → MAJ live du DOM pendant le drag (hors modèle/undo).
+  //   commit(dim)     → mutation finale au drop (un seul commit). Extensible : 1 composant = 1 adaptateur.
+  const RESIZE_HANDLES = [['handle-e', 'x'], ['handle-s', 'y'], ['handle-br', 'both']];
+  function addResizeHandles(node, adapter) {
+    for (const [cls, axis] of RESIZE_HANDLES) {
       const h = document.createElement('div');
       h.className = 'handle ' + cls;
       node.appendChild(h);
       h.addEventListener('pointerdown', e => {
         e.stopPropagation(); e.preventDefault();
         const s = zoomScale();
-        const startW = pl.width || 200, startH = pl.height || 16;
+        const { width: startW, height: startH } = adapter.start();
         const sx = e.clientX, sy = e.clientY;
-        const track = node.querySelector('.w-bar-track');
         h.setPointerCapture(e.pointerId);
         let dim = null;
         const move = ev => {
           const dx = axis === 'y' ? 0 : (ev.clientX - sx) / s;   // poignée Sud : largeur figée
           const dy = axis === 'x' ? 0 : (ev.clientY - sy) / s;   // poignée Est : hauteur figée
           dim = resizeBox(startW, startH, dx, dy, 8);
-          track.style.width = dim.width + 'px'; track.style.height = dim.height + 'px';
+          adapter.preview(dim);
         };
         const up = () => {
           h.releasePointerCapture(e.pointerId);
           h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', up);
-          if (dim) model.commit(s => { const q = s.pages[activePage].place[i]; q.width = dim.width; q.height = dim.height; });
+          if (dim) adapter.commit(dim);
         };
         h.addEventListener('pointermove', move); h.addEventListener('pointerup', up);
       });
     }
   }
 
-  // --- Resize image : poignee bas-droite -> component.w/h (la taille vit sur le composant). Au drop,
-  // re-rasterise la source a la nouvelle taille (etirement libre) -> nouvelle cle `src`, gardant l'asset
-  // coherent avec w×h. Sans source memorisee (ex. asset jamais charge), on met juste a jour w/h.
+  // Adaptateur « placement » (bar, chart) : la taille vit sur le placement (width/height). Commit simple.
+  function placementResize(i, pl, defW, defH, preview) {
+    return {
+      start: () => ({ width: pl.width || defW, height: pl.height || defH }),
+      preview,
+      commit: dim => model.commit(s => { const q = s.pages[activePage].place[i]; q.width = dim.width; q.height = dim.height; }),
+    };
+  }
+
+  function addBarHandles(node, i, pl) {
+    const track = node.querySelector('.w-bar-track');
+    addResizeHandles(node, placementResize(i, pl, 200, 16, dim => {
+      track.style.width = dim.width + 'px'; track.style.height = dim.height + 'px';
+    }));
+  }
+
+  // Chart : aperçu live par étirement du SVG (viewBox figé → le tracé suit) ; le commit re-rend buildChart
+  // à la taille exacte (grille/courbe recalculées). On n'étire que pendant le drag (pas de re-render qui
+  // détruirait la poignée capturée).
+  function addChartHandles(node, i, pl) {
+    addResizeHandles(node, placementResize(i, pl, 200, 100, dim => {
+      node.style.width = dim.width + 'px'; node.style.height = dim.height + 'px';
+      const svg = node.querySelector('svg');
+      if (svg) { svg.setAttribute('width', dim.width); svg.setAttribute('height', dim.height); }
+    }));
+  }
+
+  // Adaptateur « image » : la taille vit sur le composant (w/h). Au drop, re-rasterise la source à la
+  // nouvelle taille (étirement libre) → nouvelle clé `src`, gardant l'asset cohérent avec w×h. Sans source
+  // mémorisée (ex. asset jamais chargé), on met juste à jour w/h.
   function addImageHandles(node, pl, comp) {
-    const h = document.createElement('div');
-    h.className = 'handle handle-br';
-    node.appendChild(h);
-    h.addEventListener('pointerdown', e => {
-      e.stopPropagation(); e.preventDefault();
-      const s = zoomScale();
-      const startW = comp.w || 120, startH = comp.h || 120;
-      const sx = e.clientX, sy = e.clientY;
-      h.setPointerCapture(e.pointerId);
-      let dim = null;
-      const move = ev => {
-        dim = resizeBox(startW, startH, (ev.clientX - sx) / s, (ev.clientY - sy) / s, 8);
+    addResizeHandles(node, {
+      start: () => ({ width: comp.w || 120, height: comp.h || 120 }),
+      preview: dim => {
         node.style.width = dim.width + 'px'; node.style.height = dim.height + 'px';
         const img = node.querySelector('img'); if (img) { img.style.width = '100%'; img.style.height = '100%'; }
-      };
-      const up = () => {
-        h.releasePointerCapture(e.pointerId);
-        h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', up);
-        if (!dim) return;
+      },
+      commit: dim => {
         const src = sourceFor(pl.ref);
         const key = src ? renderToAsset(src, dim.width, dim.height).key : null;
         model.commit(st => {
@@ -244,8 +263,7 @@ export function createCanvas({ stage }, model, { onSelect, onLiveMove } = {}) {
           c.w = dim.width; c.h = dim.height;
           if (key) c.src = key;   // garde src <-> w×h coherent ; sans source on ne touche pas src
         });
-      };
-      h.addEventListener('pointermove', move); h.addEventListener('pointerup', up);
+      },
     });
   }
 
