@@ -122,6 +122,14 @@ badge ; bouton device (push réseau).
 - **`led_ring` `visible`≡`mode:off`** : non fait (led_ring exclu, `w == nullptr`).
 - **Étape 3** : valeur → contexte (variable implicite par id), `led_ring.value` bindable.
 
+## État — ✅ IMPLÉMENTÉE (2026-06-21, branche `feat/visible-config-toggle`)
+
+Plan : `docs/superpowers/plans/2026-06-21-visible-config-toggle.md`. Exécutée en subagent-driven (6 tasks, revues
+spec+qualité par task + revue finale). Vérifs : natif **108/108**, designer **219/219**, build esp32 SUCCESS,
+e2e on-device confirmé (layout `visible:false` masque au build ; `/update {visible:true}` révèle) + vérif navigateur
+(œil/grisé/bouton). Suivis non bloquants : bouton device non gardé sur l'URL device (toast au clic — découvrabilité
+assumée) ; `deviceHidden` suit le dernier push, pas l'état réel du device (sémantique retenue).
+
 ## Décisions tranchées (validées par l'utilisateur)
 
 - **Ré-affichage** : écriture **explicite** `visible:true` (conforme aux bools existants `rounded`/`pill`). On ne
