@@ -101,6 +101,14 @@ textarea { width: 100%; height: 220px; background: #0a0a0e; color: #cbd5e1; bord
 .w.snapped { outline: 1px solid var(--ok); }
 .w.outside { outline: 1px dashed var(--err); }  /* coin hors zone ronde */
 
+/* visible:false (config) — composant grisé mais toujours sélectionnable/déplaçable, + badge œil-barré. */
+.w.hidden { opacity: .38; }
+.w.hidden::after {
+  content: ''; position: absolute; top: -7px; right: -7px;
+  width: 18px; height: 18px; border-radius: 50%; pointer-events: none;
+  background: #0c0c10 center/12px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23EF4444' stroke-width='2.5'%3E%3Cpath d='M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cline x1='3' y1='3' x2='21' y2='21'/%3E%3C/svg%3E");
+}
+
 /* Guide d'ancrage : overlay SVG montré pendant le drag d'un widget. Repères des 9 ancres,
    ligne vers l'ancre la plus proche, marqueur actif (vert quand magnétisé, cf .w.snapped). */
 .ag { position: absolute; inset: 0; pointer-events: none; overflow: visible; z-index: 5; }
