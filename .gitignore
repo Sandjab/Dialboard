@@ -2,4 +2,7 @@
 data/designer/
 data/schema/
 docs/_internal/
+# Démos visuelles locales conservées (non trackées, sauf leur README)
+playgrounds/*
+!playgrounds/README.md
 .DS_Store
