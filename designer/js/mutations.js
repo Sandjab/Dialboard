@@ -88,6 +88,22 @@ export function setPlacementProp(state, pageIndex, placeIndex, key, value) {
   else p[key] = value;
 }
 
+// Bascule l'orientation d'une barre ET échange Largeur/Hauteur du placement (axe inversé → la barre
+// « pivote » : une horizontale large devient une verticale haute). On échange les dimensions EFFECTIVES
+// en matérialisant les défauts firmware (200×16, cf. view.cpp:184 / buildBar) ; sinon le swap serait un
+// no-op pour une barre fraîche (width/height implicites) et elle ne se réorienterait pas.
+export function setBarOrientation(state, id, pageIndex, placeIndex, orientation) {
+  const c = state.components[id];
+  if (!c) return;
+  const flipped = orientation !== (c.orientation || 'horizontal');   // horizontal = défaut firmware
+  c.orientation = orientation;
+  if (!flipped) return;
+  const p = state.pages[pageIndex]?.place?.[placeIndex];
+  if (!p) return;
+  const w = p.width ?? 200, h = p.height ?? 16;                       // défauts firmware (view.cpp:184)
+  p.width = h; p.height = w;
+}
+
 // thresholds : tableau de [limite, "#hex"]. Vide => suppression de la clé.
 export function setThresholds(state, id, thresholds) {
   const c = state.components[id];

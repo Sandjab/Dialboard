@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   uniqueId, addComponent, addPlacement, removePlacement,
-  setComponentProp, setPlacementProp, setThresholds,
+  setComponentProp, setPlacementProp, setBarOrientation, setThresholds,
   addPage, removePage, renamePage, reorderPages, uniquePageName, pageNameTaken,
   setPageBackground, effectivePageBg,
   setPageBackgroundImage, effectivePageBgImage,
@@ -173,6 +173,46 @@ test('setPlacementProp ignore un index hors borne', () => {
   setPlacementProp(s, 0, 99, 'dy', 10); // place index hors borne : ne doit pas throw
   setPlacementProp(s, 99, 0, 'dy', 10); // page index hors borne : ne doit pas throw (parité add/removePlacement)
   assert.equal(s.pages[0].place.length, 0);
+});
+
+test('setBarOrientation échange Largeur/Hauteur explicites au flip d\'axe', () => {
+  const s = fresh();
+  s.components.bar1 = { type: 'bar' };
+  s.pages[0].place = [{ ref: 'bar1', width: 200, height: 16 }];
+  setBarOrientation(s, 'bar1', 0, 0, 'vertical');
+  assert.equal(s.components.bar1.orientation, 'vertical');
+  assert.equal(s.pages[0].place[0].width, 16);
+  assert.equal(s.pages[0].place[0].height, 200);
+  setBarOrientation(s, 'bar1', 0, 0, 'horizontal');   // round-trip : revient à l'état initial
+  assert.equal(s.components.bar1.orientation, 'horizontal');
+  assert.equal(s.pages[0].place[0].width, 200);
+  assert.equal(s.pages[0].place[0].height, 16);
+});
+
+test('setBarOrientation matérialise les défauts firmware (200×16) si dimensions implicites', () => {
+  const s = fresh();
+  s.components.bar1 = { type: 'bar' };       // orientation absente = horizontal
+  s.pages[0].place = [{ ref: 'bar1' }];      // width/height absents = défauts firmware
+  setBarOrientation(s, 'bar1', 0, 0, 'vertical');
+  assert.equal(s.pages[0].place[0].width, 16);   // ex-hauteur par défaut
+  assert.equal(s.pages[0].place[0].height, 200); // ex-largeur par défaut
+});
+
+test('setBarOrientation sans flip n\'échange rien', () => {
+  const s = fresh();
+  s.components.bar1 = { type: 'bar', orientation: 'vertical' };
+  s.pages[0].place = [{ ref: 'bar1', width: 16, height: 200 }];
+  setBarOrientation(s, 'bar1', 0, 0, 'vertical');   // même orientation
+  assert.equal(s.pages[0].place[0].width, 16);
+  assert.equal(s.pages[0].place[0].height, 200);
+});
+
+test('setBarOrientation ignore id/index invalides', () => {
+  const s = fresh();
+  setBarOrientation(s, 'missing', 0, 0, 'vertical');   // composant absent : ne doit pas throw
+  s.components.bar1 = { type: 'bar' };                  // composant sans placement
+  setBarOrientation(s, 'bar1', 0, 99, 'vertical');     // place index hors borne : ne doit pas throw
+  assert.equal(s.components.bar1.orientation, 'vertical');   // l'orientation est quand même posée
 });
 
 test('addPage ajoute une page vide nommée en fin de liste', () => {

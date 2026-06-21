@@ -1,7 +1,7 @@
 // Inspecteur : édite le composant + le placement sélectionnés. Pilote les champs par des tables de
 // descripteurs (DRY). Chaque édition committée = UN commit (sur 'change', pas par frappe → pas de
 // flood undo). Le signalement ASCII est live (sur 'input'). S'abonne au modèle pour se rafraîchir.
-import { setComponentProp, setPlacementProp, setThresholds, removePlacementAndOrphan, setPageBackground, setPageBackgroundImage } from './mutations.js';
+import { setComponentProp, setPlacementProp, setBarOrientation, setThresholds, removePlacementAndOrphan, setPageBackground, setPageBackgroundImage } from './mutations.js';
 import { imageFileToBg, previewUrl } from './bg-image.js';
 import { imageFileToAsset, previewUrl as imagePreviewUrl } from './image-asset.js';
 import { decodeGif, decodeImages, framesToAsset, previewUrls as aimgPreviewUrls } from './image-anim-asset.js';
@@ -388,7 +388,13 @@ export function createInspector(root, model, { rerenderCanvas, clearSelection, g
       // déjà déplacé `sel`) ; sans figer, le commit atterrirait sur la sélection courante (mauvais
       // composant). On committe donc toujours sur le composant qu'on éditait. (cf. bug picker couleur)
       const ref = sel.ref;
-      const commit = v => { if (kind === 'color') clearPreview?.(); model.commit(s => setComponentProp(s, ref, key, v), kind === 'num' ? { coalesce: 'num' } : undefined); };   // F2 : coalesce num
+      const placeIndex = sel.placeIndex;   // figé au rendu comme ref (orientation barre → swap W/H du placement)
+      const commit = v => {
+        if (kind === 'color') clearPreview?.();
+        // Orientation barre : bascule + échange Largeur/Hauteur du placement en UN seul commit (1 undo).
+        if (key === 'orientation') { model.commit(s => setBarOrientation(s, ref, getActivePage(), placeIndex, v)); return; }
+        model.commit(s => setComponentProp(s, ref, key, v), kind === 'num' ? { coalesce: 'num' } : undefined);   // F2 : coalesce num
+      };
       const input = makeInput(kind, c[key], commit);
       if (kind === 'color') input.addEventListener('input', () => previewProp?.(ref, { [key]: input.value.toUpperCase() }));
       const row = fieldRow(label, input, { ascii: kind === 'asciitext' });
