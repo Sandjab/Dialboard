@@ -122,8 +122,8 @@ badge ; bouton device (push réseau).
 - **`led_ring` `visible`≡`mode:off`** : non fait (led_ring exclu, `w == nullptr`).
 - **Étape 3** : valeur → contexte (variable implicite par id), `led_ring.value` bindable.
 
-## Décisions ouvertes (mineures, trancher au plan)
+## Décisions tranchées (validées par l'utilisateur)
 
-- **Écriture explicite `visible:true` vs suppression de la clé** quand on ré-affiche : reco = écriture explicite
-  (conforme aux bools existants). Alternative = supprimer la clé pour un layout épuré (déviation de convention).
-- **Badge canvas** (œil-barré en plus de l'opacité) : recommandé pour la lisibilité ; à confirmer visuellement.
+- **Ré-affichage** : écriture **explicite** `visible:true` (conforme aux bools existants `rounded`/`pill`). On ne
+  supprime PAS la clé.
+- **Badge canvas** : opacité 35 % **+ badge œil-barré** en coin (lisibilité « ceci est masqué »).
