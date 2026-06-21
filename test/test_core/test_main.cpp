@@ -357,6 +357,27 @@ void test_led_parse(void) {
     TEST_ASSERT_EQUAL_INT(40, d.pages[0].places[0].size);
 }
 
+static const char* LAYOUT_LED_LOOK =
+    "{\"components\":{"
+    "\"a\":{\"type\":\"led\",\"glow\":false,\"bezel\":false,\"specular\":false,\"off_glass\":false},"
+    "\"b\":{\"type\":\"led\"}},"
+    "\"pages\":[{\"name\":\"P\",\"place\":[{\"ref\":\"a\"},{\"ref\":\"b\"}]}]}";
+
+void test_led_look_flags(void) {
+    Dashboard d{}; char err[128];
+    TEST_ASSERT_TRUE(dash_set_layout(&d, LAYOUT_LED_LOOK, err, sizeof(err)));
+    // a : tout désactivé explicitement
+    TEST_ASSERT_FALSE(d.components[0].led_glow);
+    TEST_ASSERT_FALSE(d.components[0].led_bezel);
+    TEST_ASSERT_FALSE(d.components[0].led_specular);
+    TEST_ASSERT_FALSE(d.components[0].led_off_glass);
+    // b : défauts (true)
+    TEST_ASSERT_TRUE(d.components[1].led_glow);
+    TEST_ASSERT_TRUE(d.components[1].led_bezel);
+    TEST_ASSERT_TRUE(d.components[1].led_specular);
+    TEST_ASSERT_TRUE(d.components[1].led_off_glass);
+}
+
 // --- contexte (blackboard) ---
 void test_ctx_set_find_num(void) {
     Context c{};
@@ -789,6 +810,7 @@ int main(int, char**) {
     RUN_TEST(test_threshold_none);
     RUN_TEST(test_led_is_lit_boundary);
     RUN_TEST(test_led_parse);
+    RUN_TEST(test_led_look_flags);
     RUN_TEST(test_next_mid);
     RUN_TEST(test_next_wrap);
     RUN_TEST(test_next_clamp);
