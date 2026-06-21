@@ -25,6 +25,8 @@ export function createSelection(initial = null) {
   const subs = new Set();
   const emit = () => subs.forEach(fn => fn(cur));
   const api = {
+    // get() est une méthode (≠ le getter-propriété `get state()` de model.js) : la sélection est un
+    // scalaire à lire, pas un objet d'état composite — l'appel explicite est plus clair au point d'usage.
     get() { return cur; },
     set(next) { if (sameSelection(cur, next)) return; cur = next; emit(); },
     clear() { api.set(null); },
