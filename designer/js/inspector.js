@@ -23,6 +23,10 @@ const deviceHidden = new Set();   // refs poussées cachées sur le device (éta
 // Œil de visibilité : icône SVG en data-URI (img), couleur baked-in (clair = visible, rouge = caché).
 const EYE_OPEN_URI = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E5E7EB' stroke-width='2'%3E%3Cpath d='M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E";
 const EYE_OFF_URI  = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23EF4444' stroke-width='2'%3E%3Cpath d='M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cline x1='3' y1='3' x2='21' y2='21'/%3E%3C/svg%3E";
+// Icônes Feather (data-URI), même fabrique que l'œil. Dossier/image = clair ; poubelle = rouge (destructif).
+const FOLDER_URI = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E5E7EB' stroke-width='2'%3E%3Cpath d='M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z'/%3E%3C/svg%3E";
+const TRASH_URI  = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23EF4444' stroke-width='2'%3E%3Cpolyline points='3 6 5 6 21 6'/%3E%3Cpath d='M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2'/%3E%3Cline x1='10' y1='11' x2='10' y2='17'/%3E%3Cline x1='14' y1='11' x2='14' y2='17'/%3E%3C/svg%3E";
+const IMAGE_URI  = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239AA0AA' stroke-width='2'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' ry='2'/%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'/%3E%3Cpolyline points='21 15 16 10 5 21'/%3E%3C/svg%3E";
 
 // Construit un <input>/<select> selon kind. onChange reçoit la valeur typée. Les éditeurs textuels
 // committent sur 'change' (pas 'input') pour ne pas inonder l'undo.
@@ -131,9 +135,11 @@ export function createInspector(root, model, { rerenderCanvas, clearSelection, g
     const pg = s.pages?.[pi];
     // Fond de la page : override optionnel. (hérité) si absent (= fond global) ; ↺ pour réhériter sinon.
     if (pg) {
+      const hasBgImg = !!pg.background_image;   // image présente → la couleur de page n'est plus qu'un repli
       const pbg = makeInput('color', pg.background || s.background || '#000000',
         v => model.commit(st => setPageBackground(st, pi, v)));
       const row = fieldRow('Fond page', pbg);
+      if (hasBgImg) { row.classList.add('insp-row--fallback'); pbg.title = "Repli : ne s'affiche que si l'image de fond est absente."; }
       if (pg.background == null) {
         const hint = document.createElement('span'); hint.className = 'insp-bg-hint'; hint.textContent = '(hérité)';
         row.appendChild(hint);
@@ -145,15 +151,16 @@ export function createInspector(root, model, { rerenderCanvas, clearSelection, g
         row.appendChild(reset);
       }
       body.appendChild(row);
-      // Image de fond de la page : override optionnel, prime sur la couleur. Conversion + upload
-      // au navigateur (cf. bg-image.js) ; la cle (hash) est posee dans le layout, les octets sont
-      // pousses au device au « Pousser » (app.js).
-      const imgRow = document.createElement('div'); imgRow.className = 'insp-row';
+      // Image de fond de la page : override optionnel, prime sur la couleur. Le file natif est masqué
+      // (laid + texte de statut « Aucun fichier ») et ouvert via un bouton à icône dossier. Conversion +
+      // upload au navigateur (cf. bg-image.js) ; la clé (hash) est posée dans le layout, les octets sont
+      // poussés au device au « Pousser » (app.js).
+      const imgRow = document.createElement('div'); imgRow.className = 'insp-row insp-bg-row';
       const imgLabel = document.createElement('span'); imgLabel.className = 'insp-label';
       imgLabel.textContent = 'Image de fond';
       imgRow.appendChild(imgLabel);
       const file = document.createElement('input');
-      file.type = 'file'; file.accept = 'image/*'; file.className = 'insp-bg-file';
+      file.type = 'file'; file.accept = 'image/*'; file.className = 'insp-bg-file';   // masqué (CSS), ouvert par le bouton dossier
       file.addEventListener('change', async () => {
         const f = file.files?.[0]; if (!f) return;
         try {
@@ -163,19 +170,42 @@ export function createInspector(root, model, { rerenderCanvas, clearSelection, g
         file.value = '';
       });
       imgRow.appendChild(file);
-      if (pg.background_image) {
-        const thumb = document.createElement('img');
-        thumb.className = 'insp-bg-thumb';
+      if (pg.background_image) {                                  // aperçu ; cadre « octets sur le device » si pas en cache local
         const u = previewUrl(pg.background_image);
-        if (u) thumb.src = u; else thumb.alt = '(recharger depuis le device)';
-        imgRow.appendChild(thumb);
+        if (u) {
+          const thumb = document.createElement('img');
+          thumb.className = 'insp-bg-thumb'; thumb.src = u; thumb.alt = 'aperçu du fond';
+          imgRow.appendChild(thumb);
+        } else {
+          const ph = document.createElement('span');
+          ph.className = 'insp-bg-thumb insp-bg-thumb--empty';
+          ph.title = 'Fond défini — aperçu indisponible (octets stockés sur le device)';
+          const phIcon = document.createElement('img');
+          phIcon.src = IMAGE_URI; phIcon.width = 18; phIcon.height = 18; phIcon.alt = '';
+          ph.appendChild(phIcon);
+          imgRow.appendChild(ph);
+        }
+      }
+      const pick = document.createElement('button');
+      pick.type = 'button'; pick.className = 'insp-iconbtn';
+      pick.title = pg.background_image ? "Changer l'image" : "Choisir une image";
+      const pickIcon = document.createElement('img');
+      pickIcon.src = FOLDER_URI; pickIcon.width = 16; pickIcon.height = 16; pickIcon.alt = pick.title;
+      pick.appendChild(pickIcon);
+      pick.addEventListener('click', () => file.click());
+      imgRow.appendChild(pick);
+      if (pg.background_image) {
         const del = document.createElement('button');
-        del.type = 'button'; del.className = 'insp-bg-reset'; del.textContent = '↺';
+        del.type = 'button'; del.className = 'insp-iconbtn';
         del.title = "Retirer l'image";
+        const delIcon = document.createElement('img');
+        delIcon.src = TRASH_URI; delIcon.width = 16; delIcon.height = 16; delIcon.alt = "Retirer l'image";
+        del.appendChild(delIcon);
         del.addEventListener('click', () => model.commit(st => setPageBackgroundImage(st, pi, null)));
         imgRow.appendChild(del);
       }
       body.appendChild(imgRow);
+      if (hasBgImg) note(body, "L'image de fond prime sur la couleur ; celle-ci sert de repli si l'image est absente du device.");
     }
     const onPage = pg?.place?.length ?? 0;
     const total = Object.keys(s.components || {}).length;
