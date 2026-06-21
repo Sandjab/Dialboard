@@ -40,13 +40,23 @@ pio run -e esp32s3 -t uploadfs     # flash l'image LittleFS (designer embarqué 
 
 ## LVGL
 
-Le projet est en **LVGL 8.4** (aligné sur le code démo vendeur). Une **migration vers LVGL 9** est le prochain chantier (elle débloque notamment `lv_arclabel` et `lv_scale`) — détails et audit des ruptures dans `docs/_internal/HANDOFF.md`. Docs LVGL via Context7 : `/websites/lvgl_io_8_4` (8.4) ou `/websites/lvgl_io_open` (9.x).
+Le projet est en **LVGL 9.5** (épinglé dans `platformio.ini`). La migration depuis la 8.4 du code démo vendeur est **faite** : le code utilise `lv_scale` (remplace `lv_meter`), `lv_arclabel`, `lv_image_*` et les gradients `lv_grad_*`. Docs LVGL via Context7 : `/websites/lvgl_io_open` (9.x) — `/websites/lvgl_io_open_8_4` pour l'historique 8.4.
 
 ## Choix délibérés (ne PAS « corriger »)
 
 - `sound` : timeout 0 = pas de coupure auto (voulu).
 - Swipes **verticaux** réservés (navigation horizontale entre pages).
 - Designer : un **toast** = verdict d'une action ; `#status` = progression. Le renommage d'onglet **bloque** les doublons de nom de page (voulu).
+
+## Designer — invariants inspecteur/canvas (ne pas régresser)
+
+Vérifiés au navigateur (détails : `docs/_internal/designer-qa-report.md`). Faciles à casser involontairement.
+
+- **Commit sur `change`, pas par frappe.** Couleur : aperçu live sur `input` (canvas seul, hors modèle/undo), commit sur `change` ; champ vidé → la clé est **supprimée** (retour au défaut), jamais `''`.
+- **Les closures de commit figent `sel.ref` au rendu.** Le `change` du color picker natif est **asynchrone** (il part après un clic ailleurs, quand `sel` a déjà bougé) ; sans figer, la valeur se committe sur le mauvais composant.
+- **Changement de sélection : `inspector.select` fait `blur()` du champ focalisé AVANT de changer `sel`.** Sinon le garde-focus de `render()` + le `preventDefault` du canvas laissent l'inspecteur figé sur l'ancien composant (et les éditions partent au mauvais endroit). `canvas.onPointerDown` reprend le nœud vivant après (un commit en attente peut re-render).
+- **Champs numériques : commits coalescés par session** (`model.commit(_, {coalesce})` + `breakCoalesce()` au blur) → flèches/spinner = une seule entrée d'undo.
+- **Anneau : `pointer-events` limité aux parties peintes.** Le `<svg>` capterait sinon tout le disque → un clic au centre vide ne désélectionnerait pas.
 
 ## Push
 
