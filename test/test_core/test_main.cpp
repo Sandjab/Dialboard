@@ -365,6 +365,75 @@ void test_update_meter_value(void) {
     TEST_ASSERT_EQUAL_INT(72, d.components[dash_find(&d,"m")].value);
 }
 
+// --- Étape 1 : push scalaire en forme objet {value|text} (raccourci scalaire nu conservé) ---
+void test_update_bar_object_or_bare_value(void) {
+    Dashboard d{}; char err[80], unk[UNKNOWN_CSV_LEN];
+    dash_set_layout(&d,
+        "{\"components\":{\"b\":{\"type\":\"bar\",\"min\":0,\"max\":100}},"
+        "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"b\"}]}]}", err, sizeof(err));
+    int ib = dash_find(&d, "b");
+    dash_apply_update(&d, "{\"b\":{\"value\":42}}", unk, sizeof(unk));   // forme objet
+    TEST_ASSERT_EQUAL_INT(42, d.components[ib].value);
+    dash_apply_update(&d, "{\"b\":7}", unk, sizeof(unk));               // raccourci nu (rétro-compat)
+    TEST_ASSERT_EQUAL_INT(7, d.components[ib].value);
+}
+void test_update_label_object_or_bare_text(void) {
+    Dashboard d{}; char err[80], unk[UNKNOWN_CSV_LEN];
+    dash_set_layout(&d,
+        "{\"components\":{\"l\":{\"type\":\"label\",\"text\":\"hi\"}},"
+        "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"l\"}]}]}", err, sizeof(err));
+    int il = dash_find(&d, "l");
+    dash_apply_update(&d, "{\"l\":{\"text\":\"world\"}}", unk, sizeof(unk));  // forme objet
+    TEST_ASSERT_EQUAL_STRING("world", d.components[il].vstr);
+    dash_apply_update(&d, "{\"l\":\"bare\"}", unk, sizeof(unk));             // raccourci nu
+    TEST_ASSERT_EQUAL_STRING("bare", d.components[il].vstr);
+}
+void test_update_readout_object_value_formats(void) {
+    Dashboard d{}; char err[80], unk[UNKNOWN_CSV_LEN];
+    dash_set_layout(&d, LAYOUT_OK, err, sizeof(err));
+    int icpu = dash_find(&d, "cpu");
+    dash_apply_update(&d, "{\"cpu\":{\"value\":42}}", unk, sizeof(unk));  // num en forme objet -> format avec unit
+    TEST_ASSERT_EQUAL_STRING("42 %", d.components[icpu].vstr);
+}
+
+// --- Étape 1 : commande universelle visible (montre/cache) ---
+void test_visible_defaults_true(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, LAYOUT_OK, err, sizeof(err));      // memset zéroe la struct -> doit être forcé à true
+    TEST_ASSERT_TRUE(d.components[dash_find(&d,"cpu")].visible);
+}
+void test_update_visible_toggles(void) {
+    Dashboard d{}; char err[80], unk[UNKNOWN_CSV_LEN];
+    dash_set_layout(&d, LAYOUT_OK, err, sizeof(err));
+    int icpu = dash_find(&d, "cpu");
+    dash_apply_update(&d, "{\"cpu\":{\"visible\":false}}", unk, sizeof(unk));
+    TEST_ASSERT_FALSE(d.components[icpu].visible);
+    TEST_ASSERT_TRUE(d.components[icpu].dirty);            // un changement de visible doit re-synchroniser
+    dash_apply_update(&d, "{\"cpu\":{\"visible\":true}}", unk, sizeof(unk));
+    TEST_ASSERT_TRUE(d.components[icpu].visible);
+}
+void test_update_visible_only_keeps_value(void) {         // le footgun : visible seul n'écrase pas value
+    Dashboard d{}; char err[80], unk[UNKNOWN_CSV_LEN];
+    dash_set_layout(&d,
+        "{\"components\":{\"b\":{\"type\":\"bar\"}},"
+        "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"b\"}]}]}", err, sizeof(err));
+    int ib = dash_find(&d, "b");
+    d.components[ib].value = 55;
+    dash_apply_update(&d, "{\"b\":{\"visible\":false}}", unk, sizeof(unk));
+    TEST_ASSERT_EQUAL_INT(55, d.components[ib].value);     // value PRÉSERVÉE
+    TEST_ASSERT_FALSE(d.components[ib].visible);
+}
+void test_update_value_and_visible_together(void) {
+    Dashboard d{}; char err[80], unk[UNKNOWN_CSV_LEN];
+    dash_set_layout(&d,
+        "{\"components\":{\"b\":{\"type\":\"bar\"}},"
+        "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"b\"}]}]}", err, sizeof(err));
+    int ib = dash_find(&d, "b");
+    dash_apply_update(&d, "{\"b\":{\"value\":80,\"visible\":false}}", unk, sizeof(unk));
+    TEST_ASSERT_EQUAL_INT(80, d.components[ib].value);
+    TEST_ASSERT_FALSE(d.components[ib].visible);
+}
+
 void test_bgkey_valid_hex(void)      { TEST_ASSERT_TRUE(bg_key_valid("a1b2c3d4e5f60718")); }   // 16 hex
 void test_bgkey_valid_short(void)    { TEST_ASSERT_TRUE(bg_key_valid("0")); }
 void test_bgkey_reject_empty(void)   { TEST_ASSERT_FALSE(bg_key_valid("")); }
@@ -793,6 +862,13 @@ int main(int, char**) {
     RUN_TEST(test_chart_ring_keeps_last_n);
     RUN_TEST(test_chart_points_parsed_and_clamped);
     RUN_TEST(test_update_meter_value);
+    RUN_TEST(test_update_bar_object_or_bare_value);
+    RUN_TEST(test_update_label_object_or_bare_text);
+    RUN_TEST(test_update_readout_object_value_formats);
+    RUN_TEST(test_visible_defaults_true);
+    RUN_TEST(test_update_visible_toggles);
+    RUN_TEST(test_update_visible_only_keeps_value);
+    RUN_TEST(test_update_value_and_visible_together);
     RUN_TEST(test_layout_image_anim_parsed);
     RUN_TEST(test_update_aimg_frame_jumps_and_stops);
     RUN_TEST(test_update_aimg_frame_clamps);
