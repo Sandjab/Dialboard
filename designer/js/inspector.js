@@ -417,11 +417,16 @@ export function createInspector(root, model, { rerenderCanvas, clearSelection, g
       dev.className = 'insp-devvis';
       dev.textContent = deviceHidden.has(ref) ? 'Afficher sur le device' : 'Cacher sur le device';
       dev.addEventListener('click', async () => {
-        const nextVisible = deviceHidden.has(ref);      // si caché -> on affiche ; sinon on cache
-        const ok = await pushVisible(ref, nextVisible);
-        if (ok) {
-          if (nextVisible) deviceHidden.delete(ref); else deviceHidden.add(ref);
-          dev.textContent = deviceHidden.has(ref) ? 'Afficher sur le device' : 'Cacher sur le device';
+        dev.disabled = true;                            // évite des push concurrents au double-clic (réseau lent)
+        try {
+          const nextVisible = deviceHidden.has(ref);    // si caché -> on affiche ; sinon on cache
+          const ok = await pushVisible(ref, nextVisible);
+          if (ok) {
+            if (nextVisible) deviceHidden.delete(ref); else deviceHidden.add(ref);
+            dev.textContent = deviceHidden.has(ref) ? 'Afficher sur le device' : 'Cacher sur le device';
+          }
+        } finally {
+          dev.disabled = false;
         }
       });
       body.appendChild(dev);
