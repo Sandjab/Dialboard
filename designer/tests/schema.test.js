@@ -165,8 +165,15 @@ test('schema : composant led valide (off_below + thresholds + bind)', () => {
   assert.equal(r.valid, true, JSON.stringify(r.errors));
 });
 
-test('schema : propriete inconnue sur un led est rejetee', () => {
-  const l = { components: { l1: { type: 'led', glow: true } },
+test('schema : led avec booléens de look valide', () => {
+  const l = { components: { l1: { type: 'led', glow: true, bezel: false, specular: true, off_glass: false } },
+             pages: [{ name: 'P', place: [{ ref: 'l1' }] }] };
+  const r = validate(l);
+  assert.equal(r.valid, true, JSON.stringify(r.errors));
+});
+
+test('schema : booléen de look inconnu sur un led rejeté', () => {
+  const l = { components: { l1: { type: 'led', sparkle: true } },
              pages: [{ name: 'P', place: [{ ref: 'l1' }] }] };
   assert.equal(validate(l).valid, false);
 });
