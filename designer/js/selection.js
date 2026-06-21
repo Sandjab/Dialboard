@@ -32,3 +32,14 @@ export function createSelection(initial = null) {
   };
   return api;
 }
+
+// La sélection pointe-t-elle encore quelque chose d'existant dans `state` ? Utilisé à l'intégration pour
+// purger une sélection périmée après suppression / undo / import (sinon l'inspecteur édite dans le vide).
+export function isSelectionValid(state, sel) {
+  if (!sel) return false;
+  if (sel.kind === 'doc') return true;
+  const page = state.pages?.[sel.page];
+  if (!page) return false;
+  if (sel.kind === 'page') return true;
+  return !!page.place?.[sel.index];   // 'comp'
+}
