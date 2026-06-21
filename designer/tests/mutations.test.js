@@ -343,3 +343,15 @@ test('removePlacementAndOrphan : composant physique jamais supprimé', () => {
   assert.equal(s.pages[0].place.length, 0);
   assert.ok(s.components.led_ring1);                  // physique → conservé
 });
+
+test('setComponentProp : visible=false écrit la clé (pas supprimée)', () => {
+  const s = { components: { b: { type: 'bar' } }, pages: [] };
+  setComponentProp(s, 'b', 'visible', false);
+  assert.equal(s.components.b.visible, false);
+});
+
+test('setComponentProp : visible=true écrit explicitement true (ré-affichage)', () => {
+  const s = { components: { b: { type: 'bar', visible: false } }, pages: [] };
+  setComponentProp(s, 'b', 'visible', true);
+  assert.equal(s.components.b.visible, true);
+});
