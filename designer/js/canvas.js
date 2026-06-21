@@ -181,30 +181,37 @@ export function createCanvas({ stage }, model, { onSelect, onLiveMove } = {}) {
     node.addEventListener('pointerup', up);
   }
 
-  // --- Resize bar : poignée bas-droite → width/height ---
+  // --- Resize bar : 3 poignées → E=largeur seule, S=hauteur seule, SE(coin)=les deux ---
+  // resizeBox pousse width par dx et height par dy ; on annule l'axe non concerné selon la poignée.
+  // Le coin (handle-br) est ajouté EN DERNIER → au-dessus de E/S là où ils se frôlent sur une barre fine.
+  const BAR_HANDLES = [['handle-e', 'x'], ['handle-s', 'y'], ['handle-br', 'both']];
   function addBarHandles(node, i, pl) {
-    const h = document.createElement('div');
-    h.className = 'handle handle-br';
-    node.appendChild(h);
-    h.addEventListener('pointerdown', e => {
-      e.stopPropagation(); e.preventDefault();
-      const s = zoomScale();
-      const startW = pl.width || 200, startH = pl.height || 16;
-      const sx = e.clientX, sy = e.clientY;
-      const track = node.querySelector('.w-bar-track');
-      h.setPointerCapture(e.pointerId);
-      let dim = null;
-      const move = ev => {
-        dim = resizeBox(startW, startH, (ev.clientX - sx) / s, (ev.clientY - sy) / s, 8);
-        track.style.width = dim.width + 'px'; track.style.height = dim.height + 'px';
-      };
-      const up = () => {
-        h.releasePointerCapture(e.pointerId);
-        h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', up);
-        if (dim) model.commit(s => { const q = s.pages[activePage].place[i]; q.width = dim.width; q.height = dim.height; });
-      };
-      h.addEventListener('pointermove', move); h.addEventListener('pointerup', up);
-    });
+    for (const [cls, axis] of BAR_HANDLES) {
+      const h = document.createElement('div');
+      h.className = 'handle ' + cls;
+      node.appendChild(h);
+      h.addEventListener('pointerdown', e => {
+        e.stopPropagation(); e.preventDefault();
+        const s = zoomScale();
+        const startW = pl.width || 200, startH = pl.height || 16;
+        const sx = e.clientX, sy = e.clientY;
+        const track = node.querySelector('.w-bar-track');
+        h.setPointerCapture(e.pointerId);
+        let dim = null;
+        const move = ev => {
+          const dx = axis === 'y' ? 0 : (ev.clientX - sx) / s;   // poignée Sud : largeur figée
+          const dy = axis === 'x' ? 0 : (ev.clientY - sy) / s;   // poignée Est : hauteur figée
+          dim = resizeBox(startW, startH, dx, dy, 8);
+          track.style.width = dim.width + 'px'; track.style.height = dim.height + 'px';
+        };
+        const up = () => {
+          h.releasePointerCapture(e.pointerId);
+          h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', up);
+          if (dim) model.commit(s => { const q = s.pages[activePage].place[i]; q.width = dim.width; q.height = dim.height; });
+        };
+        h.addEventListener('pointermove', move); h.addEventListener('pointerup', up);
+      });
+    }
   }
 
   // --- Resize image : poignee bas-droite -> component.w/h (la taille vit sur le composant). Au drop,
