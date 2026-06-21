@@ -5,4 +5,5 @@ docs/_internal/
 # Démos visuelles locales conservées (non trackées, sauf leur README)
 playgrounds/*
 !playgrounds/README.md
+.playwright-mcp/
 .DS_Store
