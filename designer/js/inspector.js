@@ -18,6 +18,10 @@ const SELECTS = {
 };
 const nonAscii = v => /[^\x00-\x7F]/.test(v ?? '');
 
+// Œil de visibilité : icône SVG en data-URI (img), couleur baked-in (clair = visible, rouge = caché).
+const EYE_OPEN_URI = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E5E7EB' stroke-width='2'%3E%3Cpath d='M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E";
+const EYE_OFF_URI  = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23EF4444' stroke-width='2'%3E%3Cpath d='M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cline x1='3' y1='3' x2='21' y2='21'/%3E%3C/svg%3E";
+
 // Construit un <input>/<select> selon kind. onChange reçoit la valeur typée. Les éditeurs textuels
 // committent sur 'change' (pas 'input') pour ne pas inonder l'undo.
 function makeInput(kind, value, onChange) {
@@ -351,7 +355,25 @@ export function createInspector(root, model, { rerenderCanvas, clearSelection, g
       renderPagePanel(body); root.appendChild(body); return;
     }
     const head = document.createElement('div'); head.className = 'insp-head';
-    head.textContent = `${c.type} · ${sel.ref}`;
+    const title = document.createElement('span'); title.textContent = `${c.type} · ${sel.ref}`;
+    head.appendChild(title);
+    if (!COMPONENTS[c.type].physical) {                 // led_ring/sound : pas de visuel à cacher
+      const visible = c.visible !== false;
+      const eye = document.createElement('button');
+      eye.className = 'insp-eye';
+      eye.title = visible ? 'Visible — cliquer pour cacher' : 'Caché — cliquer pour afficher';
+      const icon = document.createElement('img');
+      icon.src = visible ? EYE_OPEN_URI : EYE_OFF_URI;
+      icon.width = 15; icon.height = 15; icon.alt = visible ? 'visible' : 'caché';
+      eye.appendChild(icon);
+      const ref = sel.ref;                              // figée au rendu (cf. invariant inspecteur/canvas)
+      eye.addEventListener('click', () => {
+        const next = !(c.visible !== false);            // nouvel état après bascule
+        eye.blur();                                     // libère le focus -> render() peut reconstruire (garde-focus)
+        model.commit(s => setComponentProp(s, ref, 'visible', next));
+      });
+      head.appendChild(eye);
+    }
     body.appendChild(head);
 
     const rows = {};
