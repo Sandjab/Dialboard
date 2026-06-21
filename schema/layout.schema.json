@@ -99,6 +99,7 @@
       "required": ["type"],
       "properties": {
         "type": { "const": "label" },
+        "visible": { "type": "boolean", "description": "Affiche le composant (defaut true). false = cache (LV_OBJ_FLAG_HIDDEN au rendu). Revelable a chaud via /update {\"<id>\":{\"visible\":true}}." },
         "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
         "text": { "$ref": "#/$defs/ascii", "description": "Texte statique (peut etre remplace via /update avec une string)." },
         "font": { "$ref": "#/$defs/font" },
@@ -111,6 +112,7 @@
       "required": ["type"],
       "properties": {
         "type": { "const": "readout" },
+        "visible": { "type": "boolean", "description": "Affiche le composant (defaut true). false = cache (LV_OBJ_FLAG_HIDDEN au rendu). Revelable a chaud via /update {\"<id>\":{\"visible\":true}}." },
         "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
         "label": { "$ref": "#/$defs/ascii", "description": "Libelle affiche devant la valeur (ex. \"CPU\")." },
         "unit": { "$ref": "#/$defs/ascii", "description": "Unite ASCII (%, GB, C, Mbps)." },
@@ -124,6 +126,7 @@
       "required": ["type"],
       "properties": {
         "type": { "const": "bar" },
+        "visible": { "type": "boolean", "description": "Affiche le composant (defaut true). false = cache (LV_OBJ_FLAG_HIDDEN au rendu). Revelable a chaud via /update {\"<id>\":{\"visible\":true}}." },
         "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
         "label": { "$ref": "#/$defs/ascii", "description": "Libelle affiche au-dessus de la barre." },
         "min": { "type": "number", "description": "Defaut 0." },
@@ -144,6 +147,7 @@
       "required": ["type"],
       "properties": {
         "type": { "const": "ring" },
+        "visible": { "type": "boolean", "description": "Affiche le composant (defaut true). false = cache (LV_OBJ_FLAG_HIDDEN au rendu). Revelable a chaud via /update {\"<id>\":{\"visible\":true}}." },
         "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
         "color": { "$ref": "#/$defs/hexColor" },
         "font": { "$ref": "#/$defs/font", "description": "Taille du chiffre central (center_pct)." },
@@ -188,6 +192,7 @@
       "description": "Graphe d'historique (lv_chart LINE). L'historique vit dans le device ; /update pousse un scalaire (append). Place via width/height/anchor/dx/dy.",
       "properties": {
         "type": { "const": "chart" },
+        "visible": { "type": "boolean", "description": "Affiche le composant (defaut true). false = cache (LV_OBJ_FLAG_HIDDEN au rendu). Revelable a chaud via /update {\"<id>\":{\"visible\":true}}." },
         "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id." },
         "color": { "$ref": "#/$defs/hexColor", "description": "Couleur de la serie." },
         "min": { "type": "number", "description": "Borne basse de l'axe Y. Defaut 0." },
@@ -202,6 +207,7 @@
       "description": "Jauge analogique a aiguille (lv_meter, arc 270°). thresholds reutilises en zones d'arc colorees (bande (prev, limite]). Place via width/height/anchor/dx/dy.",
       "properties": {
         "type": { "const": "meter" },
+        "visible": { "type": "boolean", "description": "Affiche le composant (defaut true). false = cache (LV_OBJ_FLAG_HIDDEN au rendu). Revelable a chaud via /update {\"<id>\":{\"visible\":true}}." },
         "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id." },
         "color": { "$ref": "#/$defs/hexColor", "description": "Couleur de l'aiguille." },
         "min": { "type": "number", "description": "Borne basse de l'echelle. Defaut 0." },
@@ -220,6 +226,7 @@
       "description": "Image bitmap statique RGB565A8 (alpha). Rasterisee par le navigateur a w×h exacts (etirement libre), uploadee via POST /image?key=. La taille vit sur le composant (couplee a l'asset : LVGL 8 ne sait pas etirer un lv_img non-uniformement). Le placement ne porte que la position.",
       "properties": {
         "type": { "const": "image" },
+        "visible": { "type": "boolean", "description": "Affiche le composant (defaut true). false = cache (LV_OBJ_FLAG_HIDDEN au rendu). Revelable a chaud via /update {\"<id>\":{\"visible\":true}}." },
         "src": { "$ref": "#/$defs/ascii", "description": "Cle d'asset (hash FNV-1a du contenu RGB565A8). Absente tant qu'aucune image n'est choisie." },
         "w": { "type": "integer", "minimum": 1, "maximum": 360, "description": "Largeur en pixels (= largeur de l'asset). Defaut 120." },
         "h": { "type": "integer", "minimum": 1, "maximum": 360, "description": "Hauteur en pixels (= hauteur de l'asset). Defaut 120." }
@@ -232,6 +239,7 @@
       "description": "Image animee : pack RGB565A8 multi-frames (N frames brutes concatenees), rasterise par le navigateur a w×h, uploade via POST /aimg?key=. Runtime via /update : {\"frame\":K} | {\"play\":true,\"loop\":L,\"period\":ms} | {\"stop\":true}. bind = frame d'etat au repos (clamp 0..frames-1). Place via anchor/dx/dy.",
       "properties": {
         "type": { "const": "image_anim" },
+        "visible": { "type": "boolean", "description": "Affiche le composant (defaut true). false = cache (LV_OBJ_FLAG_HIDDEN au rendu). Revelable a chaud via /update {\"<id>\":{\"visible\":true}}." },
         "src": { "$ref": "#/$defs/ascii", "description": "Cle d'asset (hash FNV-1a du pack). Absente tant qu'aucune animation n'est choisie." },
         "w": { "type": "integer", "minimum": 1, "maximum": 360, "description": "Largeur d'une frame (px) = largeur de l'asset." },
         "h": { "type": "integer", "minimum": 1, "maximum": 360, "description": "Hauteur d'une frame (px) = hauteur de l'asset." },
@@ -250,6 +258,7 @@
       "description": "Voyant lumineux (lv_led). value < off_below = eteint, sinon allume. Couleur allumee = threshold_color(value) sinon color. Place via anchor/dx/dy + size (diametre).",
       "properties": {
         "type": { "const": "led" },
+        "visible": { "type": "boolean", "description": "Affiche le composant (defaut true). false = cache (LV_OBJ_FLAG_HIDDEN au rendu). Revelable a chaud via /update {\"<id>\":{\"visible\":true}}." },
         "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
         "color": { "$ref": "#/$defs/hexColor", "description": "Couleur allumee quand aucun seuil ne matche. Defaut #22C55E." },
         "off_below": { "type": "integer", "description": "value < off_below = eteint ; sinon allume. Defaut 1 (0 = eteint, >=1 = allume)." },
