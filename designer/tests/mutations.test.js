@@ -456,6 +456,12 @@ test('movePlacementToPage : page cible inexistante → no-op (placement source c
   assert.deepEqual(s.pages[0].place.map(p => p.ref), ['a']);
 });
 
+test('movePlacementToPage : page cible sans tableau place → crée place[]', () => {
+  const s = { components: {}, pages: [{ name: 'P1', place: [{ ref: 'a' }] }, { name: 'P2' }] };
+  movePlacementToPage(s, 0, 0, 1);
+  assert.deepEqual(s.pages[1].place?.map(p => p.ref), ['a']);
+});
+
 test('renameComponent : renomme la clé map ET tous les place[].ref (multi-pages)', () => {
   const s = {
     components: { old: { type: 'ring', color: '#fff' } },
