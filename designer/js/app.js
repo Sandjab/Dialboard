@@ -21,13 +21,13 @@ import { placeComponentCopy, duplicateComponent, removePlacementAndOrphan } from
 const $ = id => document.getElementById(id);
 
 // Construit un payload POST /update depuis les valeurs d'aperçu (mocks) des composants data.
-// Format par type (cf. README §/update) : scalaire pour readout/bar/meter, {pct,reset_in_s} pour ring,
+// Format par type (cf. README §/update) : scalaire pour readout/bar/meter/led, {pct,reset_in_s} pour ring,
 // dernier point d'historique pour chart. label/led_ring/sound : pas de valeur de test pertinente.
 function buildUpdatePayload(state) {
   const out = {};
   for (const [id, c] of Object.entries(state.components || {})) {
     const m = getMock(id, c.type);
-    if (c.type === 'readout' || c.type === 'bar' || c.type === 'meter') out[id] = m.value ?? 0;
+    if (c.type === 'readout' || c.type === 'bar' || c.type === 'meter' || c.type === 'led') out[id] = m.value ?? 0;
     else if (c.type === 'ring') { out[id] = { pct: m.value ?? 0 }; if (c.countdown && m.reset_in_s != null) out[id].reset_in_s = m.reset_in_s; }
     else if (c.type === 'chart') { const h = m.hist || []; if (h.length) out[id] = h[h.length - 1]; }
   }
