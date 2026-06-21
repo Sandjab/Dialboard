@@ -9,7 +9,8 @@ import {
   placeComponentCopy,
   duplicateComponent,
   removePlacementAndOrphan,
-  reorderPlacement
+  reorderPlacement,
+  movePlacementToPage
 } from '../js/mutations.js';
 
 const fresh = () => ({ components: {}, pages: [{ name: 'P1', place: [] }] });
@@ -419,5 +420,37 @@ test('reorderPlacement : index hors bornes → no-op (pas de throw)', () => {
 test('reorderPlacement : page inexistante → no-op', () => {
   const s = { components: {}, pages: [{ name: 'P', place: [{ ref: 'a' }] }] };
   reorderPlacement(s, 9, 0, 0);
+  assert.deepEqual(s.pages[0].place.map(p => p.ref), ['a']);
+});
+
+test('movePlacementToPage : retire de la source, ajoute en fin de la cible, components intact', () => {
+  const s = {
+    components: { a: { type: 'ring' }, b: { type: 'bar' } },
+    pages: [
+      { name: 'P1', place: [{ ref: 'a' }, { ref: 'b' }] },
+      { name: 'P2', place: [{ ref: 'x' }] },
+    ],
+  };
+  movePlacementToPage(s, 0, 0, 1);
+  assert.deepEqual(s.pages[0].place.map(p => p.ref), ['b']);
+  assert.deepEqual(s.pages[1].place.map(p => p.ref), ['x', 'a']);
+  assert.deepEqual(Object.keys(s.components).sort(), ['a', 'b']);
+});
+
+test('movePlacementToPage : même page = remonte le placement en fin (au-dessus)', () => {
+  const s = { components: {}, pages: [{ name: 'P', place: [{ ref: 'a' }, { ref: 'b' }] }] };
+  movePlacementToPage(s, 0, 0, 0);
+  assert.deepEqual(s.pages[0].place.map(p => p.ref), ['b', 'a']);
+});
+
+test('movePlacementToPage : placement inexistant → no-op', () => {
+  const s = { components: {}, pages: [{ name: 'P1', place: [] }, { name: 'P2', place: [{ ref: 'x' }] }] };
+  movePlacementToPage(s, 0, 0, 1);
+  assert.deepEqual(s.pages[1].place.map(p => p.ref), ['x']);
+});
+
+test('movePlacementToPage : page cible inexistante → no-op (placement source conservé)', () => {
+  const s = { components: {}, pages: [{ name: 'P1', place: [{ ref: 'a' }] }] };
+  movePlacementToPage(s, 0, 0, 9);
   assert.deepEqual(s.pages[0].place.map(p => p.ref), ['a']);
 });
