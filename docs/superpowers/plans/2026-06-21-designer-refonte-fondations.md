@@ -570,3 +570,13 @@ Expected: aucune sortie (OK).
 - `node --test` se lance **sans argument** (cf. `CLAUDE.md`), depuis `designer/`.
 - Les mutations sont **pures** : elles ne s'occupent ni de `model.commit` ni d'undo (c'est l'appelant UI, plus tard).
 - Ne PAS intégrer `selection.js` au canvas dans cette tranche : l'externalisation de la sélection est le **risque n°1** du spec (gardes F1/F5) et se fait au navigateur, au plan suivant.
+
+## Notes pour le plan de câblage (issues de la revue finale Fondations)
+
+La revue finale a confirmé la tranche « Ready to build on » (254 tests, 0 échec, zéro scope creep). Cinq points à intégrer au **prochain plan** (câblage `selection.js` ↔ canvas/arbre/inspecteur) :
+
+1. **`.ref` se DÉRIVE, ne se stocke pas.** La sélection est `{kind, page, index}`. Le garde F5 (ref figée au rendu) devient `const ref = model.state.pages[sel.page]?.place[sel.index]?.ref` (figé au rendu, comme aujourd'hui `sel.ref`).
+2. **`.placeIndex` → `.index`.** Les sites existants qui lisent `sel.placeIndex` (ex. `inspector.js:89`) ou émettent `{ placeIndex, ref }` (ex. `canvas.js:140`) doivent mapper sur `sel.index` (et dériver `ref`).
+3. **Sélection par index instable après `reorderPlacement` / `movePlacementToPage`.** `isSelectionValid` renvoie `true` même si l'élément sélectionné a bougé (l'index pointe alors un AUTRE composant). Le câblage doit, après ces deux mutations, soit **vider** la sélection, soit **recalculer** le nouvel index (« la sélection suit l'élément »). `isSelectionValid` seul ne suffit pas pour ces deux cas.
+4. **Le garde F1 (`blur()` avant changement de sélection) n'est PAS dans `selection.js`.** L'appelant (`canvas.onPointerDown`, futur `tree.js`) doit `blur()` le champ inspecteur focalisé AVANT `sel.set(...)`. Le store expose la bonne surface (l'appelant contrôle l'ordre), mais le garde n'est pas automatique.
+5. **`canvas.js` détient aujourd'hui son propre `sel` local + callback `onSelect`.** Le câblage devra injecter le store `selection.js` dans `canvas.js` (ou l'y faire s'abonner). **C'est la décision d'architecture ouverte du prochain plan.**

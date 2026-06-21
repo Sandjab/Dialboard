@@ -68,7 +68,7 @@ Découpage en modules à responsabilité unique (chacun testable/compréhensible
 - **`console.js`** (neuf) — panneau bas repliable [Problèmes | Source].
 - **`drawer.js`** (neuf) — tiroir latéral [Sorties | Sources], héberge `device-panel.js` / `sources.js`.
 - **`toast.js`** (étendu) — pile unifiée + toast à spinner muable en verdict.
-- **`selection.js`** (neuf, petit) — source de vérité de la sélection `{kind, page, ref}` + abonnés.
+- **`selection.js`** (neuf, petit) — source de vérité de la sélection `{kind, page, index}` (index dans `place[]` ; le `ref` se **dérive** de `pages[page].place[index].ref`, jamais stocké dans la sélection) + abonnés.
 
 ## 1. Arbre des calques — `tree.js` (neuf)
 
