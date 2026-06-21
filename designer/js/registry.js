@@ -113,7 +113,7 @@ export const COMPONENTS = {
     centered: false, physical: false,
     compFields: [['color', 'Couleur', 'color'], ['off_below', 'Éteint sous', 'num'],
                  ['glow', 'Glow', 'bool'], ['bezel', 'Bezel', 'bool'],
-                 ['specular', 'Reflet', 'bool'], ['off_glass', 'Reflet éteint', 'bool'],
+                 ['specular', 'Reflet', 'bool'], ['off_glass', 'Reflet éteint', 'bool', c => c.specular ?? true],
                  ['bind', 'Variable (pull)', 'asciitext']],
     placeFields: [['anchor', 'Ancrage', 'anchor'], ['dx', 'dx', 'num'], ['dy', 'dy', 'num'], ['size', 'Diamètre', 'num']],
     mockFields: [['value', 'Valeur (aperçu)']],

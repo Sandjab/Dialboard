@@ -15,9 +15,11 @@ export const MOCKS = {
   led:     { value: 1 }
 };
 
-// Constantes maison du rendu LED réaliste (réglées au playground ; cf. spec led-look-realiste).
-// Les booléens du composant (glow/bezel/specular/off_glass) activent chaque effet ; ces nombres
-// sont figés et partagés avec le firmware pour la parité.
+// Réglages PRIMAIRES du rendu LED réaliste (réglés au playground ; cf. spec led-look-realiste),
+// figés et partagés avec le firmware pour la parité. Les booléens du composant
+// (glow/bezel/specular/off_glass) activent chaque effet. Les facteurs DÉRIVÉS propres au rendu CSS
+// (blur*2, spr*1.5, a*0.4, alphas du bezel, stops du reflet) vivent dans le corps de buildLed : ils
+// n'ont pas d'équivalent firmware 1:1.
 const LED = {
   lightX: 38, lightY: 30, highlight: 62, edgeDark: 24,
   glowBlur: 20, glowSpread: 5, glowAlpha: 1.0,
