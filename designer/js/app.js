@@ -68,7 +68,15 @@ async function main() {
     clearSelection: () => canvas.selectPlacement(null),
     getActivePage: canvas.getActivePage,
     previewProp: canvas.previewProp,
-    clearPreview: canvas.clearPreview
+    clearPreview: canvas.clearPreview,
+    pushVisible: async (id, visible) => {
+      if (!$('base').value) { setStatus('URL device ?', 'err'); return false; }
+      try {
+        await pushValues($('base').value, { [id]: { visible } });
+        setStatus(visible ? 'Affiché sur le device' : 'Caché sur le device', 'ok');
+        return true;
+      } catch (e) { setStatus('Échec : ' + e.message, 'err'); return false; }
+    }
   });
 
   // Palette : glisser un type depuis la palette sur le canvas pour créer un composant

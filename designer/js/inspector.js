@@ -18,6 +18,8 @@ const SELECTS = {
 };
 const nonAscii = v => /[^\x00-\x7F]/.test(v ?? '');
 
+const deviceHidden = new Set();   // refs poussées cachées sur le device (état de bascule du bouton)
+
 // Œil de visibilité : icône SVG en data-URI (img), couleur baked-in (clair = visible, rouge = caché).
 const EYE_OPEN_URI = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E5E7EB' stroke-width='2'%3E%3Cpath d='M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E";
 const EYE_OFF_URI  = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23EF4444' stroke-width='2'%3E%3Cpath d='M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cline x1='3' y1='3' x2='21' y2='21'/%3E%3C/svg%3E";
@@ -74,7 +76,7 @@ function fieldRow(label, input, { ascii } = {}) {
   return row;
 }
 
-export function createInspector(root, model, { rerenderCanvas, clearSelection, getActivePage = () => 0, previewProp, clearPreview } = {}) {
+export function createInspector(root, model, { rerenderCanvas, clearSelection, getActivePage = () => 0, previewProp, clearPreview, pushVisible } = {}) {
   let sel = null; // { placeIndex, ref } ou null
   let placementInputs = {}; // { anchor, dx, dy } → <input>/<select> de la rubrique Placement, pour la MAJ live au drag
 
@@ -408,6 +410,22 @@ export function createInspector(root, model, { rerenderCanvas, clearSelection, g
     body.addEventListener('change', syncEnabled); // un toggle (ex: center_pct) re-évalue les dépendants
 
     renderExtras(body, c); // Task 6
+
+    if (!COMPONENTS[c.type].physical && pushVisible) {
+      const ref = sel.ref;
+      const dev = document.createElement('button');
+      dev.className = 'insp-devvis';
+      dev.textContent = deviceHidden.has(ref) ? 'Afficher sur le device' : 'Cacher sur le device';
+      dev.addEventListener('click', async () => {
+        const nextVisible = deviceHidden.has(ref);      // si caché -> on affiche ; sinon on cache
+        const ok = await pushVisible(ref, nextVisible);
+        if (ok) {
+          if (nextVisible) deviceHidden.delete(ref); else deviceHidden.add(ref);
+          dev.textContent = deviceHidden.has(ref) ? 'Afficher sur le device' : 'Cacher sur le device';
+        }
+      });
+      body.appendChild(dev);
+    }
 
     const del = document.createElement('button'); del.className = 'insp-del'; del.textContent = 'Supprimer de la page';
     del.addEventListener('click', () => {
