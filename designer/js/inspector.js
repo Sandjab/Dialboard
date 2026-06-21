@@ -81,28 +81,22 @@ function fieldRow(label, input, { ascii } = {}) {
   return row;
 }
 
-export function createInspector(root, model, { rerenderCanvas, clearSelection, getActivePage = () => 0, previewProp, clearPreview, pushVisible } = {}) {
-  let sel = null; // { placeIndex, ref } ou null
+export function createInspector(root, model, { selection, rerenderCanvas, clearSelection, getActivePage = () => 0, previewProp, clearPreview, pushVisible } = {}) {
+  let sel = null; // { placeIndex, page, ref } ou null — RECALCULÉ depuis le store à chaque render()
   let placementInputs = {}; // { anchor, dx, dy } → <input>/<select> de la rubrique Placement, pour la MAJ live au drag
 
-  const comp = () => sel && model.state.components[sel.ref];
-  const place = () => sel && model.state.pages?.[getActivePage()]?.place?.[sel.placeIndex];
+  // La sélection courante, dérivée du store : un composant existant, ou null (doc/page/null/périmé).
+  // Le `ref` se DÉRIVE du placement (jamais stocké dans la sélection — cf. spec §1).
+  const currentSel = () => {
+    const s = selection.get();
+    if (!s || s.kind !== 'comp') return null;
+    const pl = model.state.pages?.[s.page]?.place?.[s.index];
+    if (!pl) return null;
+    return { placeIndex: s.index, page: s.page, ref: pl.ref };
+  };
 
-  function select(s) {
-    // Changement de sélection : si un champ de l'inspecteur a encore le focus, le blur AVANT de
-    // changer `sel`. Sinon (F1) deux pièges quand on clique un autre widget déplaçable (son
-    // pointerdown fait preventDefault → le focus ne part pas) : (a) le garde-focus de render()
-    // bloque la reconstruction → l'inspecteur reste figé sur l'ANCIEN composant alors que le canvas
-    // a déjà sélectionné le nouveau ; (b) une édition en attente (change non encore émis) se
-    // committerait sur le NOUVEAU composant (clé étrangère → layout invalide). Blur ici committe
-    // l'édition en attente sur l'ANCIEN composant (sel encore inchangé) puis lève le garde.
-    const changed = sel?.ref !== s?.ref || sel?.placeIndex !== s?.placeIndex;
-    if (changed && root.contains(document.activeElement) && document.activeElement !== document.body) {
-      document.activeElement.blur();
-    }
-    sel = s;
-    render();
-  }
+  const comp = () => sel && model.state.components[sel.ref];
+  const place = () => sel && model.state.pages?.[sel.page]?.place?.[sel.placeIndex];
 
   // Un champ de l'inspecteur perd le focus :
   //  - num   (F2) : fin de session d'édition → casse la coalescence d'undo (les flèches/spinner suivants
@@ -377,6 +371,7 @@ export function createInspector(root, model, { rerenderCanvas, clearSelection, g
   function render() {
     // garde focus : ne pas reconstruire pendant qu'un champ de l'inspecteur est en cours d'édition.
     if (root.contains(document.activeElement) && document.activeElement !== document.body) return;
+    sel = currentSel();   // source de vérité : le store partagé (recalculé à chaque rendu)
     if (_aimgPreviewTimer) { clearInterval(_aimgPreviewTimer); _aimgPreviewTimer = null; }   // stoppe l'apercu avant tout rebuild de l'inspecteur
     root.querySelectorAll('.insp-body').forEach(n => n.remove());
     placementInputs = {};   // les anciens champs viennent d'être retirés
@@ -490,6 +485,7 @@ export function createInspector(root, model, { rerenderCanvas, clearSelection, g
   }
 
   model.subscribe(render);
+  selection.subscribe(render);   // changement de sélection (canvas/arbre) → reconstruire l'inspecteur
   render();
-  return { select, setLivePlacement };
+  return { setLivePlacement };
 }

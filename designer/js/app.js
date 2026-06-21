@@ -17,6 +17,7 @@ import { stripPhysicalPlacements } from './physical.js';
 import { showToast } from './toast.js';
 import { resolveShortcut, isEditableTarget } from './shortcuts.js';
 import { placeComponentCopy, duplicateComponent, removePlacementAndOrphan } from './mutations.js';
+import { createSelection, sameSelection, isSelectionValid } from './selection.js';
 
 const $ = id => document.getElementById(id);
 
@@ -57,15 +58,33 @@ async function main() {
   const model = createModel(saved);
   model.subscribe(() => { try { localStorage.setItem(SAVE_KEY, model.toJSON()); } catch (e) {} });
 
+  // Sélection partagée (canvas ↔ inspecteur ↔ futur arbre). Coordinateur = garde F1 centralisé :
+  // avant tout changement RÉEL de sélection, si un champ de l'inspecteur a le focus, le blur. Cela
+  // (a) committe l'édition en attente sur l'ANCIENNE sélection (closure à ref figée — F5) et (b) lève
+  // le garde-focus de render() pour que l'inspecteur se reconstruise sur la nouvelle sélection.
+  const selection = createSelection(null);
+  const setSelection = (next) => {
+    if (!sameSelection(selection.get(), next)) {
+      const insp = $('inspector');
+      if (insp.contains(document.activeElement) && document.activeElement !== document.body) {
+        document.activeElement.blur();
+      }
+    }
+    selection.set(next);
+  };
+  // Purge d'une sélection périmée après suppression / undo / import (l'index ne pointe plus rien).
+  model.subscribe(() => { if (!isSelectionValid(model.state, selection.get())) setSelection(null); });
+
   let inspector;
-  // Canvas WYSIWYG (page active). onSelect → inspecteur.
+  // Canvas WYSIWYG (page active). Lit/écrit la sélection partagée.
   const canvas = createCanvas({ stage: $('stage') }, model, {
-    onSelect: s => inspector.select(s),
+    selection, setSelection,
     onLiveMove: p => inspector.setLivePlacement(p)   // MAJ live des champs Placement pendant le drag
   });
   inspector = createInspector($('inspector'), model, {
+    selection,
     rerenderCanvas: canvas.render,
-    clearSelection: () => canvas.selectPlacement(null),
+    clearSelection: () => setSelection(null),
     getActivePage: canvas.getActivePage,
     previewProp: canvas.previewProp,
     clearPreview: canvas.clearPreview,
