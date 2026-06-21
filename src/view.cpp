@@ -71,27 +71,27 @@ const char* view_default_layout() {
         "{\"ref\":\"w7d\",\"radius\":141,\"thickness\":16,\"gap_deg\":70}]}]}";
 }
 
-// Place le slot2 d'une couronne (pastille à l'opposé de l'ouverture, ou lecture centrale).
-// Le cap (légende courbe) est un lv_arclabel positionné par sa géométrie propre (build_ring),
-// indépendant de la taille du texte → il n'est plus géré ici.
-// À rappeler après chaque set_text du slot2 (LVGL recentre sur la taille réelle).
-static void ring_place_labels(lv_obj_t* arc, lv_obj_t* slot2,
-                              const Placement& q, bool slot2_center) {
+// Positionne la pastille et/ou la lecture centrale, enfants du conteneur grp (slot sub2) dans l'ordre
+// [pill?, center?]. grp partage la géométrie de l'arc (centré, taille 2r) → l'alignement CENTER relatif
+// au conteneur est le même repère que l'arc. Pastille à l'opposé de l'ouverture, lecture centrale au
+// centre. Le cap (légende courbe) a sa géométrie propre (build_ring). À rappeler après chaque set_text
+// (LVGL recentre sur la taille réelle).
+static void ring_place_labels(lv_obj_t* grp, const Component& c, const Placement& q) {
+    if (!grp) return;
     const float DEG2RAD = 0.01745329252f;
-    if (slot2) {
-        if (slot2_center) {
-            lv_obj_align_to(slot2, arc, LV_ALIGN_CENTER, 0, 0);   // centre
-        } else {
-            int rp = q.radius - q.thickness / 2;           // pill centrée sur l'épaisseur de la bande
-            float a = (270 + q.start_angle) * DEG2RAD;     // opposé de l'ouverture
-            lv_obj_align_to(slot2, arc, LV_ALIGN_CENTER,
-                            (int)roundf(rp * cosf(a)), (int)roundf(rp * sinf(a)));
-        }
+    lv_obj_t* pill   = c.pill       ? lv_obj_get_child(grp, 0)              : nullptr;
+    lv_obj_t* center = c.center_pct ? lv_obj_get_child(grp, c.pill ? 1 : 0) : nullptr;
+    if (center) lv_obj_align(center, LV_ALIGN_CENTER, 0, 0);
+    if (pill) {
+        int rp = q.radius - q.thickness / 2;           // pill centrée sur l'épaisseur de la bande
+        float a = (270 + q.start_angle) * DEG2RAD;     // opposé de l'ouverture
+        lv_obj_align(pill, LV_ALIGN_CENTER,
+                     (int)roundf(rp * cosf(a)), (int)roundf(rp * sinf(a)));
     }
 }
 
 static void build_ring(lv_obj_t* parent, Component& c, Placement& q,
-                       lv_obj_t** main, lv_obj_t** cap, lv_obj_t** pill) {
+                       lv_obj_t** main, lv_obj_t** cap, lv_obj_t** sub2) {
     lv_obj_t* arc = lv_arc_create(parent);
     lv_obj_set_size(arc, q.radius * 2, q.radius * 2);
     lv_obj_center(arc);
@@ -104,6 +104,11 @@ static void build_ring(lv_obj_t* parent, Component& c, Placement& q,
     lv_obj_set_style_arc_width(arc, q.thickness, LV_PART_INDICATOR);
     lv_obj_set_style_arc_color(arc, lv_color_hex(0x1F2937), LV_PART_MAIN);
     lv_obj_set_style_pad_all(arc, 0, LV_PART_MAIN);   // bord externe de la bande au bord du widget → milieu exact = radius - thickness/2 (sinon le padding par défaut décale la pill)
+    lv_arc_set_mode(arc, c.arc_mode == ARC_SYMMETRICAL ? LV_ARC_MODE_SYMMETRICAL
+                       : c.arc_mode == ARC_REVERSE     ? LV_ARC_MODE_REVERSE
+                                                       : LV_ARC_MODE_NORMAL);
+    lv_obj_set_style_arc_rounded(arc, c.arc_rounded, LV_PART_MAIN);
+    lv_obj_set_style_arc_rounded(arc, c.arc_rounded, LV_PART_INDICATOR);
     *main = arc;
 
     // Cap = texte courbe (lv_arclabel) dans l'ouverture du bas. L'objet partage le centre du ring
@@ -123,30 +128,43 @@ static void build_ring(lv_obj_t* parent, Component& c, Placement& q,
     lv_arclabel_set_text_vertical_align(*cap, LV_ARCLABEL_TEXT_ALIGN_CENTER);   // milieu des lettres sur le rayon (cercle médian de la bande)
     lv_arclabel_set_text(*cap, "");
 
-    if (c.center_pct) {                       // lecture centrale (prioritaire sur la pastille)
-        *pill = lv_label_create(parent);
-        lv_obj_set_style_text_font(*pill, pick_font(c.font), 0);
-        lv_obj_set_style_text_color(*pill, lv_color_hex(c.color), 0);
-        lv_label_set_text(*pill, "");
-    } else if (c.pill) {                       // pastille de pourcentage
-        *pill = lv_label_create(parent);
-        lv_obj_set_style_text_font(*pill, &lv_font_montserrat_14, 0);
-        lv_obj_set_style_bg_opa(*pill, LV_OPA_COVER, 0);
-        lv_obj_set_style_bg_color(*pill, lv_color_hex(c.color), 0);
-        lv_obj_set_style_text_color(*pill, lv_color_hex(0x04121A), 0);
-        lv_obj_set_style_radius(*pill, 13, 0);
-        lv_obj_set_style_border_width(*pill, 1, 0);                       // contour noir 1px : détache la pill d'un anneau plein de même couleur
-        lv_obj_set_style_border_color(*pill, lv_color_hex(0x000000), 0);
-        lv_obj_set_style_border_opa(*pill, LV_OPA_COVER, 0);
-        // Hauteur de la pill = max(hauteur actuelle, thickness+4) → déborde la bande de ≥2px en haut/bas.
-        // Obtenue par padding vertical symétrique (garde le % centré) ; plancher 3 = hauteur actuelle.
-        int lh = lv_font_get_line_height(&lv_font_montserrat_14);
-        int pv = (q.thickness + 4 - lh) / 2;
-        if (pv < 3) pv = 3;
-        lv_obj_set_style_pad_hor(*pill, 8, 0); lv_obj_set_style_pad_ver(*pill, pv, 0);
-        lv_label_set_text(*pill, "0%");
+    // Pastille (%) et/ou lecture centrale (value+unit) : enfants d'un conteneur transparent (slot sub2),
+    // créés dans l'ordre [pill, center] — les deux peuvent coexister (l'exclusivité a été levée).
+    lv_obj_t* grp = nullptr;
+    if (c.pill || c.center_pct) {
+        grp = lv_obj_create(parent);
+        lv_obj_remove_style_all(grp);                 // conteneur transparent (ni fond, ni bord, ni padding)
+        lv_obj_set_size(grp, q.radius * 2, q.radius * 2);
+        lv_obj_center(grp);
+        lv_obj_clear_flag(grp, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_clear_flag(grp, LV_OBJ_FLAG_CLICKABLE);
+        if (c.pill) {                                 // pastille de pourcentage (sur la bande)
+            lv_obj_t* pl = lv_label_create(grp);
+            lv_obj_set_style_text_font(pl, &lv_font_montserrat_14, 0);
+            lv_obj_set_style_bg_opa(pl, LV_OPA_COVER, 0);
+            lv_obj_set_style_bg_color(pl, lv_color_hex(c.color), 0);
+            lv_obj_set_style_text_color(pl, lv_color_hex(0x04121A), 0);
+            lv_obj_set_style_radius(pl, 13, 0);
+            lv_obj_set_style_border_width(pl, 1, 0);                       // contour noir 1px : détache la pill d'un anneau plein de même couleur
+            lv_obj_set_style_border_color(pl, lv_color_hex(0x000000), 0);
+            lv_obj_set_style_border_opa(pl, LV_OPA_COVER, 0);
+            // Hauteur de la pill = max(hauteur actuelle, thickness+4) → déborde la bande de ≥2px en haut/bas.
+            // Obtenue par padding vertical symétrique (garde le % centré) ; plancher 3 = hauteur actuelle.
+            int lh = lv_font_get_line_height(&lv_font_montserrat_14);
+            int pv = (q.thickness + 4 - lh) / 2;
+            if (pv < 3) pv = 3;
+            lv_obj_set_style_pad_hor(pl, 8, 0); lv_obj_set_style_pad_ver(pl, pv, 0);
+            lv_label_set_text(pl, "0%");
+        }
+        if (c.center_pct) {                           // lecture centrale (grand chiffre)
+            lv_obj_t* ct = lv_label_create(grp);
+            lv_obj_set_style_text_font(ct, pick_font(c.font), 0);
+            lv_obj_set_style_text_color(ct, lv_color_hex(c.color), 0);
+            lv_label_set_text(ct, "");
+        }
     }
-    ring_place_labels(arc, (c.center_pct || c.pill) ? *pill : nullptr, q, c.center_pct);
+    *sub2 = grp;
+    ring_place_labels(grp, c, q);
 }
 
 // build/sync extraits des anciens switch de view_rebuild/view_sync, à l'identique.
@@ -165,6 +183,9 @@ static void build_bar(lv_obj_t* parent, Component& c, Placement& q,
     lv_obj_t* b = lv_bar_create(parent);
     lv_obj_set_size(b, q.width ? q.width : 200, q.height ? q.height : 16);
     lv_bar_set_range(b, c.vmin, c.vmax);
+    lv_bar_set_mode(b, c.bar_mode == BAR_SYMMETRICAL ? LV_BAR_MODE_SYMMETRICAL : LV_BAR_MODE_NORMAL);
+    lv_bar_set_orientation(b, c.bar_vertical ? LV_BAR_ORIENTATION_VERTICAL : LV_BAR_ORIENTATION_HORIZONTAL);
+    if (c.bar_anim_ms > 0) lv_obj_set_style_anim_duration(b, c.bar_anim_ms, LV_PART_MAIN);   // duree lue par lv_bar_set_value(ANIM_ON)
     lv_obj_set_style_bg_color(b, lv_color_hex(c.color), LV_PART_INDICATOR);
     lv_obj_align(b, ALIGN_MAP[q.anchor], q.dx, q.dy);
     *main = b;
@@ -198,7 +219,9 @@ static void sync_readout(Component& c, Placement&, lv_obj_t* w, lv_obj_t*, lv_ob
     }
 }
 static void sync_bar(Component& c, Placement&, lv_obj_t* w, lv_obj_t*, lv_obj_t*) {
-    lv_bar_set_value(w, c.value, LV_ANIM_OFF);
+    uint32_t col = threshold_color(c.thresholds, c.threshold_count, c.value, c.color);
+    lv_obj_set_style_bg_color(w, lv_color_hex(col), LV_PART_INDICATOR);
+    lv_bar_set_value(w, c.value, c.bar_anim_ms > 0 ? LV_ANIM_ON : LV_ANIM_OFF);
 }
 static void sync_ring(Component& c, Placement& q, lv_obj_t* w, lv_obj_t* sub1, lv_obj_t* sub2) {
     uint32_t col = threshold_color(c.thresholds, c.threshold_count, c.value, c.color);
@@ -209,19 +232,22 @@ static void sync_ring(Component& c, Placement& q, lv_obj_t* w, lv_obj_t* sub1, l
         snprintf(cap_buf, sizeof(cap_buf), "%s%s", c.cap_prefix, c.caption);
         lv_arclabel_set_text(sub1, cap_buf);
     }
-    if (sub2) {
-        if (c.center_pct) {
-            char cb[24]; format_value((double)c.value, c.unit, cb, sizeof(cb));
-            lv_label_set_text(sub2, cb);
-            uint32_t ccol = c.center_color_set ? c.center_color : col;  // surcharge explicite, sinon suit le seuil
-            lv_obj_set_style_text_color(sub2, lv_color_hex(ccol), 0);
-        } else {
+    if (sub2) {                                   // conteneur : enfants [pill?, center?]
+        lv_obj_t* pill   = c.pill       ? lv_obj_get_child(sub2, 0)              : nullptr;
+        lv_obj_t* center = c.center_pct ? lv_obj_get_child(sub2, c.pill ? 1 : 0) : nullptr;
+        if (pill) {
             char pb[8]; snprintf(pb, sizeof(pb), "%ld%%", (long)c.value);
-            lv_label_set_text(sub2, pb);
-            lv_obj_set_style_bg_color(sub2, lv_color_hex(col), 0);
+            lv_label_set_text(pill, pb);
+            lv_obj_set_style_bg_color(pill, lv_color_hex(col), 0);
+        }
+        if (center) {
+            char cb[24]; format_value((double)c.value, c.unit, cb, sizeof(cb));
+            lv_label_set_text(center, cb);
+            uint32_t ccol = c.center_color_set ? c.center_color : col;  // surcharge explicite, sinon suit le seuil
+            lv_obj_set_style_text_color(center, lv_color_hex(ccol), 0);
         }
     }
-    ring_place_labels(w, sub2, q, c.center_pct);
+    ring_place_labels(sub2, c, q);
 }
 
 // --- chart : l'historique vit dans le modèle (Component.hist) ; build crée le widget,

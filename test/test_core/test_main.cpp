@@ -147,11 +147,62 @@ void test_ring_cap_prefix_parsed(void) {
     int ig = dash_find(&d, "g");
     TEST_ASSERT_EQUAL_STRING("RST ", d.components[ig].cap_prefix);
 }
+static const char* LAYOUT_BARRING_OPTS =
+  "{\"title\":\"T\",\"background\":\"#000000\","
+  "\"components\":{"
+  "\"b\":{\"type\":\"bar\",\"min\":-50,\"max\":50,\"mode\":\"symmetrical\",\"orientation\":\"vertical\","
+         "\"anim_ms\":250,\"thresholds\":[[0,\"#EF4444\"]]},"
+  "\"g\":{\"type\":\"ring\",\"mode\":\"reverse\",\"rounded\":false}},"
+  "\"pages\":[{\"name\":\"p\",\"place\":["
+  "{\"ref\":\"b\",\"width\":16,\"height\":200},{\"ref\":\"g\",\"radius\":120}]}]}";
+
+void test_bar_options_parsed(void) {
+    Dashboard d{}; char err[80];
+    TEST_ASSERT_TRUE(dash_set_layout(&d, LAYOUT_BARRING_OPTS, err, sizeof(err)));
+    int ib = dash_find(&d, "b");
+    TEST_ASSERT_EQUAL_INT(BAR_SYMMETRICAL, d.components[ib].bar_mode);
+    TEST_ASSERT_TRUE(d.components[ib].bar_vertical);
+    TEST_ASSERT_EQUAL_INT(250, d.components[ib].bar_anim_ms);
+    TEST_ASSERT_EQUAL_INT(1, d.components[ib].threshold_count);   // seuils partages -> sync_bar les exploite
+}
+void test_ring_mode_rounded_parsed(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, LAYOUT_BARRING_OPTS, err, sizeof(err));
+    int ig = dash_find(&d, "g");
+    TEST_ASSERT_EQUAL_INT(ARC_REVERSE, d.components[ig].arc_mode);
+    TEST_ASSERT_FALSE(d.components[ig].arc_rounded);
+}
+static const char* LAYOUT_BARRING_MIN =
+  "{\"title\":\"T\",\"background\":\"#000000\","
+  "\"components\":{\"b\":{\"type\":\"bar\"},\"g\":{\"type\":\"ring\"}},"
+  "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"b\"},{\"ref\":\"g\",\"radius\":120}]}]}";
+
+void test_bar_ring_option_defaults(void) {
+    Dashboard d{}; char err[80];
+    TEST_ASSERT_TRUE(dash_set_layout(&d, LAYOUT_BARRING_MIN, err, sizeof(err)));
+    int ib = dash_find(&d, "b"), ig = dash_find(&d, "g");
+    TEST_ASSERT_EQUAL_INT(BAR_NORMAL, d.components[ib].bar_mode);
+    TEST_ASSERT_FALSE(d.components[ib].bar_vertical);
+    TEST_ASSERT_EQUAL_INT(0, d.components[ib].bar_anim_ms);
+    TEST_ASSERT_EQUAL_INT(ARC_NORMAL, d.components[ig].arc_mode);
+    TEST_ASSERT_TRUE(d.components[ig].arc_rounded);   // defaut true = rendu actuel
+}
 void test_ring_cap_prefix_default_empty(void) {
     Dashboard d{}; char err[80];
     dash_set_layout(&d, LAYOUT_OK, err, sizeof(err));   // LAYOUT_OK ne définit pas cap_prefix
     int iw = dash_find(&d, "w5h");
     TEST_ASSERT_EQUAL_STRING("", d.components[iw].cap_prefix);
+}
+static const char* LAYOUT_RING_BOTH =
+  "{\"components\":{\"g\":{\"type\":\"ring\",\"pill\":true,\"center_pct\":true}},"
+  "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"g\",\"radius\":120}]}]}";
+
+void test_ring_pill_and_center_coexist(void) {
+    Dashboard d{}; char err[80];
+    TEST_ASSERT_TRUE(dash_set_layout(&d, LAYOUT_RING_BOTH, err, sizeof(err)));
+    int ig = dash_find(&d, "g");
+    TEST_ASSERT_TRUE(d.components[ig].pill);          // plus d'exclusivite : les deux flags coexistent
+    TEST_ASSERT_TRUE(d.components[ig].center_pct);
 }
 void test_layout_unknown_type_rejected(void) {
     Dashboard d{}; char err[80];
@@ -763,6 +814,10 @@ int main(int, char**) {
     RUN_TEST(test_ring_center_color_defaults_to_color);
     RUN_TEST(test_ring_cap_prefix_parsed);
     RUN_TEST(test_ring_cap_prefix_default_empty);
+    RUN_TEST(test_bar_options_parsed);
+    RUN_TEST(test_ring_mode_rounded_parsed);
+    RUN_TEST(test_bar_ring_option_defaults);
+    RUN_TEST(test_ring_pill_and_center_coexist);
     RUN_TEST(test_layout_unknown_type_rejected);
     RUN_TEST(test_schema_types_all_resolve);
     RUN_TEST(test_ctx_set_find_num);

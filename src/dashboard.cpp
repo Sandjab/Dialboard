@@ -51,6 +51,16 @@ static Anchor parse_anchor(const char* s) {
     return A_CENTER;
 }
 
+static BarMode parse_bar_mode(const char* s) {
+    if (s && !strcmp(s, "symmetrical")) return BAR_SYMMETRICAL;
+    return BAR_NORMAL;
+}
+static ArcMode parse_arc_mode(const char* s) {
+    if (s && !strcmp(s, "symmetrical")) return ARC_SYMMETRICAL;
+    if (s && !strcmp(s, "reverse"))     return ARC_REVERSE;
+    return ARC_NORMAL;
+}
+
 bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
     JsonDocument doc;
     DeserializationError e = deserializeJson(doc, json);
@@ -93,6 +103,12 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
         c.label_color = parse_hex_color(o["label_color"] | "#9AA0AA", 0x9AA0AA);
         c.label_font  = o["label_font"] | 14;
         c.label_align = parse_anchor(o["label_align"] | "TOP_MID");
+        c.bar_mode     = parse_bar_mode(o["mode"] | "normal");
+        c.bar_vertical = !strcmp(o["orientation"] | "horizontal", "vertical");
+        c.bar_anim_ms  = o["anim_ms"] | 0;
+        if (c.bar_anim_ms < 0) c.bar_anim_ms = 0;
+        c.arc_mode     = parse_arc_mode(o["mode"] | "normal");
+        c.arc_rounded  = o["rounded"] | true;
         c.led_brightness_cfg = o["brightness"] | 64;
         strlcpy(c.bind, o["bind"] | "", sizeof(c.bind));
         c.chart_points = o["points"] | 30;
