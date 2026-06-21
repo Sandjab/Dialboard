@@ -368,7 +368,7 @@ export function createInspector(root, model, { rerenderCanvas, clearSelection, g
       eye.appendChild(icon);
       const ref = sel.ref;                              // figée au rendu (cf. invariant inspecteur/canvas)
       eye.addEventListener('click', () => {
-        const next = !(c.visible !== false);            // nouvel état après bascule
+        const next = !visible;                          // nouvel état après bascule (visible = état au rendu)
         eye.blur();                                     // libère le focus -> render() peut reconstruire (garde-focus)
         model.commit(s => setComponentProp(s, ref, 'visible', next));
       });
