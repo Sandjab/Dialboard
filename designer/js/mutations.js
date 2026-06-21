@@ -179,6 +179,17 @@ export function reorderPages(state, from, to) {
   pages.splice(to, 0, p);
 }
 
+// Déplace un placement de `from` vers `to` dans pages[pageIndex].place. L'ordre du tableau = l'ordre de
+// rendu (z-index : le dernier est dessus). No-op si page/place absent, index hors bornes ou identiques.
+// Miroir de reorderPages (même garde de bornes).
+export function reorderPlacement(state, pageIndex, from, to) {
+  const place = state.pages?.[pageIndex]?.place;
+  if (!place || from === to) return;
+  if (from < 0 || from >= place.length || to < 0 || to >= place.length) return;
+  const [p] = place.splice(from, 1);
+  place.splice(to, 0, p);
+}
+
 // --- Sources (pull reseau, P3). Top-level state.sources (array d'objets plats). ---
 
 // Nom libre <source><n> : 1er entier sans collision avec les noms existants.
