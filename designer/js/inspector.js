@@ -198,14 +198,15 @@ export function createInspector(root, model, { rerenderCanvas, clearSelection, g
     if (c.type === 'ring' || c.type === 'meter' || c.type === 'bar') {
       sub(body, c.type === 'meter' ? 'Zones (couleur de la limite précédente à la limite)'
                                    : 'Seuils (couleur si valeur < limite)');
+      const ref = sel.ref;   // figée au rendu (cf. compField : 'change' tardif du picker couleur)
       const ths = (c.thresholds || []).map(t => [t[0], t[1]]); // copie locale éditable
-      const commitThs = (opts) => model.commit(s => setThresholds(s, sel.ref, ths.filter(t => t[1])), opts);
+      const commitThs = (opts) => model.commit(s => setThresholds(s, ref, ths.filter(t => t[1])), opts);
       ths.forEach((t, idx) => {
         const row = document.createElement('div'); row.className = 'insp-row';
         const lim = makeInput('num', t[0], v => { ths[idx][0] = v === '' ? 0 : v; commitThs({ coalesce: 'num' }); });   // F2
         const col = makeInput('color', t[1], v => { clearPreview?.(); ths[idx][1] = v; commitThs(); });
         // Aperçu live de la couleur du seuil : override du tableau thresholds complet (canvas seul, hors modèle).
-        col.addEventListener('input', () => previewProp?.(sel.ref, {
+        col.addEventListener('input', () => previewProp?.(ref, {
           thresholds: ths.map((tt, i) => i === idx ? [tt[0], col.value.toUpperCase()] : [tt[0], tt[1]]).filter(tt => tt[1])
         }));
         const rm = document.createElement('button'); rm.className = 'insp-th-rm'; rm.textContent = '×';
@@ -359,9 +360,13 @@ export function createInspector(root, model, { rerenderCanvas, clearSelection, g
       if (kind === 'image_anim') { body.appendChild(imageAnimField(label, c)); continue; }   // editeur bespoke
       // Color picker : aperçu live sur 'input' (canvas seul, hors modèle → pas de flood undo) ; commit
       // unique sur 'change' (makeInput), précédé d'un clearPreview pour que le commit re-rende l'état réel.
-      const commit = v => { if (kind === 'color') clearPreview?.(); model.commit(s => setComponentProp(s, sel.ref, key, v), kind === 'num' ? { coalesce: 'num' } : undefined); };   // F2 : coalesce num
+      // ref figée au rendu : le color picker émet son 'change' en DIFFÉRÉ (après qu'un clic ailleurs a
+      // déjà déplacé `sel`) ; sans figer, le commit atterrirait sur la sélection courante (mauvais
+      // composant). On committe donc toujours sur le composant qu'on éditait. (cf. bug picker couleur)
+      const ref = sel.ref;
+      const commit = v => { if (kind === 'color') clearPreview?.(); model.commit(s => setComponentProp(s, ref, key, v), kind === 'num' ? { coalesce: 'num' } : undefined); };   // F2 : coalesce num
       const input = makeInput(kind, c[key], commit);
-      if (kind === 'color') input.addEventListener('input', () => previewProp?.(sel.ref, { [key]: input.value.toUpperCase() }));
+      if (kind === 'color') input.addEventListener('input', () => previewProp?.(ref, { [key]: input.value.toUpperCase() }));
       const row = fieldRow(label, input, { ascii: kind === 'asciitext' });
       rows[key] = { input, row, enableWhen };
       body.appendChild(row);
