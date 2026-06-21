@@ -100,3 +100,7 @@ test('isSelectionValid : composant à un index disparu → false', () => {
 test('isSelectionValid : composant sur une page disparue → false', () => {
   assert.equal(isSelectionValid(S(), { kind: 'comp', page: 9, index: 0 }), false);
 });
+
+test('isSelectionValid : composant sur une page sans tableau place → false', () => {
+  assert.equal(isSelectionValid({ pages: [{ name: 'P' }] }, { kind: 'comp', page: 0, index: 0 }), false);
+});
