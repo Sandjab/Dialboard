@@ -216,3 +216,34 @@ test('schema : booléen de look inconnu sur un led rejeté', () => {
              pages: [{ name: 'P', place: [{ ref: 'l1' }] }] };
   assert.equal(validate(l).valid, false);
 });
+
+test('schema : visible:false accepté sur un composant visuel (bar)', () => {
+  const l = base();
+  l.components.b = { type: 'bar', visible: false };
+  l.pages[0].place.push({ ref: 'b', anchor: 'CENTER', width: 200, height: 16 });
+  const r = validate(l);
+  assert.equal(r.valid, true, JSON.stringify(r.errors));
+});
+
+test('schema : visible non booléen rejeté', () => {
+  const l = base();
+  l.components.b = { type: 'bar', visible: 'oui' };
+  l.pages[0].place.push({ ref: 'b' });
+  assert.equal(validate(l).valid, false);
+});
+
+test('schema : visible interdit sur sound (non visuel)', () => {
+  const l = base();
+  l.components.s = { type: 'sound' };                  // contrôle : sound seul est valide
+  assert.equal(validate(l).valid, true, JSON.stringify(validate(l).errors));
+  l.components.s.visible = false;                      // avec visible : rejeté (additionalProperties:false)
+  assert.equal(validate(l).valid, false);
+});
+
+test('schema : visible interdit sur led_ring (non visuel)', () => {
+  const l = base();
+  l.components.lr = { type: 'led_ring' };
+  assert.equal(validate(l).valid, true, JSON.stringify(validate(l).errors));
+  l.components.lr.visible = false;
+  assert.equal(validate(l).valid, false);
+});
