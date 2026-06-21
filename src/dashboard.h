@@ -23,6 +23,7 @@ struct Component {
     uint32_t center_color;
     int32_t  vmin, vmax;
     int32_t  off_below;              // led : value < off_below -> eteint (defaut 1)
+    bool     led_glow, led_bezel, led_specular, led_off_glass;   // led : effets de look (defaut true)
     bool     pill, center_pct, countdown, center_color_set;
     char     cap_prefix[CAPTION_LEN];  // ring : prefixe statique de la legende courbe (cap_prefix + caption)
     Threshold thresholds[MAX_THRESHOLDS];

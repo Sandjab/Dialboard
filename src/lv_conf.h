@@ -18,6 +18,9 @@
 #define LV_USE_ARCLABEL        1
 #define LV_USE_LED             1
 
+// Degrades radiaux/coniques (dome + reflet du led realiste)
+#define LV_USE_DRAW_SW_COMPLEX_GRADIENTS 1
+
 // Capture d'ecran a la demande (endpoint GET /screenshot) : re-render off-screen via lv_snapshot
 #define LV_USE_SNAPSHOT        1
 

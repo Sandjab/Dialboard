@@ -79,6 +79,10 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
         c.vmin        = o["min"] | 0;
         c.vmax        = o["max"] | 100;
         c.off_below   = o["off_below"] | 1;
+        c.led_glow      = o["glow"]      | true;
+        c.led_bezel     = o["bezel"]     | true;
+        c.led_specular  = o["specular"]  | true;
+        c.led_off_glass = o["off_glass"] | true;
         c.pill        = o["pill"] | false;
         c.center_pct  = o["center_pct"] | false;
         c.center_color_set = o["center_color"].is<const char*>();
