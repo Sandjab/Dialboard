@@ -16,3 +16,19 @@ export function sameSelection(a, b) {
   if (a.kind === 'comp') return a.page === b.page && a.index === b.index;
   return true;                       // 'doc' (pas d'autre champ discriminant)
 }
+
+// Store de sélection : même forme que createModel (subscribe rend un désabonnement). Émet uniquement quand
+// la sélection change réellement (sameSelection court-circuite les set redondants → pas de re-render inutile,
+// invariant clé pour l'inspecteur).
+export function createSelection(initial = null) {
+  let cur = initial;
+  const subs = new Set();
+  const emit = () => subs.forEach(fn => fn(cur));
+  const api = {
+    get() { return cur; },
+    set(next) { if (sameSelection(cur, next)) return; cur = next; emit(); },
+    clear() { api.set(null); },
+    subscribe(fn) { subs.add(fn); return () => subs.delete(fn); },
+  };
+  return api;
+}
