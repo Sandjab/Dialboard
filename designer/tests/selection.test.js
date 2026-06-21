@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sameSelection, createSelection } from '../js/selection.js';
+import { sameSelection, createSelection, isSelectionValid } from '../js/selection.js';
 
 test('sameSelection : deux null sont égaux', () => {
   assert.equal(sameSelection(null, null), true);
@@ -69,4 +69,34 @@ test('createSelection : subscribe renvoie un désabonnement', () => {
   off();
   sel.set({ kind: 'page', page: 0 });
   assert.equal(calls, 1);
+});
+
+const S = () => ({
+  components: { a: {} },
+  pages: [{ name: 'P1', place: [{ ref: 'a' }, { ref: 'b' }] }, { name: 'P2', place: [] }],
+});
+
+test('isSelectionValid : null → false', () => {
+  assert.equal(isSelectionValid(S(), null), false);
+});
+
+test('isSelectionValid : doc → toujours valide', () => {
+  assert.equal(isSelectionValid(S(), { kind: 'doc' }), true);
+});
+
+test('isSelectionValid : page existante / inexistante', () => {
+  assert.equal(isSelectionValid(S(), { kind: 'page', page: 1 }), true);
+  assert.equal(isSelectionValid(S(), { kind: 'page', page: 9 }), false);
+});
+
+test('isSelectionValid : composant existant', () => {
+  assert.equal(isSelectionValid(S(), { kind: 'comp', page: 0, index: 1 }), true);
+});
+
+test('isSelectionValid : composant à un index disparu → false', () => {
+  assert.equal(isSelectionValid(S(), { kind: 'comp', page: 0, index: 5 }), false);
+});
+
+test('isSelectionValid : composant sur une page disparue → false', () => {
+  assert.equal(isSelectionValid(S(), { kind: 'comp', page: 9, index: 0 }), false);
 });
