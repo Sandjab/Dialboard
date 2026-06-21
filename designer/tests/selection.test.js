@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sameSelection } from '../js/selection.js';
+import { sameSelection, createSelection } from '../js/selection.js';
 
 test('sameSelection : deux null sont égaux', () => {
   assert.equal(sameSelection(null, null), true);
@@ -28,4 +28,45 @@ test('sameSelection : composants par page + index', () => {
   assert.equal(sameSelection({ kind: 'comp', page: 0, index: 2 }, { kind: 'comp', page: 0, index: 2 }), true);
   assert.equal(sameSelection({ kind: 'comp', page: 0, index: 2 }, { kind: 'comp', page: 0, index: 3 }), false);
   assert.equal(sameSelection({ kind: 'comp', page: 0, index: 2 }, { kind: 'comp', page: 1, index: 2 }), false);
+});
+
+test('createSelection : get rend la sélection initiale (null par défaut)', () => {
+  assert.equal(createSelection().get(), null);
+  assert.deepEqual(createSelection({ kind: 'doc' }).get(), { kind: 'doc' });
+});
+
+test('createSelection : set change la valeur et notifie les abonnés', () => {
+  const sel = createSelection();
+  let seen;
+  sel.subscribe(s => { seen = s; });
+  sel.set({ kind: 'page', page: 2 });
+  assert.deepEqual(sel.get(), { kind: 'page', page: 2 });
+  assert.deepEqual(seen, { kind: 'page', page: 2 });
+});
+
+test('createSelection : set d\'une sélection identique n\'émet pas', () => {
+  const sel = createSelection({ kind: 'comp', page: 0, index: 1 });
+  let calls = 0;
+  sel.subscribe(() => calls++);
+  sel.set({ kind: 'comp', page: 0, index: 1 });
+  assert.equal(calls, 0);
+});
+
+test('createSelection : clear remet à null et notifie', () => {
+  const sel = createSelection({ kind: 'doc' });
+  let seen = 'unset';
+  sel.subscribe(s => { seen = s; });
+  sel.clear();
+  assert.equal(sel.get(), null);
+  assert.equal(seen, null);
+});
+
+test('createSelection : subscribe renvoie un désabonnement', () => {
+  const sel = createSelection();
+  let calls = 0;
+  const off = sel.subscribe(() => calls++);
+  sel.set({ kind: 'doc' });
+  off();
+  sel.set({ kind: 'page', page: 0 });
+  assert.equal(calls, 1);
 });
