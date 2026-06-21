@@ -79,8 +79,8 @@ textarea { width: 100%; height: 220px; background: #0a0a0e; color: #cbd5e1; bord
   border-radius: 50%;
   background: #000;
   transition: box-shadow .12s;
-  /* PAS d'overflow:hidden : il clipperait les poignées de redim (handle-br, poignées
-     de ring) près du bord. Le rendu rond vient du border-radius + .screen-circle ;
+  /* PAS d'overflow:hidden : il clipperait les poignées de redim (bar : handle-br/-e/-s,
+     poignées de ring) près du bord. Le rendu rond vient du border-radius + .screen-circle ;
      un widget hors-cercle est signalé par .w.outside, pas clippé. */
   flex: none;
   touch-action: none;              /* pointer events propres (pas de scroll/zoom) */
@@ -173,6 +173,8 @@ textarea { width: 100%; height: 220px; background: #0a0a0e; color: #cbd5e1; bord
 .handle-radius, .handle-thick { cursor: ns-resize; }
 .handle-gap { cursor: ew-resize; }
 .handle-br { right: -6px; bottom: -6px; cursor: nwse-resize; }
+.handle-e  { right: -6px; top: 50%; transform: translateY(-50%); cursor: ew-resize; }   /* bar : largeur seule */
+.handle-s  { bottom: -6px; left: 50%; transform: translateX(-50%); cursor: ns-resize; } /* bar : hauteur seule */
 
 /* --- Plan C1 : palette --- */
 .palette-hint { font-size: 11px; color: var(--muted); line-height: 1.45; margin: 0 0 8px; }
