@@ -10,7 +10,8 @@ import {
   duplicateComponent,
   removePlacementAndOrphan,
   reorderPlacement,
-  movePlacementToPage
+  movePlacementToPage,
+  renameComponent
 } from '../js/mutations.js';
 
 const fresh = () => ({ components: {}, pages: [{ name: 'P1', place: [] }] });
@@ -453,4 +454,39 @@ test('movePlacementToPage : page cible inexistante → no-op (placement source c
   const s = { components: {}, pages: [{ name: 'P1', place: [{ ref: 'a' }] }] };
   movePlacementToPage(s, 0, 0, 9);
   assert.deepEqual(s.pages[0].place.map(p => p.ref), ['a']);
+});
+
+test('renameComponent : renomme la clé map ET tous les place[].ref (multi-pages)', () => {
+  const s = {
+    components: { old: { type: 'ring', color: '#fff' } },
+    pages: [
+      { name: 'P1', place: [{ ref: 'old', radius: 100 }, { ref: 'other' }] },
+      { name: 'P2', place: [{ ref: 'old' }] },
+    ],
+  };
+  assert.equal(renameComponent(s, 'old', 'temp_ring'), true);
+  assert.deepEqual(Object.keys(s.components).sort(), ['temp_ring']);
+  assert.deepEqual(s.components.temp_ring, { type: 'ring', color: '#fff' });
+  assert.equal(s.pages[0].place[0].ref, 'temp_ring');
+  assert.equal(s.pages[0].place[1].ref, 'other');
+  assert.equal(s.pages[1].place[0].ref, 'temp_ring');
+});
+
+test('renameComponent : collision avec un id existant → rejet (false, aucun changement)', () => {
+  const s = { components: { a: { type: 'ring' }, b: { type: 'bar' } }, pages: [{ name: 'P', place: [{ ref: 'a' }] }] };
+  assert.equal(renameComponent(s, 'a', 'b'), false);
+  assert.deepEqual(Object.keys(s.components).sort(), ['a', 'b']);
+  assert.equal(s.pages[0].place[0].ref, 'a');
+});
+
+test('renameComponent : id source absent → false', () => {
+  const s = { components: { a: { type: 'ring' } }, pages: [] };
+  assert.equal(renameComponent(s, 'zzz', 'b'), false);
+});
+
+test('renameComponent : nouveau nom vide ou identique → false (no-op)', () => {
+  const s = { components: { a: { type: 'ring' } }, pages: [] };
+  assert.equal(renameComponent(s, 'a', ''), false);
+  assert.equal(renameComponent(s, 'a', 'a'), false);
+  assert.deepEqual(Object.keys(s.components), ['a']);
 });
