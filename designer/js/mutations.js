@@ -204,6 +204,22 @@ export function movePlacementToPage(state, fromPage, placeIndex, toPage) {
   (dstPage.place ||= []).push(placement);
 }
 
+// Renomme l'id d'un composant : la clé dans `components` ET tous les place[].ref qui la pointent (toutes
+// pages). Retourne false (no-op) si oldId absent, newId vide, identique, ou DÉJÀ pris (garde d'unicité →
+// pas d'écrasement). Retourne true si renommé. L'id n'est PAS du texte d'affichage device (≠ text/label/
+// unit) → pas de contrainte ASCII ici.
+export function renameComponent(state, oldId, newId) {
+  const comps = state.components;
+  if (!comps || !comps[oldId]) return false;
+  if (!newId || newId === oldId || comps[newId]) return false;
+  comps[newId] = comps[oldId];
+  delete comps[oldId];
+  for (const page of state.pages || [])
+    for (const pl of page.place || [])
+      if (pl.ref === oldId) pl.ref = newId;
+  return true;
+}
+
 // --- Sources (pull reseau, P3). Top-level state.sources (array d'objets plats). ---
 
 // Nom libre <source><n> : 1er entier sans collision avec les noms existants.
