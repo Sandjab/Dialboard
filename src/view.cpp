@@ -32,6 +32,10 @@ static lv_image_dsc_t* s_aimg_dsc[MAX_COMPONENTS] = {0};   // tableau de c.aimg_
 static lv_style_t s_meter_section_style[MAX_COMPONENTS][MAX_THRESHOLDS];
 static bool       s_meter_section_init[MAX_COMPONENTS][MAX_THRESHOLDS] = {{0}};
 
+// led : descripteurs de gradient persistants (lv_obj_set_style_bg_grad stocke le pointeur).
+static lv_grad_dsc_t s_led_dome_grad[MAX_COMPONENTS];
+static lv_grad_dsc_t s_led_spec_grad[MAX_COMPONENTS];
+
 static const lv_align_t ALIGN_MAP[] = {
     LV_ALIGN_CENTER, LV_ALIGN_TOP_MID, LV_ALIGN_BOTTOM_MID, LV_ALIGN_LEFT_MID,
     LV_ALIGN_RIGHT_MID, LV_ALIGN_TOP_LEFT, LV_ALIGN_TOP_RIGHT, LV_ALIGN_BOTTOM_LEFT, LV_ALIGN_BOTTOM_RIGHT
@@ -340,19 +344,83 @@ static void sync_image_anim(Component& c, Placement& q, lv_obj_t* main, lv_obj_t
     lv_image_set_src(main, &s_aimg_dsc[idx][fr]);           // dsc distinct/frame -> refresh garanti
 }
 
+// led : voyant réaliste. Dôme = bg_grad radial recolorié par luminance (lv_led) ; glow = shadow
+// (auto-atténué par brightness) ; bezel = bordure ; reflet = objet enfant (sub1). Constantes maison
+// alignées sur buildLed (designer). Valeurs de départ à ajuster sur device (Task 4).
 static void build_led(lv_obj_t* parent, Component& c, Placement& q,
-                      lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
+                      lv_obj_t** main, lv_obj_t** sub1, lv_obj_t**) {
     lv_obj_t* led = lv_led_create(parent);
     int sz = q.size ? q.size : 24;
     lv_obj_set_size(led, sz, sz);
+    int idx = q.comp_index;
+
+    // Dôme : gradient radial (centre 38%/30%). Stops = profil de luminance (clair centre -> mi-sombre
+    // bord) ; lv_led applique la teinte (lv_led_set_color) et module par la brightness.
+    if (idx >= 0 && idx < MAX_COMPONENTS) {
+        lv_grad_dsc_t* g = &s_led_dome_grad[idx];
+        lv_grad_radial_init(g, lv_pct(38), lv_pct(30), lv_pct(100), lv_pct(100), LV_GRAD_EXTEND_PAD);
+        lv_color_t cols[2] = { lv_color_white(), lv_color_hex(0x6E6E6E) };
+        uint8_t fr[2] = { 0, 255 };
+        lv_grad_init_stops(g, cols, NULL, fr, 2);
+        lv_obj_set_style_bg_grad(led, g, LV_PART_MAIN);
+    }
+
     lv_led_set_color(led, lv_color_hex(threshold_color(c.thresholds, c.threshold_count, c.value, c.color)));
+
+    // Glow : shadow blanc (recoloré en teinte par lv_led, atténué par brightness). 0 si désactivé.
+    if (c.led_glow) {
+        lv_obj_set_style_shadow_width(led, 20, LV_PART_MAIN);
+        lv_obj_set_style_shadow_spread(led, 5, LV_PART_MAIN);
+        lv_obj_set_style_shadow_color(led, lv_color_white(), LV_PART_MAIN);
+    } else {
+        lv_obj_set_style_shadow_width(led, 0, LV_PART_MAIN);
+    }
+
+    // Bezel : bordure sombre encastrée.
+    if (c.led_bezel) {
+        lv_obj_set_style_border_width(led, 2, LV_PART_MAIN);
+        lv_obj_set_style_border_color(led, lv_color_hex(0x000000), LV_PART_MAIN);
+        lv_obj_set_style_border_opa(led, LV_OPA_40, LV_PART_MAIN);
+    } else {
+        lv_obj_set_style_border_width(led, 0, LV_PART_MAIN);
+    }
+
     if (led_is_lit(c.value, c.off_below)) lv_led_on(led); else lv_led_off(led);
     lv_obj_align(led, ALIGN_MAP[q.anchor], q.dx, q.dy);
     *main = led;
+
+    // Reflet spéculaire : objet enfant décoratif (Ø 24 %, point lumineux 38%/30%).
+    if (c.led_specular && idx >= 0 && idx < MAX_COMPONENTS) {
+        int ssz = sz * 24 / 100; if (ssz < 2) ssz = 2;
+        lv_obj_t* sp = lv_obj_create(led);
+        lv_obj_remove_style_all(sp);
+        lv_obj_set_size(sp, ssz, ssz);
+        lv_obj_set_pos(sp, sz * 38 / 100 - ssz / 2, sz * 30 / 100 - ssz / 2);
+        lv_obj_set_style_radius(sp, LV_RADIUS_CIRCLE, 0);
+        lv_obj_remove_flag(sp, LV_OBJ_FLAG_CLICKABLE);
+        lv_grad_dsc_t* sg = &s_led_spec_grad[idx];
+        lv_grad_radial_init(sg, lv_pct(50), lv_pct(50), lv_pct(100), lv_pct(100), LV_GRAD_EXTEND_PAD);
+        lv_color_t scol[2] = { lv_color_white(), lv_color_white() };
+        lv_opa_t   sopa[2] = { LV_OPA_COVER, LV_OPA_TRANSP };
+        uint8_t    sfr[2]  = { 0, 255 };
+        lv_grad_init_stops(sg, scol, sopa, sfr, 2);
+        lv_obj_set_style_bg_grad(sp, sg, LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(sp, LV_OPA_COVER, LV_PART_MAIN);
+        *sub1 = sp;
+    } else {
+        *sub1 = nullptr;
+    }
 }
-static void sync_led(Component& c, Placement&, lv_obj_t* w, lv_obj_t*, lv_obj_t*) {
+static void sync_led(Component& c, Placement&, lv_obj_t* w, lv_obj_t* sub1, lv_obj_t*) {
+    bool lit = led_is_lit(c.value, c.off_below);
     lv_led_set_color(w, lv_color_hex(threshold_color(c.thresholds, c.threshold_count, c.value, c.color)));
-    if (led_is_lit(c.value, c.off_below)) lv_led_on(w); else lv_led_off(w);
+    if (lit) lv_led_on(w); else lv_led_off(w);
+    // Reflet : visible allumé ; éteint, faible si off_glass, sinon masqué. (opacité ≈ constantes 0.62 / 0.12)
+    if (sub1) {
+        if (lit) { lv_obj_remove_flag(sub1, LV_OBJ_FLAG_HIDDEN); lv_obj_set_style_opa(sub1, 158, 0); }       // ~0.62
+        else if (c.led_off_glass) { lv_obj_remove_flag(sub1, LV_OBJ_FLAG_HIDDEN); lv_obj_set_style_opa(sub1, 31, 0); } // ~0.12
+        else lv_obj_add_flag(sub1, LV_OBJ_FLAG_HIDDEN);
+    }
 }
 
 // Vtable vue indexée par CompType. Types physiques (led_ring/sound) : build/sync = nullptr
