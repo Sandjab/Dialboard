@@ -12,6 +12,7 @@ import { COMPONENTS } from './registry.js';
 import { effectivePageBg, effectivePageBgImage } from './mutations.js';
 import { previewUrl } from './bg-image.js';
 import { sourceFor, renderToAsset } from './image-asset.js';
+import { placementSelection } from './selection.js';
 
 const SVGNS = 'http://www.w3.org/2000/svg';
 
@@ -53,9 +54,9 @@ function createGuide() {
   };
 }
 
-export function createCanvas({ stage }, model, { onSelect, onLiveMove } = {}) {
-  let selected = null;    // index du placement sélectionné sur la page active
+export function createCanvas({ stage }, model, { selection, setSelection, onLiveMove } = {}) {
   let activePage = 0;     // page affichée par le canvas (source de vérité de l'éditeur, hors layout)
+  const selectedIndex = () => placementSelection(selection.get(), activePage);   // index à surligner (store)
   let preview = null;     // aperçu transitoire {ref, patch} d'une prop (color picker live) — JAMAIS dans le modèle (undo intact)
 
   const placements = () => model.state.pages?.[activePage]?.place ?? [];
@@ -122,9 +123,10 @@ export function createCanvas({ stage }, model, { onSelect, onLiveMove } = {}) {
   function applySelection() {
     stage.querySelectorAll('.w.selected').forEach(n => n.classList.remove('selected'));
     stage.querySelectorAll('.handle').forEach(n => n.remove());
+    const selected = selectedIndex();
     if (selected == null) return;
     const node = nodeFor(selected);
-    if (!node) { selected = null; return; }
+    if (!node) return;   // sélection périmée : la purge isSelectionValid (app.js) la nettoiera
     node.classList.add('selected');
     const pl = placements()[selected];
     const comp = comps()[pl.ref];
@@ -134,10 +136,10 @@ export function createCanvas({ stage }, model, { onSelect, onLiveMove } = {}) {
     if (comp.type === 'chart') addChartHandles(node, selected, pl);
   }
 
+  // Écrit la sélection dans le store partagé (via le coordinateur app.js qui gère le garde F1).
+  // Le store ré-émet → applySelection (abonnement ci-dessous) + l'inspecteur se reconstruit.
   function select(i) {
-    selected = i;
-    applySelection();
-    onSelect && onSelect(i == null ? null : { placeIndex: i, ref: placements()[i].ref });
+    setSelection(i == null ? null : { kind: 'comp', page: activePage, index: i });
   }
 
   // --- Drag (label/readout/bar) : aperçu live, UN SEUL commit au drop (piège HANDOFF a) ---
@@ -339,18 +341,18 @@ export function createCanvas({ stage }, model, { onSelect, onLiveMove } = {}) {
   // l'autre — cf. Décisions C2, on désélectionne plutôt que de re-keyer) puis on re-rend.
   function setPage(i) {
     activePage = i;
-    selected = null;
+    setSelection(null);   // un index n'a pas de sens d'une page à l'autre (cf. Décisions C2)
     render();
-    onSelect && onSelect(null);
   }
 
   model.subscribe(render);
+  selection.subscribe(applySelection);   // changement de sélection (sans changement de modèle) → re-surligner
   render();
   // La webfont Montserrat (font-display:swap) charge en asynchrone : le 1er render mesure
   // avant le swap → centrage à ~8px près. Re-render une fois la police prête (fidélité).
   if (document.fonts?.ready) document.fonts.ready.then(render);
   return {
-    render, getSelected: () => selected, selectPlacement: select, setPage, getActivePage: () => activePage,
+    render, getSelected: () => selectedIndex(), selectPlacement: select, setPage, getActivePage: () => activePage,
     previewProp(ref, patch) { preview = { ref, patch }; render(); },   // aperçu live (canvas seul, sans commit ni undo)
     clearPreview() { preview = null; },                                // à appeler avant le commit : le commit re-render l'état réel
   };
