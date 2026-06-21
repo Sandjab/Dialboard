@@ -98,7 +98,7 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
         c.center_color_set = o["center_color"].is<const char*>();
         c.center_color     = c.center_color_set ? parse_hex_color(o["center_color"], c.color) : c.color;
         c.countdown   = o["countdown"] | false;
-        c.visible     = true;            // memset l'a mis à 0 (caché) ; défaut affiché. Pilotable via /update (visible)
+        c.visible     = o["visible"] | true;   // config-time : caché par défaut possible (visible:false). Aussi pilotable via /update.
         strlcpy(c.cap_prefix, o["cap_prefix"] | "", sizeof(c.cap_prefix));
         c.font        = o["font"] | 20;
         c.label_color = parse_hex_color(o["label_color"] | "#9AA0AA", 0x9AA0AA);
