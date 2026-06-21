@@ -246,7 +246,7 @@
         "type": { "const": "led" },
         "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
         "color": { "$ref": "#/$defs/hexColor", "description": "Couleur allumee quand aucun seuil ne matche. Defaut #22C55E." },
-        "off_below": { "type": "number", "description": "value < off_below = eteint ; sinon allume. Defaut 1 (0 = eteint, >=1 = allume)." },
+        "off_below": { "type": "integer", "description": "value < off_below = eteint ; sinon allume. Defaut 1 (0 = eteint, >=1 = allume)." },
         "thresholds": {
           "type": "array",
           "description": "Couleur allumee selon la valeur (1er seuil ou value < limite, sinon color).",
