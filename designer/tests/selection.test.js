@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sameSelection, createSelection, isSelectionValid } from '../js/selection.js';
+import { sameSelection, createSelection, isSelectionValid, placementSelection } from '../js/selection.js';
 
 test('sameSelection : deux null sont égaux', () => {
   assert.equal(sameSelection(null, null), true);
@@ -103,4 +103,22 @@ test('isSelectionValid : composant sur une page disparue → false', () => {
 
 test('isSelectionValid : composant sur une page sans tableau place → false', () => {
   assert.equal(isSelectionValid({ pages: [{ name: 'P' }] }, { kind: 'comp', page: 0, index: 0 }), false);
+});
+
+test('placementSelection : composant sur la page affichée → son index', () => {
+  assert.equal(placementSelection({ kind: 'comp', page: 1, index: 3 }, 1), 3);
+});
+
+test('placementSelection : composant sur une AUTRE page → null', () => {
+  assert.equal(placementSelection({ kind: 'comp', page: 0, index: 3 }, 1), null);
+});
+
+test('placementSelection : doc / page / null → null', () => {
+  assert.equal(placementSelection({ kind: 'doc' }, 0), null);
+  assert.equal(placementSelection({ kind: 'page', page: 0 }, 0), null);
+  assert.equal(placementSelection(null, 0), null);
+});
+
+test('placementSelection : index 0 sur la page affichée → 0 (pas confondu avec null)', () => {
+  assert.equal(placementSelection({ kind: 'comp', page: 2, index: 0 }, 2), 0);
 });

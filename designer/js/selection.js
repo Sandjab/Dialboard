@@ -45,3 +45,11 @@ export function isSelectionValid(state, sel) {
   if (sel.kind === 'page') return true;
   return !!page.place?.[sel.index];   // 'comp'
 }
+
+// L'index de placement à surligner sur le canvas pour la sélection courante : `index` si la sélection est
+// un composant sur la page affichée (`activePage`), sinon null (doc/page/null, ou composant d'une AUTRE
+// page). Pur — le canvas s'en sert dans applySelection. Le test « index 0 » garde le piège du falsy.
+export function placementSelection(sel, activePage) {
+  if (!sel || sel.kind !== 'comp' || sel.page !== activePage) return null;
+  return sel.index;
+}
