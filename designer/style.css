@@ -193,18 +193,21 @@ textarea { width: 100%; height: 220px; background: #0a0a0e; color: #cbd5e1; bord
 
 /* --- Plan C1 : inspecteur --- */
 .insp-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
-.insp-eye { background: none; border: 0; padding: 2px; line-height: 0; cursor: pointer; border-radius: 4px; opacity: .85; }
-.insp-eye:hover { opacity: 1; background: #16161c; }
+.insp-eye, .insp-iconbtn { background: none; border: 0; padding: 2px; line-height: 0; cursor: pointer; border-radius: 4px; opacity: .85; }
+.insp-eye:hover, .insp-iconbtn:hover { opacity: 1; background: #16161c; }
 .insp-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 12.5px; }
 .insp-label { flex: 0 0 78px; color: #9aa0aa; }
 .insp-row input[type="text"], .insp-row input[type="number"], .insp-row select { flex: 1; min-width: 0; background: var(--panel-2); border: 1px solid var(--line); color: var(--ink); border-radius: 4px; padding: 2px 5px; }
 .insp-row input[type="color"] { width: 36px; height: 22px; padding: 0; border: 1px solid var(--line); background: none; }
 .insp-row.disabled { opacity: .45; }
+.insp-row--fallback { opacity: .6; }                                          /* fond couleur de page : repli quand une image de fond prime */
 .insp-warn { color: var(--err); font-size: 11px; }
 .insp-bg-hint { color: var(--muted); font-size: 11px; align-self: center; }   /* fond de page hérité du global */
 .insp-bg-reset { padding: 0 7px; line-height: 1.7; }                          /* ↺ réhériter du fond global */
-.insp-bg-thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; margin-left: 6px; vertical-align: middle; }
-.insp-bg-file  { max-width: 150px; }
+.insp-bg-thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; vertical-align: middle; }
+.insp-bg-thumb--empty { display: inline-flex; align-items: center; justify-content: center; background: var(--panel-2); border: 1px dashed var(--line); }  /* fond posé mais octets pas en cache local */
+.insp-bg-row   { flex-wrap: wrap; }                                            /* miniature + boutons : passent à la ligne plutôt que de déborder du cadre */
+.insp-bg-file  { display: none; }                                             /* file natif masqué : ouvert via le bouton dossier */
 .insp-del { margin-top: 10px; width: 100%; border-color: var(--err); color: var(--err); }
 .insp-devvis { margin-top: 8px; width: 100%; padding: 6px; background: #16161c; color: #E5E7EB; border: 1px solid #2a2a33; border-radius: 6px; cursor: pointer; }
 .insp-sub { font-size: 11px; color: var(--muted); margin: 10px 0 4px; text-transform: uppercase; }
