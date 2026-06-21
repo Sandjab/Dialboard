@@ -190,6 +190,20 @@ export function reorderPlacement(state, pageIndex, from, to) {
   place.splice(to, 0, p);
 }
 
+// Déplace un placement de la page `fromPage` (index `placeIndex`) vers la FIN de pages[toPage].place.
+// Le composant reste dans la map globale `components` (seul le placement migre). No-op si page/placement
+// absent. Même page autorisée (retire puis ré-ajoute en fin = remonte au-dessus). `||= []` couvre une page
+// cible sans tableau place (parité avec addPlacement).
+export function movePlacementToPage(state, fromPage, placeIndex, toPage) {
+  const srcPage = state.pages?.[fromPage];
+  const dstPage = state.pages?.[toPage];
+  if (!srcPage?.place || !dstPage) return;
+  const placement = srcPage.place[placeIndex];
+  if (!placement) return;
+  srcPage.place.splice(placeIndex, 1);
+  (dstPage.place ||= []).push(placement);
+}
+
 // --- Sources (pull reseau, P3). Top-level state.sources (array d'objets plats). ---
 
 // Nom libre <source><n> : 1er entier sans collision avec les noms existants.
