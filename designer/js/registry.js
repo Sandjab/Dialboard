@@ -38,7 +38,7 @@ export const COMPONENTS = {
     defaults: () => ({ type: 'bar', label: 'Bar', min: 0, max: 100, color: '#38BDF8', label_color: '#9AA0AA', label_font: 14, label_align: 'TOP_MID' }),
     makePlacement: screenPlacement,
     centered: false, physical: false,
-    compFields: [['label', 'Label', 'asciitext'], ['min', 'Min', 'num'], ['max', 'Max', 'num'], ['color', 'Couleur', 'color'], ['label_color', 'Couleur label', 'color'], ['label_font', 'Police label', 'font'], ['label_align', 'Alignement label', 'anchorOut'], ['bind', 'Variable (pull)', 'asciitext']],
+    compFields: [['label', 'Label', 'asciitext'], ['min', 'Min', 'num'], ['max', 'Max', 'num'], ['color', 'Couleur', 'color'], ['mode', 'Mode', 'barmode'], ['orientation', 'Orientation', 'orient'], ['anim_ms', 'Animation (ms)', 'num'], ['label_color', 'Couleur label', 'color'], ['label_font', 'Police label', 'font'], ['label_align', 'Alignement label', 'anchorOut'], ['bind', 'Variable (pull)', 'asciitext']],
     placeFields: [['anchor', 'Ancrage', 'anchor'], ['dx', 'dx', 'num'], ['dy', 'dy', 'num'], ['width', 'Largeur', 'num'], ['height', 'Hauteur', 'num']],
     mockFields: [['value', 'Valeur (aperçu)']],
     build: (comp, pl, mock) => buildBar(comp, pl, mock),
@@ -49,7 +49,8 @@ export const COMPONENTS = {
     makePlacement: (id) => ({ ref: id, radius: 80, thickness: 16, gap_deg: 70 }),
     centered: true, physical: false,
     compFields: [['color', 'Couleur', 'color'],
-                 ['pill', 'Pastille %', 'bool', c => !c.center_pct],         // ignoré quand center_pct (prioritaire)
+                 ['mode', 'Mode', 'arcmode'], ['rounded', 'Bouts arrondis', 'bool'],
+                 ['pill', 'Pastille %', 'bool'],                             // indépendant du centre (les deux coexistent)
                  ['center_pct', 'Centre %', 'bool'],
                  ['font', 'Police centre', 'font', c => !!c.center_pct],     // dimensionne le chiffre central
                  ['center_color', 'Couleur centre', 'color', c => !!c.center_pct],

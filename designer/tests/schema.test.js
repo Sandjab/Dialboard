@@ -102,6 +102,37 @@ test('schema : bar label_font hors enum rejeté', () => {
   assert.equal(validate(l).valid, false);
 });
 
+test('schema : bar avec seuils + mode + orientation + anim_ms valide', () => {
+  const l = base();
+  l.components.b = { type: 'bar', min: -100, max: 100, mode: 'symmetrical', orientation: 'vertical',
+    anim_ms: 300, thresholds: [[20, '#EF4444'], [80, '#22C55E']] };
+  l.pages[0].place.push({ ref: 'b', anchor: 'CENTER', width: 16, height: 200 });
+  const r = validate(l);
+  assert.equal(r.valid, true, JSON.stringify(r.errors));
+});
+
+test('schema : bar mode hors enum rejeté (range non supporté)', () => {
+  const l = base();
+  l.components.b = { type: 'bar', mode: 'range' };   // range exigerait start_value -> hors scope
+  l.pages[0].place.push({ ref: 'b' });
+  assert.equal(validate(l).valid, false);
+});
+
+test('schema : ring avec mode + rounded valide', () => {
+  const l = base();
+  l.components.g = { type: 'ring', mode: 'reverse', rounded: false };
+  l.pages[0].place.push({ ref: 'g', radius: 140 });
+  const r = validate(l);
+  assert.equal(r.valid, true, JSON.stringify(r.errors));
+});
+
+test('schema : ring mode hors enum rejeté', () => {
+  const l = base();
+  l.components.g = { type: 'ring', mode: 'wat' };
+  l.pages[0].place.push({ ref: 'g', radius: 140 });
+  assert.equal(validate(l).valid, false);
+});
+
 test('schema : composant image valide (src/w/h)', () => {
   const l = base();
   l.components.logo = { type: 'image', src: 'deadbeef', w: 120, h: 80 };
@@ -155,6 +186,14 @@ test('schema : comp_ring cap_prefix non-ASCII rejeté', () => {
   l.components = { g: { type: 'ring', cap_prefix: 'café' } };
   l.pages = [{ name: 'P1', place: [{ ref: 'g', radius: 140 }] }];
   assert.equal(validate(l).valid, false);
+});
+
+test('schema : ring accepte pill ET center_pct ensemble (plus d’exclusivité)', () => {
+  const l = base();
+  l.components.g = { type: 'ring', pill: true, center_pct: true };
+  l.pages[0].place.push({ ref: 'g', radius: 140 });
+  const r = validate(l);
+  assert.equal(r.valid, true, JSON.stringify(r.errors));
 });
 
 test('schema : composant led valide (off_below + thresholds + bind)', () => {

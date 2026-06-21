@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  pickFontPx, barFill, pickThresholdColor, formatValue, formatRemaining,
-  ringSweepDeg, pointOnArc, arcPath, ringPaths, sparklinePoints, meterAngle, capArcPath, ledLit
+  pickFontPx, barFill, barGeometry, pickThresholdColor, formatValue, formatRemaining,
+  ringSweepDeg, arcIndicatorAngles, pointOnArc, arcPath, ringPaths, sparklinePoints, meterAngle, capArcPath, ledLit
 } from '../js/render.js';
 
 test('pickFontPx retombe sur les 5 tailles LVGL', () => {
@@ -95,4 +95,39 @@ test('capArcPath : arc inférieur symétrique, rayon r−th/2 (milieu de bande)'
   assert.ok(Math.abs((x1 + x2) / 2 - 80) < 1e-6, 'extrémités symétriques autour du centre (x=r)');
   assert.ok(Math.abs(y1 - y2) < 1e-6, 'extrémités à même hauteur');
   assert.ok(y1 > 80, 'baseline dans la moitié basse (y > r)');
+});
+
+test('barGeometry normal : du bord (0) à la fraction', () => {
+  assert.deepEqual(barGeometry(60, 0, 100, 'normal'), { start: 0, len: 0.6 });
+  assert.deepEqual(barGeometry(150, 0, 100, 'normal'), { start: 0, len: 1 });
+});
+
+test('barGeometry symmetrical : entre la position du 0 et la valeur (min négatif)', () => {
+  assert.deepEqual(barGeometry(0, -100, 100, 'symmetrical'),  { start: 0.5,  len: 0 });    // pile sur le 0
+  assert.deepEqual(barGeometry(50, -100, 100, 'symmetrical'), { start: 0.5,  len: 0.25 }); // 0.5 → 0.75
+  assert.deepEqual(barGeometry(-50, -100, 100, 'symmetrical'),{ start: 0.25, len: 0.25 }); // 0.25 → 0.5 (à gauche du 0)
+});
+
+test('arcIndicatorAngles normal : depuis start, sweep horaire', () => {
+  assert.deepEqual(arcIndicatorAngles('normal', 125, 290, 0.5), { startDeg: 125, sweepDeg: 145 });
+});
+
+test('arcIndicatorAngles reverse : ancré sur le max, même longueur', () => {
+  assert.deepEqual(arcIndicatorAngles('reverse', 125, 290, 0.25),
+    { startDeg: 125 + 0.75 * 290, sweepDeg: 0.25 * 290 });
+});
+
+test('arcIndicatorAngles symmetrical : grandit depuis le milieu de l’arc', () => {
+  const mid = 125 + 290 / 2;
+  assert.deepEqual(arcIndicatorAngles('symmetrical', 125, 290, 0.5),  { startDeg: mid, sweepDeg: 0 });
+  assert.deepEqual(arcIndicatorAngles('symmetrical', 125, 290, 0.75), { startDeg: mid, sweepDeg: 0.25 * 290 });
+  assert.deepEqual(arcIndicatorAngles('symmetrical', 125, 290, 0.25),
+    { startDeg: 125 + 0.25 * 290, sweepDeg: 0.25 * 290 });   // à gauche du milieu
+});
+
+test('ringPaths : reverse garde le même fond mais inverse l’indicateur', () => {
+  const norm = ringPaths(80, 16, 70, 50, 0, 100, 'normal');
+  const rev  = ringPaths(80, 16, 70, 50, 0, 100, 'reverse');
+  assert.equal(norm.track, rev.track);             // fond identique
+  assert.notEqual(norm.indicator, rev.indicator);  // remplissage à l’opposé
 });
