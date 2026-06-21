@@ -15,6 +15,23 @@ export const MOCKS = {
   led:     { value: 1 }
 };
 
+// Constantes maison du rendu LED réaliste (réglées au playground ; cf. spec led-look-realiste).
+// Les booléens du composant (glow/bezel/specular/off_glass) activent chaque effet ; ces nombres
+// sont figés et partagés avec le firmware pour la parité.
+const LED = {
+  lightX: 38, lightY: 30, highlight: 62, edgeDark: 24,
+  glowBlur: 20, glowSpread: 5, glowAlpha: 1.0,
+  specSize: 24, specAlpha: 0.62, rimDepth: 8,
+  offDark: 69, offSpecAlpha: 0.12,
+};
+const LED_WHITE = [255, 255, 255], LED_BLACK = [0, 0, 0];
+function ledHexRgb(hex) {
+  const h = hex.replace('#', '');
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+function ledMix(a, b, t) { return a.map((v, i) => Math.round(v + (b[i] - v) * t)); }
+function ledRgb(c) { return `rgb(${c[0]},${c[1]},${c[2]})`; }
+
 // Police LVGL embarquée : 14/20/28/36/48 px (pick_font, view.cpp:21-27). Toute autre valeur retombe sur 14.
 export function pickFontPx(font) {
   if (font >= 48) return 48;
@@ -392,17 +409,57 @@ export function buildImage(comp) {
   return wrap;
 }
 
-// led : voyant lumineux. Couleur = seuil (sinon color) ; éteint (sombre, sans halo) sous off_below.
-// Miroir best-effort de lv_led (view.cpp build_led/sync_led) : halo ≈ glow de lv_led.
+// led : voyant réaliste. Corps en dégradé radial (dôme) ; couleur = seuil sinon color ; éteint
+// (assombri, sans glow) sous off_below. Effets pilotés par booléens (défaut true). Miroir best-effort
+// de lv_led stylé (view.cpp build_led/sync_led). Constantes figées = objet LED.
 export function buildLed(comp, placement, mock = MOCKS.led) {
   const size = placement.size || 24;
   const lit  = ledLit(mock.value, comp.off_below ?? 1);
-  const col  = pickThresholdColor(comp.thresholds, mock.value, comp.color || '#22C55E');
+  const colHex = pickThresholdColor(comp.thresholds, mock.value, comp.color || '#22C55E');
+  const color = ledHexRgb(colHex);
+  const glow = comp.glow ?? true, bezel = comp.bezel ?? true;
+  const specular = comp.specular ?? true, offGlass = comp.off_glass ?? true;
+
   const n = document.createElement('div');
-  n.className = 'w w-led' + (lit ? '' : ' w-led--off');
-  n.style.width  = size + 'px';
+  n.className = 'w w-led';
+  n.style.width = size + 'px';
   n.style.height = size + 'px';
-  n.style.background = col;
-  if (lit) n.style.boxShadow = `0 0 ${Math.round(size * 0.5)}px ${col}`;
+
+  // Corps : dôme radial (centre éclairci, bord assombri), éclairé depuis lightX/lightY.
+  const center = lit ? ledMix(color, LED_WHITE, LED.highlight / 100) : ledMix(ledMix(color, LED_BLACK, LED.offDark / 100), LED_WHITE, 0.07);
+  const mid    = lit ? color : ledMix(color, LED_BLACK, LED.offDark / 100);
+  const edge   = lit ? ledMix(color, LED_BLACK, LED.edgeDark / 100) : ledMix(mid, LED_BLACK, 0.28);
+  n.style.background = `radial-gradient(circle at ${LED.lightX}% ${LED.lightY}%, ${ledRgb(center)} 0%, ${ledRgb(mid)} 50%, ${ledRgb(edge)} 100%)`;
+
+  // Ombres : glow externe (allumé) + bezel encastré (interne) + contour.
+  const sh = [];
+  if (glow && lit) {
+    const blur = LED.glowBlur, spr = LED.glowSpread, a = LED.glowAlpha;
+    sh.push(`0 0 ${blur}px ${spr}px rgba(${color[0]},${color[1]},${color[2]},${a})`);
+    sh.push(`0 0 ${blur * 2}px ${Math.round(spr * 1.5)}px rgba(${color[0]},${color[1]},${color[2]},${a * 0.4})`);
+  }
+  if (bezel) {
+    const d = LED.rimDepth;
+    sh.push(`inset 0 0 ${d}px rgba(0,0,0,.55)`);
+    sh.push(`inset 0 ${Math.max(1, Math.round(d / 3))}px ${Math.round(d / 2)}px rgba(0,0,0,.45)`);
+    sh.push(`inset 0 -1px 1px rgba(255,255,255,.12)`);
+  }
+  sh.push(`0 0 0 1px rgba(0,0,0,.45)`);
+  n.style.boxShadow = sh.join(', ');
+
+  // Reflet spéculaire (enfant) : allumé → specAlpha ; éteint → offSpecAlpha si off_glass, sinon absent.
+  const showSpec = specular && (lit ? LED.specAlpha > 0 : (offGlass && LED.offSpecAlpha > 0));
+  if (showSpec) {
+    const a = lit ? LED.specAlpha : LED.offSpecAlpha;
+    const sp = document.createElement('div');
+    sp.className = 'w-led-spec';
+    const sz = size * LED.specSize / 100;
+    sp.style.width = sz + 'px';
+    sp.style.height = sz + 'px';
+    sp.style.left = (size * LED.lightX / 100 - sz / 2) + 'px';
+    sp.style.top  = (size * LED.lightY / 100 - sz / 2) + 'px';
+    sp.style.background = `radial-gradient(circle at 50% 50%, rgba(255,255,255,${a}) 0%, rgba(255,255,255,${a * 0.35}) 38%, rgba(255,255,255,0) 70%)`;
+    n.appendChild(sp);
+  }
   return n;
 }

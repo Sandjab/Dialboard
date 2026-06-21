@@ -251,7 +251,11 @@
           "type": "array",
           "description": "Couleur allumee selon la valeur (1er seuil ou value < limite, sinon color).",
           "items": { "$ref": "#/$defs/threshold" }
-        }
+        },
+        "glow": { "type": "boolean", "description": "Halo externe a l'allumage. Defaut true." },
+        "bezel": { "type": "boolean", "description": "Anneau encastre (boitier). Defaut true." },
+        "specular": { "type": "boolean", "description": "Reflet speculaire (point brillant). Defaut true." },
+        "off_glass": { "type": "boolean", "description": "Garder un faible reflet de verre quand eteint (sous-option de specular). Defaut true." }
       }
     },
     "page": {
