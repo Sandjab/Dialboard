@@ -156,3 +156,17 @@ test('schema : comp_ring cap_prefix non-ASCII rejeté', () => {
   l.pages = [{ name: 'P1', place: [{ ref: 'g', radius: 140 }] }];
   assert.equal(validate(l).valid, false);
 });
+
+test('schema : composant led valide (off_below + thresholds + bind)', () => {
+  const l = { components: { l1: { type: 'led', color: '#22C55E', off_below: 1,
+             thresholds: [[1, '#EF4444']], bind: 'online' } },
+             pages: [{ name: 'P', place: [{ ref: 'l1', anchor: 'CENTER', size: 24 }] }] };
+  const r = validate(l);
+  assert.equal(r.valid, true, JSON.stringify(r.errors));
+});
+
+test('schema : propriete inconnue sur un led est rejetee', () => {
+  const l = { components: { l1: { type: 'led', glow: true } },
+             pages: [{ name: 'P', place: [{ ref: 'l1' }] }] };
+  assert.equal(validate(l).valid, false);
+});

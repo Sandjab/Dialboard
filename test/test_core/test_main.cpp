@@ -335,6 +335,28 @@ void test_threshold_none(void) {
     TEST_ASSERT_EQUAL_HEX32(0xABCDEF, threshold_color(t,0,50,0xABCDEF));
 }
 
+void test_led_is_lit_boundary(void) {
+    TEST_ASSERT_FALSE(led_is_lit(0, 1));
+    TEST_ASSERT_TRUE (led_is_lit(1, 1));   // limite incluse
+    TEST_ASSERT_TRUE (led_is_lit(5, 1));
+    TEST_ASSERT_TRUE (led_is_lit(0, 0));   // off_below 0 -> toujours allume
+}
+
+static const char* LAYOUT_LED =
+    "{\"components\":{\"d\":{\"type\":\"led\",\"color\":\"#22C55E\",\"off_below\":3,"
+    "\"thresholds\":[[1,\"#EF4444\"]]}},"
+    "\"pages\":[{\"name\":\"P\",\"place\":[{\"ref\":\"d\",\"anchor\":\"CENTER\",\"size\":40}]}]}";
+
+void test_led_parse(void) {
+    Dashboard d{}; char err[128];
+    TEST_ASSERT_TRUE(dash_set_layout(&d, LAYOUT_LED, err, sizeof(err)));
+    TEST_ASSERT_EQUAL_INT(COMP_LED, d.components[0].type);
+    TEST_ASSERT_EQUAL_INT(3, d.components[0].off_below);
+    TEST_ASSERT_EQUAL_HEX32(0x22C55E, d.components[0].color);
+    TEST_ASSERT_EQUAL_INT(1, d.components[0].threshold_count);
+    TEST_ASSERT_EQUAL_INT(40, d.pages[0].places[0].size);
+}
+
 // --- contexte (blackboard) ---
 void test_ctx_set_find_num(void) {
     Context c{};
@@ -765,6 +787,8 @@ int main(int, char**) {
     RUN_TEST(test_threshold_mid);
     RUN_TEST(test_threshold_over);
     RUN_TEST(test_threshold_none);
+    RUN_TEST(test_led_is_lit_boundary);
+    RUN_TEST(test_led_parse);
     RUN_TEST(test_next_mid);
     RUN_TEST(test_next_wrap);
     RUN_TEST(test_next_clamp);

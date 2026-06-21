@@ -4,7 +4,7 @@
 // L'aperçu (build) reste dans render.js (double-maintenance du rendu firmware) ; ici on le référence
 // via une signature normalisée (comp, placement, mock).
 import { snapPlacement } from './geometry.js';
-import { buildLabel, buildReadout, buildBar, buildRing, buildChart, buildMeter, buildImage, buildImageAnim } from './render.js';
+import { buildLabel, buildReadout, buildBar, buildRing, buildChart, buildMeter, buildImage, buildImageAnim, buildLed } from './render.js';
 
 // Placement initial d'un widget d'écran : ancrage + offset déduits du point de dépôt (boîte ~0).
 const screenPlacement = (id, x, y) => {
@@ -105,6 +105,16 @@ export const COMPONENTS = {
     placeFields: [['anchor', 'Ancrage', 'anchor'], ['dx', 'dx', 'num'], ['dy', 'dy', 'num']],
     mockFields: [],
     build: (comp) => buildImageAnim(comp),
+  },
+  led: {
+    label: 'LED',
+    defaults: () => ({ type: 'led', color: '#22C55E', off_below: 1 }),
+    makePlacement: (id, x, y) => ({ ...screenPlacement(id, x, y), size: 24 }),
+    centered: false, physical: false,
+    compFields: [['color', 'Couleur', 'color'], ['off_below', 'Éteint sous', 'num'], ['bind', 'Variable (pull)', 'asciitext']],
+    placeFields: [['anchor', 'Ancrage', 'anchor'], ['dx', 'dx', 'num'], ['dy', 'dy', 'num'], ['size', 'Diamètre', 'num']],
+    mockFields: [['value', 'Valeur (aperçu)']],
+    build: (comp, pl, mock) => buildLed(comp, pl, mock),
   },
   led_ring: {
     label: 'LED ring',

@@ -340,6 +340,21 @@ static void sync_image_anim(Component& c, Placement& q, lv_obj_t* main, lv_obj_t
     lv_image_set_src(main, &s_aimg_dsc[idx][fr]);           // dsc distinct/frame -> refresh garanti
 }
 
+static void build_led(lv_obj_t* parent, Component& c, Placement& q,
+                      lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
+    lv_obj_t* led = lv_led_create(parent);
+    int sz = q.size ? q.size : 24;
+    lv_obj_set_size(led, sz, sz);
+    lv_led_set_color(led, lv_color_hex(threshold_color(c.thresholds, c.threshold_count, c.value, c.color)));
+    if (led_is_lit(c.value, c.off_below)) lv_led_on(led); else lv_led_off(led);
+    lv_obj_align(led, ALIGN_MAP[q.anchor], q.dx, q.dy);
+    *main = led;
+}
+static void sync_led(Component& c, Placement&, lv_obj_t* w, lv_obj_t*, lv_obj_t*) {
+    lv_led_set_color(w, lv_color_hex(threshold_color(c.thresholds, c.threshold_count, c.value, c.color)));
+    if (led_is_lit(c.value, c.off_below)) lv_led_on(w); else lv_led_off(w);
+}
+
 // Vtable vue indexée par CompType. Types physiques (led_ring/sound) : build/sync = nullptr
 // (rendus par leur tick dédié -> le moteur les saute). label/readout partagent build_text.
 struct ViewVTable {
@@ -360,6 +375,7 @@ static const ViewVTable VIEW[] = {
     /* COMP_METER    */ { build_meter, sync_meter },
     /* COMP_IMAGE    */ { build_image, nullptr     },
     /* COMP_IMAGE_ANIM */ { build_image_anim, sync_image_anim },
+    /* COMP_LED      */ { build_led, sync_led },
 };
 static_assert(sizeof(VIEW) / sizeof(VIEW[0]) == COMP_COUNT,
               "VIEW desync avec CompType : ajoute la ligne du nouveau type");

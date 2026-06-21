@@ -122,6 +122,10 @@ textarea { width: 100%; height: 220px; background: #0a0a0e; color: #cbd5e1; bord
 .w-bar-track { background: #1F2937; border-radius: 999px; overflow: hidden; }   /* pilule (lv_bar arrondi) */
 .w-bar-fill { height: 100%; border-radius: 999px; }                            /* extrémité droite arrondie */
 
+/* led : voyant rond. Couleur/halo posés inline par buildLed ; éteint = sombre, sans halo. */
+.w-led { border-radius: 50%; }
+.w-led--off { opacity: .25; box-shadow: none; }
+
 .w-ring { cursor: default; }       /* ring centré, non déplaçable (view.cpp:51) */
 .w-ring svg { display: block; }
 /* Pastille seule (pas le cap) : le cap est un <g> SVG aux glyphes déjà centrés en absolu ;

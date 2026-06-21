@@ -12,6 +12,7 @@ const PATHS = {
   ring:     '<path d="M6.2 17.8a8 8 0 1 1 11.6 0"/>',                        // anneau ouvert (gap en bas, comme le device)
   chart:    '<path d="M4 16l5-5 4 3 7-7"/>',                                 // courbe
   meter:    '<path d="M4 16a8 8 0 0 1 16 0"/><path d="M12 16l4-4"/><circle cx="12" cy="16" r="1.4" fill="currentColor" stroke="none"/>', // demi-jauge + aiguille
+  led:      '<circle cx="12" cy="12" r="5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="9"/>', // point plein + halo
   image:    '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8" cy="9.5" r="1.5"/><path d="M20 15l-4-4-9 8"/>', // cadre + soleil + paysage
   image_anim:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none"/>', // même cadre + lecture (play)
   led_ring:'<circle cx="12" cy="5" r="1.4" fill="currentColor" stroke="none"/><circle cx="17" cy="7" r="1.4" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="17" cy="17" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.4" fill="currentColor" stroke="none"/><circle cx="7" cy="17" r="1.4" fill="currentColor" stroke="none"/><circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="7" cy="7" r="1.4" fill="currentColor" stroke="none"/>', // couronne de LED (WS2812)
