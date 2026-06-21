@@ -762,6 +762,16 @@ void view_sync(Dashboard* d) {
             if (!c.dirty) continue;
             lv_obj_t* w = s_widget[p][i];
             if (!w) continue;
+            // Commande universelle visible : montre/cache le composant ENTIER. Les sous-objets frères de w
+            // (cap + pill/centre du ring, libellé de la barre) sont suivis dans sub1/sub2 -> on bascule les
+            // trois. (led_ring/sound : w == nullptr, déjà sautés ci-dessus ; le specular du led, enfant dans
+            // sub1, est ré-affirmé par sync_led appelé juste après -> il a le dernier mot.)
+            lv_obj_t* objs[3] = { w, s_sub1[p][i], s_sub2[p][i] };
+            for (int k = 0; k < 3; k++) {
+                if (!objs[k]) continue;
+                if (c.visible) lv_obj_remove_flag(objs[k], LV_OBJ_FLAG_HIDDEN);
+                else           lv_obj_add_flag(objs[k], LV_OBJ_FLAG_HIDDEN);
+            }
             if ((unsigned)c.type < COMP_COUNT && VIEW[c.type].sync)
                 VIEW[c.type].sync(c, q, w, s_sub1[p][i], s_sub2[p][i]);
         }

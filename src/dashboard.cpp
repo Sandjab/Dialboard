@@ -98,6 +98,7 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
         c.center_color_set = o["center_color"].is<const char*>();
         c.center_color     = c.center_color_set ? parse_hex_color(o["center_color"], c.color) : c.color;
         c.countdown   = o["countdown"] | false;
+        c.visible     = true;            // memset l'a mis à 0 (caché) ; défaut affiché. Pilotable via /update (visible)
         strlcpy(c.cap_prefix, o["cap_prefix"] | "", sizeof(c.cap_prefix));
         c.font        = o["font"] | 20;
         c.label_color = parse_hex_color(o["label_color"] | "#9AA0AA", 0x9AA0AA);
@@ -221,15 +222,32 @@ static void chart_push(Component& c, int16_t v) {
 // l'ancien `case` d'apply_one, à l'identique. Ajouter un type = une fn + une ligne de table.
 typedef void (*comp_apply_fn)(Component&, JsonVariantConst);
 
+// Étape 1 : un push scalaire accepte le scalaire nu OU la forme objet {value|text} (qui débloque les
+// commandes universelles comme visible). Renvoie false si forme objet SANS value/text (ex. {visible:false}
+// seul) -> le handler ne doit PAS écraser la valeur courante (sinon object.as<int>() == 0 la remettrait à 0).
+static bool value_present(JsonVariantConst v, JsonVariantConst& out) {
+    if (v.is<JsonObjectConst>()) {
+        if (v["text"].is<const char*>()) { out = v["text"];  return true; }
+        if (!v["value"].isNull())        { out = v["value"]; return true; }
+        return false;
+    }
+    out = v;
+    return true;
+}
+
 static void apply_label(Component& c, JsonVariantConst v) {
-    strlcpy(c.vstr, v.as<const char*>() ? v.as<const char*>() : c.vstr, sizeof(c.vstr));
+    JsonVariantConst n;
+    if (value_present(v, n) && n.is<const char*>())
+        strlcpy(c.vstr, n.as<const char*>(), sizeof(c.vstr));   // non-chaîne ou absent : garde l'ancien
 }
 static void apply_readout(Component& c, JsonVariantConst v) {
-    if (v.is<const char*>()) strlcpy(c.vstr, v.as<const char*>(), sizeof(c.vstr));
-    else format_value(v.as<double>(), c.unit, c.vstr, sizeof(c.vstr));
+    JsonVariantConst n;
+    if (!value_present(v, n)) return;
+    if (n.is<const char*>()) strlcpy(c.vstr, n.as<const char*>(), sizeof(c.vstr));
+    else format_value(n.as<double>(), c.unit, c.vstr, sizeof(c.vstr));
 }
 static void apply_bar(Component& c, JsonVariantConst v) {
-    c.value = v.as<int>();
+    JsonVariantConst n; if (value_present(v, n)) c.value = n.as<int>();
 }
 static void apply_ring(Component& c, JsonVariantConst v) {
     c.value      = v["pct"] | c.value;
@@ -260,13 +278,13 @@ static void apply_sound(Component& c, JsonVariantConst v) {
     strlcpy(c.snd_name, v["name"] | "", sizeof(c.snd_name));
 }
 static void apply_chart(Component& c, JsonVariantConst v) {
-    chart_push(c, (int16_t)v.as<int>());      // push explicite : toujours un point
+    JsonVariantConst n; if (value_present(v, n)) chart_push(c, (int16_t)n.as<int>());   // push explicite : un point
 }
 static void apply_meter(Component& c, JsonVariantConst v) {
-    c.value = v.as<int>();                    // scalaire -> aiguille (comme bar)
+    JsonVariantConst n; if (value_present(v, n)) c.value = n.as<int>();   // scalaire -> aiguille (comme bar)
 }
 static void apply_led(Component& c, JsonVariantConst v) {
-    c.value = v.as<int>();                    // scalaire -> etat on/off + couleur de seuil
+    JsonVariantConst n; if (value_present(v, n)) c.value = n.as<int>();   // scalaire -> etat on/off + couleur de seuil
 }
 static void apply_image(Component&, JsonVariantConst) {
     // Image statique : pas de /update en v1 (asset GET-only). Entree de vtable requise.
@@ -331,8 +349,11 @@ int dash_apply_update(Dashboard* d, const char* json, char* unknown_csv, size_t 
             snprintf(unknown_csv + len, n - len, "%s%s", len ? "," : "", kv.key().c_str());
             continue;
         }
-        apply_one(d->components[ci], kv.value());
-        d->components[ci].dirty = true;
+        Component& comp = d->components[ci];
+        JsonVariantConst val = kv.value();
+        if (val["visible"].is<bool>()) comp.visible = val["visible"].as<bool>();   // commande universelle (forme objet)
+        apply_one(comp, val);
+        comp.dirty = true;
         d->values_dirty = true;
         updated++;
     }
