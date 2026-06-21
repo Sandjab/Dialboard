@@ -8,7 +8,8 @@ import {
   setPageBackgroundImage, effectivePageBgImage,
   placeComponentCopy,
   duplicateComponent,
-  removePlacementAndOrphan
+  removePlacementAndOrphan,
+  reorderPlacement
 } from '../js/mutations.js';
 
 const fresh = () => ({ components: {}, pages: [{ name: 'P1', place: [] }] });
@@ -394,4 +395,29 @@ test('setComponentProp : visible=true écrit explicitement true (ré-affichage)'
   const s = { components: { b: { type: 'bar', visible: false } }, pages: [] };
   setComponentProp(s, 'b', 'visible', true);
   assert.equal(s.components.b.visible, true);
+});
+
+test('reorderPlacement : déplace un placement vers le bas du tableau (= au-dessus en z-order)', () => {
+  const s = { components: {}, pages: [{ name: 'P', place: [{ ref: 'a' }, { ref: 'b' }, { ref: 'c' }] }] };
+  reorderPlacement(s, 0, 0, 2);
+  assert.deepEqual(s.pages[0].place.map(p => p.ref), ['b', 'c', 'a']);
+});
+
+test('reorderPlacement : from === to est un no-op', () => {
+  const s = { components: {}, pages: [{ name: 'P', place: [{ ref: 'a' }, { ref: 'b' }] }] };
+  reorderPlacement(s, 0, 1, 1);
+  assert.deepEqual(s.pages[0].place.map(p => p.ref), ['a', 'b']);
+});
+
+test('reorderPlacement : index hors bornes → no-op (pas de throw)', () => {
+  const s = { components: {}, pages: [{ name: 'P', place: [{ ref: 'a' }, { ref: 'b' }] }] };
+  reorderPlacement(s, 0, 0, 5);
+  reorderPlacement(s, 0, -1, 0);
+  assert.deepEqual(s.pages[0].place.map(p => p.ref), ['a', 'b']);
+});
+
+test('reorderPlacement : page inexistante → no-op', () => {
+  const s = { components: {}, pages: [{ name: 'P', place: [{ ref: 'a' }] }] };
+  reorderPlacement(s, 9, 0, 0);
+  assert.deepEqual(s.pages[0].place.map(p => p.ref), ['a']);
 });
