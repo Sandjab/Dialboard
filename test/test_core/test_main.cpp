@@ -434,6 +434,20 @@ void test_update_value_and_visible_together(void) {
     TEST_ASSERT_FALSE(d.components[ib].visible);
 }
 
+void test_layout_visible_config_time(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d,
+        "{\"components\":{"
+          "\"a\":{\"type\":\"bar\",\"visible\":false},"
+          "\"b\":{\"type\":\"bar\"},"
+          "\"c\":{\"type\":\"bar\",\"visible\":true}},"
+        "\"pages\":[{\"name\":\"p\",\"place\":["
+          "{\"ref\":\"a\"},{\"ref\":\"b\"},{\"ref\":\"c\"}]}]}", err, sizeof(err));
+    TEST_ASSERT_FALSE(d.components[dash_find(&d,"a")].visible);   // visible:false honoré (config-time)
+    TEST_ASSERT_TRUE (d.components[dash_find(&d,"b")].visible);   // absent -> true
+    TEST_ASSERT_TRUE (d.components[dash_find(&d,"c")].visible);   // visible:true explicite
+}
+
 void test_bgkey_valid_hex(void)      { TEST_ASSERT_TRUE(bg_key_valid("a1b2c3d4e5f60718")); }   // 16 hex
 void test_bgkey_valid_short(void)    { TEST_ASSERT_TRUE(bg_key_valid("0")); }
 void test_bgkey_reject_empty(void)   { TEST_ASSERT_FALSE(bg_key_valid("")); }
@@ -869,6 +883,7 @@ int main(int, char**) {
     RUN_TEST(test_update_visible_toggles);
     RUN_TEST(test_update_visible_only_keeps_value);
     RUN_TEST(test_update_value_and_visible_together);
+    RUN_TEST(test_layout_visible_config_time);
     RUN_TEST(test_layout_image_anim_parsed);
     RUN_TEST(test_update_aimg_frame_jumps_and_stops);
     RUN_TEST(test_update_aimg_frame_clamps);
