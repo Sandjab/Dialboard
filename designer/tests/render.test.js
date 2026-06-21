@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   pickFontPx, barFill, pickThresholdColor, formatValue, formatRemaining,
-  ringSweepDeg, pointOnArc, arcPath, ringPaths, sparklinePoints, meterAngle, capArcPath
+  ringSweepDeg, pointOnArc, arcPath, ringPaths, sparklinePoints, meterAngle, capArcPath, ledLit
 } from '../js/render.js';
 
 test('pickFontPx retombe sur les 5 tailles LVGL', () => {
@@ -78,6 +78,13 @@ test('meterAngle : 270° de 135° (min) a 405° (max), convention pointOnArc', (
   assert.equal(meterAngle(0, 0, 100), 135);
   assert.equal(meterAngle(50, 0, 100), 270);
   assert.equal(meterAngle(100, 0, 100), 405);
+});
+
+test('ledLit : allumé si value >= off_below (limite incluse)', () => {
+  assert.equal(ledLit(0, 1), false);
+  assert.equal(ledLit(1, 1), true);   // limite incluse
+  assert.equal(ledLit(5, 1), true);
+  assert.equal(ledLit(0, 0), true);   // off_below 0 → toujours allumé
 });
 
 test('capArcPath : arc inférieur symétrique, rayon r−th/2 (milieu de bande)', () => {

@@ -89,7 +89,8 @@
         { "$ref": "#/$defs/comp_chart" },
         { "$ref": "#/$defs/comp_meter" },
         { "$ref": "#/$defs/comp_image" },
-        { "$ref": "#/$defs/comp_image_anim" }
+        { "$ref": "#/$defs/comp_image_anim" },
+        { "$ref": "#/$defs/comp_led" }
       ]
     },
     "comp_label": {
@@ -236,6 +237,23 @@
         "bind": { "$ref": "#/$defs/ascii", "description": "Variable du contexte (pull) : selectionne la frame d'etat (clamp 0..frames-1) quand l'anim est a l'arret." }
       }
     },
+    "comp_led": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "description": "Voyant lumineux (lv_led). value < off_below = eteint, sinon allume. Couleur allumee = threshold_color(value) sinon color. Place via anchor/dx/dy + size (diametre).",
+      "properties": {
+        "type": { "const": "led" },
+        "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
+        "color": { "$ref": "#/$defs/hexColor", "description": "Couleur allumee quand aucun seuil ne matche. Defaut #22C55E." },
+        "off_below": { "type": "number", "description": "value < off_below = eteint ; sinon allume. Defaut 1 (0 = eteint, >=1 = allume)." },
+        "thresholds": {
+          "type": "array",
+          "description": "Couleur allumee selon la valeur (1er seuil ou value < limite, sinon color).",
+          "items": { "$ref": "#/$defs/threshold" }
+        }
+      }
+    },
     "page": {
       "type": "object",
       "required": ["name", "place"],
@@ -265,7 +283,8 @@
         "radius": { "type": "integer", "description": "Rayon (ring). Anneaux concentriques = meme centre, radius differents. Defaut 0." },
         "thickness": { "type": "integer", "description": "Epaisseur de bande (ring). Defaut 16." },
         "gap_deg": { "type": "integer", "description": "Angle d'ouverture (ring). Position determinee par start_angle. Defaut 70." },
-        "start_angle": { "type": "integer", "description": "Oriente l'ouverture : offset en degres, horaire, depuis le bas. 0=bas, 90=gauche, 180=haut, 270=droite. Defaut 0." }
+        "start_angle": { "type": "integer", "description": "Oriente l'ouverture : offset en degres, horaire, depuis le bas. 0=bas, 90=gauche, 180=haut, 270=droite. Defaut 0." },
+        "size": { "type": "integer", "minimum": 1, "maximum": 360, "description": "Diametre du voyant (led), en px. Defaut 24." }
       }
     },
     "source": {

@@ -11,7 +11,8 @@ export const MOCKS = {
   bar:     { value: 60 },
   ring:    { value: 72, reset_in_s: 18000 },
   chart:   { hist: [20, 35, 30, 50, 45, 60, 55, 70, 65, 80, 60, 75, 50, 65, 55, 72] },  // serie demo (forme indicative)
-  meter:   { value: 60 }
+  meter:   { value: 60 },
+  led:     { value: 1 }
 };
 
 // Police LVGL embarquée : 14/20/28/36/48 px (pick_font, view.cpp:21-27). Toute autre valeur retombe sur 14.
@@ -35,6 +36,11 @@ export function pickThresholdColor(thresholds, value, base) {
     if (value < limit) return color;
   }
   return base;
+}
+
+// led : allumé si value >= off_below, sinon éteint. Miroir firmware led_is_lit (color.cpp).
+export function ledLit(value, offBelow = 1) {
+  return value >= offBelow;
 }
 
 // readout : "<num> <unit>". Miroir format_value (format.cpp:19) : entier brut sinon 1 décimale.
@@ -384,4 +390,19 @@ export function buildImage(comp) {
     wrap.classList.add('w-image--empty');
   }
   return wrap;
+}
+
+// led : voyant lumineux. Couleur = seuil (sinon color) ; éteint (sombre, sans halo) sous off_below.
+// Miroir best-effort de lv_led (view.cpp build_led/sync_led) : halo ≈ glow de lv_led.
+export function buildLed(comp, placement, mock = MOCKS.led) {
+  const size = placement.size || 24;
+  const lit  = ledLit(mock.value, comp.off_below ?? 1);
+  const col  = pickThresholdColor(comp.thresholds, mock.value, comp.color || '#22C55E');
+  const n = document.createElement('div');
+  n.className = 'w w-led' + (lit ? '' : ' w-led--off');
+  n.style.width  = size + 'px';
+  n.style.height = size + 'px';
+  n.style.background = col;
+  if (lit) n.style.boxShadow = `0 0 ${Math.round(size * 0.5)}px ${col}`;
+  return n;
 }

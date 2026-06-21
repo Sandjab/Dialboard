@@ -28,7 +28,7 @@ static const struct { const char* name; CompType type; } COMP_NAMES[] = {
     { "label",    COMP_LABEL    }, { "readout",  COMP_READOUT  }, { "bar",   COMP_BAR   },
     { "ring",     COMP_RING     }, { "led_ring", COMP_LED_RING }, { "sound", COMP_SOUND },
     { "chart",    COMP_CHART    }, { "meter",    COMP_METER    }, { "image", COMP_IMAGE },
-    { "image_anim", COMP_IMAGE_ANIM },
+    { "image_anim", COMP_IMAGE_ANIM }, { "led", COMP_LED },
 };
 
 static CompType parse_type(const char* s) {
@@ -78,6 +78,7 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
         c.color       = parse_hex_color(o["color"] | "#FFFFFF", 0xFFFFFF);
         c.vmin        = o["min"] | 0;
         c.vmax        = o["max"] | 100;
+        c.off_below   = o["off_below"] | 1;
         c.pill        = o["pill"] | false;
         c.center_pct  = o["center_pct"] | false;
         c.center_color_set = o["center_color"].is<const char*>();
@@ -146,6 +147,7 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
             q.width       = pl["width"] | 0;    q.height = pl["height"] | 0;
             q.radius      = pl["radius"] | 0;   q.thickness = pl["thickness"] | 16;
             q.gap_deg     = pl["gap_deg"] | 70; q.start_angle = pl["start_angle"] | 0;
+            q.size        = pl["size"] | 24;
             p.place_count++;
         }
         t.page_count++;
@@ -243,6 +245,9 @@ static void apply_chart(Component& c, JsonVariantConst v) {
 static void apply_meter(Component& c, JsonVariantConst v) {
     c.value = v.as<int>();                    // scalaire -> aiguille (comme bar)
 }
+static void apply_led(Component& c, JsonVariantConst v) {
+    c.value = v.as<int>();                    // scalaire -> etat on/off + couleur de seuil
+}
 static void apply_image(Component&, JsonVariantConst) {
     // Image statique : pas de /update en v1 (asset GET-only). Entree de vtable requise.
 }
@@ -284,6 +289,7 @@ static const comp_apply_fn APPLY[] = {
     /* COMP_METER    */ apply_meter,
     /* COMP_IMAGE    */ apply_image,
     /* COMP_IMAGE_ANIM */ apply_image_anim,
+    /* COMP_LED      */ apply_led,
 };
 static_assert(sizeof(APPLY) / sizeof(APPLY[0]) == COMP_COUNT,
               "APPLY desync avec CompType : ajoute la ligne du nouveau type");
@@ -344,6 +350,7 @@ void context_apply(Dashboard* d) {
                 break;
             }
             case COMP_METER:                            // scalaire -> aiguille (comme bar)
+            case COMP_LED:                              // scalaire -> etat on/off
                 if (v.type == CTX_NUM) {
                     int32_t nv = (int32_t)v.num;
                     if (c.value != nv) { c.value = nv; changed = true; }

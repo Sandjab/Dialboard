@@ -15,3 +15,7 @@ uint32_t threshold_color(const Threshold* t, int n, float value, uint32_t base) 
         if (value < t[i].limit) return t[i].color;
     return base;
 }
+
+bool led_is_lit(int32_t value, int32_t off_below) {
+    return value >= off_below;
+}

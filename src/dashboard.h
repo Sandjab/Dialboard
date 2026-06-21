@@ -4,7 +4,7 @@
 #include "config.h"
 #include "context.h"
 
-enum CompType { COMP_NONE, COMP_LABEL, COMP_READOUT, COMP_BAR, COMP_RING, COMP_LED_RING, COMP_SOUND, COMP_CHART, COMP_METER, COMP_IMAGE, COMP_IMAGE_ANIM, COMP_COUNT };
+enum CompType { COMP_NONE, COMP_LABEL, COMP_READOUT, COMP_BAR, COMP_RING, COMP_LED_RING, COMP_SOUND, COMP_CHART, COMP_METER, COMP_IMAGE, COMP_IMAGE_ANIM, COMP_LED, COMP_COUNT };
 enum LedMode  { LED_OFF, LED_SOLID, LED_PROGRESS, LED_SPINNER, LED_BLINK, LED_BREATHE };
 enum Anchor   { A_CENTER, A_TOP_MID, A_BOTTOM_MID, A_LEFT_MID, A_RIGHT_MID,
                 A_TOP_LEFT, A_TOP_RIGHT, A_BOTTOM_LEFT, A_BOTTOM_RIGHT };
@@ -22,6 +22,7 @@ struct Component {
     uint32_t color;
     uint32_t center_color;
     int32_t  vmin, vmax;
+    int32_t  off_below;              // led : value < off_below -> eteint (defaut 1)
     bool     pill, center_pct, countdown, center_color_set;
     char     cap_prefix[CAPTION_LEN];  // ring : prefixe statique de la legende courbe (cap_prefix + caption)
     Threshold thresholds[MAX_THRESHOLDS];
@@ -61,7 +62,7 @@ struct Component {
 struct Placement {
     int     comp_index;
     Anchor  anchor; int16_t dx, dy; int16_t width, height;
-    int16_t radius, thickness, gap_deg, start_angle;
+    int16_t radius, thickness, gap_deg, start_angle, size;
 };
 
 struct Page {
