@@ -109,6 +109,7 @@ export function createCanvas({ stage }, model, { onSelect, onLiveMove } = {}) {
       // Aperçu live d'une propriété (ex. color picker) : surcharge transitoire, hors modèle (undo intact).
       const rcomp = (preview && preview.ref === pl.ref) ? { ...comp, ...preview.patch } : comp;
       const node = buildNode(pl, rcomp);
+      node.classList.toggle('hidden', rcomp.visible === false);   // config visible:false -> grisé + badge
       node.dataset.pi = i;
       node.dataset.ref = pl.ref;               // permet la lookup par ref (ex: apercu image_anim)
       stage.appendChild(node);                   // append avant de mesurer
