@@ -26,7 +26,7 @@ const EYE_OFF_URI  = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
 
 // Construit un <input>/<select> selon kind. onChange reçoit la valeur typée. Les éditeurs textuels
 // committent sur 'change' (pas 'input') pour ne pas inonder l'undo.
-function makeInput(kind, value, onChange) {
+function makeInput(kind, value, onChange, placeholder) {
   let el;
   if (kind === 'bool') {
     el = document.createElement('input'); el.type = 'checkbox'; el.checked = !!value;
@@ -48,6 +48,7 @@ function makeInput(kind, value, onChange) {
     el.addEventListener('change', () => onChange(el.value));
   } else if (kind === 'num') {
     el = document.createElement('input'); el.type = 'number'; el.value = value ?? '';
+    if (placeholder != null) el.placeholder = String(placeholder);   // défaut firmware affiché en grisé quand la clé est absente
     el.addEventListener('change', () => onChange(el.value === '' ? '' : Number(el.value)));
   } else if (SELECTS[kind]) {
     el = document.createElement('select');
@@ -191,9 +192,9 @@ export function createInspector(root, model, { rerenderCanvas, clearSelection, g
     if (gf.length) {
       sub(body, 'Placement');
       if (c.type === 'ring') note(body, 'Anneau centré : ancrage/dx/dy ignorés par le firmware.');
-      for (const [key, label, kind] of gf) {
+      for (const [key, label, kind, ph] of gf) {
         const opts = kind === 'num' ? { coalesce: 'num' } : undefined;   // F2 : flèches/spinner d'un champ num = 1 entrée d'undo
-        const input = makeInput(kind, p[key], v => model.commit(s => setPlacementProp(s, getActivePage(), sel.placeIndex, key, v), opts));
+        const input = makeInput(kind, p[key], v => model.commit(s => setPlacementProp(s, getActivePage(), sel.placeIndex, key, v), opts), ph);
         placementInputs[key] = input;   // réf. pour setLivePlacement (drag)
         body.appendChild(fieldRow(label, input));
       }

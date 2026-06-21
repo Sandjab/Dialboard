@@ -39,7 +39,7 @@ export const COMPONENTS = {
     makePlacement: screenPlacement,
     centered: false, physical: false,
     compFields: [['label', 'Label', 'asciitext'], ['min', 'Min', 'num'], ['max', 'Max', 'num'], ['color', 'Couleur', 'color'], ['mode', 'Mode', 'barmode'], ['orientation', 'Orientation', 'orient'], ['anim_ms', 'Animation (ms)', 'num'], ['label_color', 'Couleur label', 'color'], ['label_font', 'Police label', 'font'], ['label_align', 'Alignement label', 'anchorOut'], ['bind', 'Variable (pull)', 'asciitext']],
-    placeFields: [['anchor', 'Ancrage', 'anchor'], ['dx', 'dx', 'num'], ['dy', 'dy', 'num'], ['width', 'Largeur', 'num'], ['height', 'Hauteur', 'num']],
+    placeFields: [['anchor', 'Ancrage', 'anchor'], ['dx', 'dx', 'num'], ['dy', 'dy', 'num'], ['width', 'Largeur', 'num', 200], ['height', 'Hauteur', 'num', 16]],  // 4e = placeholder du défaut firmware (view.cpp:184)
     mockFields: [['value', 'Valeur (aperçu)']],
     build: (comp, pl, mock) => buildBar(comp, pl, mock),
   },
@@ -69,7 +69,7 @@ export const COMPONENTS = {
     compFields: [['color', 'Couleur', 'color'], ['min', 'Min', 'num'], ['max', 'Max', 'num'],
                  ['points', 'Points', 'num'], ['bind', 'Variable (pull)', 'asciitext']],
     placeFields: [['anchor', 'Ancrage', 'anchor'], ['dx', 'dx', 'num'], ['dy', 'dy', 'num'],
-                  ['width', 'Largeur', 'num'], ['height', 'Hauteur', 'num']],
+                  ['width', 'Largeur', 'num', 200], ['height', 'Hauteur', 'num', 100]],  // 4e = placeholder du défaut firmware (view.cpp:258)
     mockFields: [],
     build: (comp, pl, mock) => buildChart(comp, pl, mock),
   },
@@ -81,7 +81,7 @@ export const COMPONENTS = {
     compFields: [['color', 'Couleur', 'color'], ['min', 'Min', 'num'], ['max', 'Max', 'num'],
                  ['bind', 'Variable (pull)', 'asciitext']],
     placeFields: [['anchor', 'Ancrage', 'anchor'], ['dx', 'dx', 'num'], ['dy', 'dy', 'num'],
-                  ['width', 'Largeur', 'num'], ['height', 'Hauteur', 'num']],
+                  ['width', 'Largeur', 'num', 160], ['height', 'Hauteur', 'num', 160]],  // 4e = placeholder ; défaut firmware = width (carré), 160 si tout absent (view.cpp:285)
     mockFields: [['value', 'Valeur (aperçu)']],
     build: (comp, pl, mock) => buildMeter(comp, pl, mock),
   },
