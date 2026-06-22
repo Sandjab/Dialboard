@@ -93,6 +93,7 @@ async function main() {
     getActivePage: canvas.getActivePage,
     previewProp: canvas.previewProp,
     clearPreview: canvas.clearPreview,
+    openDrawer: () => drawer.open(),
     pushVisible: async (id, visible) => {
       const base = $('base').value;
       if (!base) { showToast('URL device ?'); return false; }
