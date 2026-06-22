@@ -25,8 +25,6 @@ export function bindFileIO(model, { exportBtn, importBtn, importInput, onLoad } 
       model.loadJSON(text);            // throw si JSON illisible ; la forme est validée par le panneau
       onLoad && onLoad();
     } catch (e) {
-      const status = document.getElementById('status');
-      if (status) { status.textContent = 'Import échoué : ' + e.message; status.className = 'status err'; }
       showToast('Import échoué : ' + e.message, { kind: 'err' });
     } finally {
       importInput.value = '';          // réautorise la réimportation du même fichier
