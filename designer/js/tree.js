@@ -103,7 +103,6 @@ export function createTree(root, model, { selection, setSelection, getActivePage
     const n = model.state.pages?.length ?? 0;
     if (n && getActivePage() > n - 1) setPage(n - 1);
     for (const i of [...expanded]) if (i >= n) expanded.delete(i);
-    expanded.add(getActivePage());   // l'active reste toujours dépliée
   }
 
   function compRow(c, pageIndex, sel) {
@@ -392,7 +391,11 @@ export function createTree(root, model, { selection, setSelection, getActivePage
   }
 
   model.subscribe(render);
-  selection.subscribe(render);   // changement de sélection (canvas/inspecteur/Échap) → re-surligner
+  selection.subscribe(() => {
+    const sel = selection.get();
+    if (sel && sel.kind === 'comp') expanded.add(sel.page);   // sélectionner un composant (même depuis le canvas) déplie sa page
+    render();
+  });   // changement de sélection (canvas/inspecteur/Échap) → re-surligner
   render();
 
   function beginRename() {
