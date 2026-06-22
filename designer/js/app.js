@@ -1,7 +1,7 @@
 import { createModel } from './model.js';
 import { createValidator } from './validate.js';
 import { bindJsonView } from './json-view.js';
-import { loadLayout, pushLayout, captureScreenshot, getStatus, setDevicePage, pushValues, uploadBgImage, fetchBgImage, uploadImage, fetchImage, uploadAimg, fetchAimg } from './device.js';
+import { loadLayout, pushLayout, captureScreenshot, getStatus, setDevicePage, pushValues, uploadBgImage, fetchBgImage, uploadImage, fetchImage, uploadAimg, fetchAimg, formatDeviceStatus } from './device.js';
 import { referencedKeys, cacheBytes, cachePut, previewUrl } from './bg-image.js';
 import { referencedImageKeys, cacheBytes as imageCacheBytes, previewUrl as imagePreviewUrl, rehydrate as rehydrateImage } from './image-asset.js';
 import { referencedAimgKeys, packBytes as aimgPackBytes, previewUrl as aimgPreviewUrl, rehydrate as rehydrateAimg } from './image-anim-asset.js';
@@ -329,18 +329,26 @@ async function main() {
     });
   };
   // --- Boucle device : santé (/status), valeurs de test (/update), capture + navigation (/page + /screenshot) ---
-  const devbar = $('devbar');
-  const renderStatus = (s) => {
-    const srcs = (s.sources || []).map(x => `${x.name || '?'}:${x.last_status === 200 ? 'ok' : (x.err_count ? 'err' : '…')}`).join(' ');
-    devbar.className = 'devbar'; devbar.hidden = false;
-    devbar.textContent = `● ${s.ip} · page ${(+s.page) + 1}/${s.pages} · up ${s.uptime_s}s · ${s.components} comp.` + (srcs ? ` · sources ${srcs}` : '');
+  // Pastille device (toolbar) : état de connexion permanent (modèle A). Paresseuse — « ○ non vérifié »
+  // au boot, renseignée à la 1re requête Statut (succès → ● ip + détail en infobulle ; échec → ○ injoignable).
+  const devPill = $('dev-pill');
+  const setDevicePill = (kind, label, tooltip = '') => {
+    devPill.className = 'dev-pill' + (kind ? ' ' + kind : '');
+    devPill.textContent = label;
+    devPill.title = tooltip;
   };
   $('statusbtn').onclick = () => {
     const base = $('base').value;
     if (!base) return void showToast('URL device ?');
     withBusy('Statut…', async () => {
-      try { renderStatus(await getStatus(base)); return 'Statut OK'; }
-      catch (e) { devbar.hidden = false; devbar.className = 'devbar err'; devbar.textContent = '○ injoignable : ' + e.message; throw e; }
+      try {
+        const f = formatDeviceStatus(await getStatus(base));
+        setDevicePill('ok', f.label, f.tooltip);
+        return 'Statut OK';
+      } catch (e) {
+        setDevicePill('err', '○ injoignable', e.message);
+        throw e;
+      }
     });
   };
   $('values').onclick = () => {
