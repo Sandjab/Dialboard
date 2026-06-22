@@ -343,10 +343,10 @@
         "width": { "type": "integer", "description": "Largeur (bar) ou longueur (line). Defaut 0." },
         "height": { "type": "integer", "description": "Hauteur (bar). Defaut 0." },
         "radius": { "type": "integer", "description": "Rayon (ring). Anneaux concentriques = meme centre, radius differents. Rayon de coin (rect). Defaut 0." },
-        "thickness": { "type": "integer", "description": "Epaisseur de bande (ring) ou epaisseur de trait (line). Defaut 16." },
+        "thickness": { "type": "integer", "description": "Epaisseur de bande (ring) ou epaisseur de trait (line). Defaut 16 (le designer emet 2 pour line)." },
         "gap_deg": { "type": "integer", "description": "Angle d'ouverture (ring). Position determinee par start_angle. Defaut 70." },
         "start_angle": { "type": "integer", "description": "Oriente l'ouverture : offset en degres, horaire, depuis le bas. 0=bas, 90=gauche, 180=haut, 270=droite. Defaut 0." },
-        "size": { "type": "integer", "minimum": 1, "maximum": 360, "description": "Diametre du voyant (led) ou du cercle (circle), en px. Defaut 24." }
+        "size": { "type": "integer", "minimum": 1, "maximum": 360, "description": "Diametre du voyant (led) ou du cercle (circle), en px. Defaut 24 (le designer emet 60 pour circle)." }
       }
     },
     "source": {
