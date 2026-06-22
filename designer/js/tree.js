@@ -91,6 +91,7 @@ export function createTree(root, model, { selection, setSelection, getActivePage
   let renaming = null;   // index de la page en cours de renommage inline, ou null
   let renamingComp = null;   // { page, index } du composant en rename inline, ou null
   let dragSrc = null;   // { page, index } du composant en cours de drag
+  let dragSrcPage = null;   // index de la page en cours de drag (réordonnancement), ou null
   const expanded = new Set([getActivePage()]);   // pages dépliées (page active auto-dépliée)
   // setPage du host (canvas) + auto-dépliage de la page qui devient active.
   const goPage = (i) => { expanded.add(i); setPage(i); };
@@ -254,6 +255,14 @@ export function createTree(root, model, { selection, setSelection, getActivePage
       setSelection({ kind: 'page', page: p.index });     // …puis sélectionne la page
       render();
     });
+    row.draggable = true;
+    row.addEventListener('dragstart', e => {
+      dragSrcPage = p.index;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', `page:${p.index}`);
+      e.stopPropagation();
+    });
+    row.addEventListener('dragend', () => { dragSrcPage = null; clearDropMarks(); render(); });
     row.addEventListener('dragover', e => {
       if (!dragSrc || dragSrc.page === p.index) return;   // move seulement vers une AUTRE page
       e.preventDefault();
@@ -270,6 +279,31 @@ export function createTree(root, model, { selection, setSelection, getActivePage
       goPage(toPage);
       setSelection({ kind: 'comp', page: toPage, index: last });
       dragSrc = null;
+    });
+    row.addEventListener('dragover', e => {
+      if (dragSrcPage != null && dragSrcPage !== p.index) {   // réordonner des pages
+        e.preventDefault();
+        const r = row.getBoundingClientRect();
+        const before = (e.clientY - r.top) < r.height / 2;
+        clearDropMarks();
+        row.classList.add(before ? 'drop-before' : 'drop-after');
+      }
+    });
+    row.addEventListener('drop', e => {
+      if (dragSrcPage == null || dragSrcPage === p.index) return;
+      e.preventDefault();
+      const r = row.getBoundingClientRect();
+      const before = (e.clientY - r.top) < r.height / 2;
+      let to = p.index + (before ? 0 : 1);
+      if (to > dragSrcPage) to -= 1;                           // compense le retrait de la source
+      const from = dragSrcPage;
+      clearDropMarks();
+      if (to !== from) {
+        model.commit(s => reorderPages(s, from, to));
+        goPage(to);
+        setSelection({ kind: 'page', page: to });
+      }
+      dragSrcPage = null;
     });
 
     // Contrôles au survol : renommer / monter / descendre / supprimer (réutilisent les mutations pages).
