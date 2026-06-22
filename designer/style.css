@@ -70,6 +70,10 @@ main { display: grid; grid-template-columns: 170px 1fr 200px; gap: 10px; padding
 .tree-rename.invalid { border-color: var(--err); color: var(--err); }
 .tree-head { display: flex; justify-content: flex-end; margin-bottom: 6px; }
 .tree-addbtn { padding: 3px 9px; font-size: 12px; }
+.tree-row.drop-before { box-shadow: inset 0 2px 0 0 var(--accent); }
+.tree-row.drop-after  { box-shadow: inset 0 -2px 0 0 var(--accent); }
+.tree-row.drop-into   { box-shadow: inset 0 0 0 2px var(--accent); }
+.tree-row[draggable="true"] { cursor: grab; }
 footer { padding: 10px 12px; border-top: 1px solid var(--line); }
 textarea { width: 100%; height: 220px; background: #0a0a0e; color: #cbd5e1; border: 1px solid var(--line); border-radius: 8px; font: 12.5px/1.5 var(--font-mono); padding: 10px; }
 .row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }

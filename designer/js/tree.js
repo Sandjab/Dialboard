@@ -3,7 +3,7 @@
 // Remplace nav#pages : Document → pages (ordre nav) → composants (z-order INVERSÉ). cf. spec §1.
 import { COMPONENTS } from './registry.js';
 import { iconFor } from './icons.js';
-import { setComponentProp, addPage, removePage, renamePage, reorderPages, uniquePageName, pageNameTaken, renameComponent, duplicatePage } from './mutations.js';
+import { setComponentProp, addPage, removePage, renamePage, reorderPages, uniquePageName, pageNameTaken, renameComponent, duplicatePage, reorderPlacement, movePlacementToPage } from './mutations.js';
 import { showToast } from './toast.js';
 
 // Œil de visibilité — mêmes icônes que l'en-tête inspecteur (brique commune, cf. spec §1).
@@ -73,14 +73,29 @@ export function contextMenuItems(sel, state, { hasClipboard = false } = {}) {
   return items;
 }
 
+// Drop d'un composant (drag&drop arbre) → index cible dans place[]. L'arbre affiche place[] INVERSÉ
+// (dessus = fin de place[]). `before` = curseur dans la moitié HAUTE de la ligne cible. Pur (testé node) :
+// c'est le calcul délicat (inversion + compensation du splice), donc isolé du DOM.
+export function reorderTargetIndex(place, fromReal, toReal, before) {
+  const n = place.length;
+  const dFrom = n - 1 - fromReal;                 // index display de la source
+  let dTo = n - 1 - toReal + (before ? 0 : 1);    // insertion avant/après la cible en display
+  if (dTo > dFrom) dTo -= 1;                       // compense le retrait de la source avant réinsertion
+  const realTo = n - 1 - dTo;                      // retour en coordonnées place[]
+  return Math.max(0, Math.min(n - 1, realTo));
+}
+
 // Rendu DOM de l'arbre + pilotage de la sélection partagée. Deps : getActivePage/setPage (la page
 // active vit dans canvas.js) PLUS le store de sélection (selection/setSelection). Pilote pages + comps.
 export function createTree(root, model, { selection, setSelection, getActivePage = () => 0, setPage } = {}) {
   let renaming = null;   // index de la page en cours de renommage inline, ou null
   let renamingComp = null;   // { page, index } du composant en rename inline, ou null
+  let dragSrc = null;   // { page, index } du composant en cours de drag
   const expanded = new Set([getActivePage()]);   // pages dépliées (page active auto-dépliée)
   // setPage du host (canvas) + auto-dépliage de la page qui devient active.
   const goPage = (i) => { expanded.add(i); setPage(i); };
+  const clearDropMarks = () => root.querySelectorAll('.drop-before,.drop-after,.drop-into')
+    .forEach(n => n.classList.remove('drop-before', 'drop-after', 'drop-into'));
 
   // Backstop : après removePage/undo/import l'index actif peut dépasser la liste → on le ramène.
   function clampActive() {
@@ -136,6 +151,39 @@ export function createTree(root, model, { selection, setSelection, getActivePage
       setSelection({ kind: 'comp', page: pageIndex, index: c.index });
       renamingComp = { page: pageIndex, index: c.index };
       render();
+    });
+    row.draggable = true;
+    row.addEventListener('dragstart', e => {
+      if (pageIndex !== getActivePage()) goPage(pageIndex);
+      setSelection({ kind: 'comp', page: pageIndex, index: c.index });
+      dragSrc = { page: pageIndex, index: c.index };
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', c.ref);
+      render();
+    });
+    row.addEventListener('dragend', () => { dragSrc = null; clearDropMarks(); render(); });
+    row.addEventListener('dragover', e => {
+      if (!dragSrc || dragSrc.page !== pageIndex) return;   // reorder seulement dans la même page
+      e.preventDefault();
+      const r = row.getBoundingClientRect();
+      const before = (e.clientY - r.top) < r.height / 2;
+      clearDropMarks();
+      row.classList.add(before ? 'drop-before' : 'drop-after');
+    });
+    row.addEventListener('drop', e => {
+      if (!dragSrc || dragSrc.page !== pageIndex) return;
+      e.preventDefault();
+      const r = row.getBoundingClientRect();
+      const before = (e.clientY - r.top) < r.height / 2;
+      const from = dragSrc.index;
+      const place = model.state.pages[pageIndex].place;
+      const to = reorderTargetIndex(place, from, c.index, before);
+      clearDropMarks();
+      if (to !== from) {
+        model.commit(s => reorderPlacement(s, pageIndex, from, to));
+        setSelection({ kind: 'comp', page: pageIndex, index: to });   // la sélection suit
+      }
+      dragSrc = null;
     });
     // Œil de visibilité (brique commune avec l'en-tête inspecteur) : toggle de la clé `visible`.
     const spacer = document.createElement('span'); spacer.className = 'tree-spacer';
@@ -205,6 +253,23 @@ export function createTree(root, model, { selection, setSelection, getActivePage
       goPage(p.index);                                   // met la sélection à null (canvas)…
       setSelection({ kind: 'page', page: p.index });     // …puis sélectionne la page
       render();
+    });
+    row.addEventListener('dragover', e => {
+      if (!dragSrc || dragSrc.page === p.index) return;   // move seulement vers une AUTRE page
+      e.preventDefault();
+      clearDropMarks();
+      row.classList.add('drop-into');
+    });
+    row.addEventListener('drop', e => {
+      if (!dragSrc || dragSrc.page === p.index) return;
+      e.preventDefault();
+      clearDropMarks();
+      const fromPage = dragSrc.page, placeIndex = dragSrc.index, toPage = p.index;
+      model.commit(s => movePlacementToPage(s, fromPage, placeIndex, toPage));
+      const last = (model.state.pages[toPage].place?.length || 1) - 1;
+      goPage(toPage);
+      setSelection({ kind: 'comp', page: toPage, index: last });
+      dragSrc = null;
     });
 
     // Contrôles au survol : renommer / monter / descendre / supprimer (réutilisent les mutations pages).
