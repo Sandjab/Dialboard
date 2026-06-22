@@ -29,3 +29,59 @@ test("formatValidationSummary : erreurs ET warnings → l'erreur prime (intent :
   const r = formatValidationSummary({ valid: false, errors: ['a'], warnings: ['x'] });
   assert.equal(r.level, 'err');
 });
+
+import { formatSelectionContext } from '../js/statusbar.js';
+
+// Layout minimal : 2 pages, 3 placements au total (2 + 1), un composant masqué.
+const ST = {
+  title: 'Demo',
+  pages: [
+    { name: 'Accueil', place: [{ ref: 'ring1', anchor: 'CENTER', dx: 0, dy: -20 }, { ref: 'lbl1', anchor: 'TOP_MID', dx: 0, dy: 40 }] },
+    { name: 'Détails', place: [{ ref: 'img1', anchor: 'CENTER', dx: 5, dy: 5 }] },
+  ],
+  components: {
+    ring1: { type: 'ring' },
+    lbl1: { type: 'label' },
+    img1: { type: 'image', visible: false },
+  },
+};
+
+test('formatSelectionContext : null → « Rien de sélectionné »', () => {
+  assert.equal(formatSelectionContext(ST, null), 'Rien de sélectionné');
+});
+
+test('formatSelectionContext : doc → N pages · M composants (M = somme des placements, pas la map ; intent : compter le visuel, pas les physiques)', () => {
+  assert.equal(formatSelectionContext(ST, { kind: 'doc' }), '2 pages · 3 composants');
+});
+
+test("formatSelectionContext : page → nom + index base 1 + nb placements de CETTE page", () => {
+  const s = formatSelectionContext(ST, { kind: 'page', page: 0 });
+  assert.match(s, /Accueil/);
+  assert.match(s, /1\/2/);
+  assert.match(s, /2 composants/);
+});
+
+test("formatSelectionContext : comp → libellé de type + ref + page + visible (intent : identifier l'élément édité d'un coup d'œil)", () => {
+  const s = formatSelectionContext(ST, { kind: 'comp', page: 0, index: 0 });
+  assert.match(s, /Anneau/);     // COMPONENTS.ring.label
+  assert.match(s, /ring1/);
+  assert.match(s, /Accueil/);
+  assert.match(s, /visible/);
+});
+
+test("formatSelectionContext : comp masqué → « masqué »", () => {
+  const s = formatSelectionContext(ST, { kind: 'comp', page: 1, index: 0 });
+  assert.match(s, /Image/);      // COMPONENTS.image.label
+  assert.match(s, /masqué/);
+});
+
+test("formatSelectionContext : comp à ref orpheline → repli « ? » sans throw (intent : robustesse, ne pas casser la barre)", () => {
+  const orphan = { pages: [{ name: 'P', place: [{ ref: 'nope' }] }], components: {} };
+  const s = formatSelectionContext(orphan, { kind: 'comp', page: 0, index: 0 });
+  assert.match(s, /\?/);
+  assert.match(s, /nope/);
+});
+
+test("formatSelectionContext : sélection périmée (index hors place) → chaîne vide, pas de throw", () => {
+  assert.equal(formatSelectionContext(ST, { kind: 'comp', page: 0, index: 9 }), '');
+});
