@@ -9,7 +9,6 @@ import { getMock } from './mocks.js';
 import { createCanvas } from './canvas.js';
 import { createPalette } from './palette.js';
 import { createInspector } from './inspector.js';
-import { createPages } from './pages.js';
 import { createTree } from './tree.js';
 import { bindFileIO } from './file-io.js';
 import { createSources } from './sources.js';
@@ -108,13 +107,7 @@ async function main() {
     onCreated: i => canvas.selectPlacement(i)
   });
 
-  // Onglets de pages : sélectionner la page active + CRUD + réordonner.
-  const pages = createPages($('pages'), model, {
-    getActivePage: canvas.getActivePage,
-    setPage: i => canvas.setPage(i)
-  });
-
-  // Arbre des calques (dock gauche). Coexiste avec nav#pages jusqu'à son retrait (Phase 3a, dernière tâche).
+  // Arbre des calques (dock gauche) : pilote la page active + CRUD pages + sélection (remplace nav#pages).
   const tree = createTree($('layers'), model, {
     selection, setSelection,
     getActivePage: canvas.getActivePage,
@@ -122,10 +115,10 @@ async function main() {
   });
 
   // Export / import fichier layout.json (filet indépendant du device). Après import, on revient à la
-  // page 1 (l'ancienne page active peut ne plus exister) et on rafraîchit les onglets.
+  // page 1 (l'ancienne page active peut ne plus exister) et on rafraîchit l'arbre.
   bindFileIO(model, {
     exportBtn: $('export'), importBtn: $('import'), importInput: $('import-file'),
-    onLoad: () => { model.commit(s => stripPhysicalPlacements(s)); canvas.setPage(0); pages.render(); }
+    onLoad: () => { model.commit(s => stripPhysicalPlacements(s)); canvas.setPage(0); tree.render(); }
   });
 
   // Panneau Sources (pull réseau) : édition des sources top-level. Indépendant du canvas/pages.

@@ -36,13 +36,12 @@ export function treeModel(state) {
   return { title: state?.title ?? '', pages };
 }
 
-// Rendu DOM de l'arbre + pilotage de la sélection partagée. Mêmes deps que pages.js (getActivePage/
-// setPage : la page active vit dans canvas.js) PLUS le store de sélection (selection/setSelection).
-// La sélection et les interactions arrivent en Task 3 ; ici, rendu lecture seule.
+// Rendu DOM de l'arbre + pilotage de la sélection partagée. Deps : getActivePage/setPage (la page
+// active vit dans canvas.js) PLUS le store de sélection (selection/setSelection). Pilote pages + comps.
 export function createTree(root, model, { selection, setSelection, getActivePage = () => 0, setPage } = {}) {
   let renaming = null;   // index de la page en cours de renommage inline, ou null
 
-  // Backstop identique à pages.js : après removePage/undo/import l'index actif peut dépasser la liste.
+  // Backstop : après removePage/undo/import l'index actif peut dépasser la liste → on le ramène.
   function clampActive() {
     const n = model.state.pages?.length ?? 0;
     if (n && getActivePage() > n - 1) setPage(n - 1);
@@ -82,8 +81,8 @@ export function createTree(root, model, { selection, setSelection, getActivePage
   }
 
   function pageRow(p, active, sel) {
-    // Mode renommage inline (réutilise la garde anti-doublon de pages.js : le nom de page est la
-    // cible de POST /page → pas de doublon).
+    // Mode renommage inline (garde anti-doublon : le nom de page est la cible de POST /page → pas
+    // de doublon).
     if (renaming === p.index) {
       const row = document.createElement('div'); row.className = 'tree-row tree-page';
       const inp = document.createElement('input'); inp.className = 'tree-rename'; inp.value = p.name || '';
