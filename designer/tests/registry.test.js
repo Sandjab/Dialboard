@@ -99,6 +99,7 @@ test('registre : icon déclaré, value-driven (mockFields value), non physique',
   const d = COMPONENTS.icon.defaults();
   assert.equal(d.symbol, 'bell');
   assert.equal(d.font, 28);
+  assert.equal(d.color, '#FFFFFF');
 });
 
 test('conformité : enum symbolName du schéma == clés de ICON_SVG (render.js)', async () => {

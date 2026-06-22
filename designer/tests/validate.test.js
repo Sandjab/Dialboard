@@ -142,3 +142,10 @@ test('icon : state sans `at` -> invalide', () => {
   l.pages[0].place.push({ ref: 'i1', anchor: 'CENTER' });
   assert.equal(validate(l).valid, false);
 });
+
+test('icon : clé inconnue dans un state -> invalide (additionalProperties:false)', () => {
+  const l = structuredClone(DEFAULT_LAYOUT);
+  l.components.i1 = { type: 'icon', states: [{ at: 1, wat: 2 }] };
+  l.pages[0].place.push({ ref: 'i1', anchor: 'CENTER' });
+  assert.equal(validate(l).valid, false);
+});
