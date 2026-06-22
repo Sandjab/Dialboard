@@ -291,7 +291,10 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
       col.disabled = !on.checked;   // retour immédiat (le garde-focus de render() saute le rebuild tant que la case a le focus)
       model.commit(s => setComponentProp(s, ref, 'fill', on.checked ? (col.value.toUpperCase()) : null));
     });
-    col.addEventListener('change', () => model.commit(s => setComponentProp(s, ref, 'fill', col.value.toUpperCase())));
+    col.addEventListener('change', () => {
+      if (col.disabled) return;   // fond désactivé : pas de commit
+      model.commit(s => setComponentProp(s, ref, 'fill', col.value.toUpperCase()));
+    });
     row.append(on, col);
     return row;
   }
@@ -464,7 +467,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     for (const [key, label, kind, enableWhen] of COMPONENTS[c.type].compFields) {
       if (kind === 'image') { body.appendChild(imageField(label, c)); continue; }   // picker bespoke
       if (kind === 'image_anim') { body.appendChild(imageAnimField(label, c)); continue; }   // editeur bespoke
-      if (kind === 'fill') { body.appendChild(fillField(label, c)); continue; }   // forme : fond optionnel
+      if (kind === 'fill') { body.appendChild(fillField(label, c)); continue; }   // forme : fond optionnel (bespoke : enableWhen non supporté, comme image/image_anim)
       // Color picker : aperçu live sur 'input' (canvas seul, hors modèle → pas de flood undo) ; commit
       // unique sur 'change' (makeInput), précédé d'un clearPreview pour que le commit re-rende l'état réel.
       // ref figée au rendu : le color picker émet son 'change' en DIFFÉRÉ (après qu'un clic ailleurs a
