@@ -17,7 +17,7 @@ export function isEditableTarget(el) {
   return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable === true;
 }
 
-// ev : { key, metaKey, ctrlKey, shiftKey, editable }. Retourne 'undo' | 'redo' | 'duplicate' | 'copy' | 'paste' | 'delete' | 'deselect' | null.
+// ev : { key, metaKey, ctrlKey, shiftKey, editable }. Retourne 'undo' | 'redo' | 'duplicate' | 'copy' | 'paste' | 'delete' | 'deselect' | 'rename' | null.
 export function resolveShortcut(ev) {
   if (ev.editable) return null;                          // champ texte : laisser le comportement natif
   const mod = ev.metaKey || ev.ctrlKey;
@@ -29,6 +29,7 @@ export function resolveShortcut(ev) {
     if (k === 'v') return 'paste';
   }
   if (!mod && (ev.key === 'Delete' || ev.key === 'Backspace')) return 'delete';
+  if (!mod && ev.key === 'F2') return 'rename';
   if (!mod && ev.key === 'Escape') return 'deselect';
   return null;
 }
