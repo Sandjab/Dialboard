@@ -408,10 +408,12 @@ export function createTree(root, model, { selection, setSelection, getActivePage
 
   // --- Menu contextuel ---
   let menuEl = null;
+  let menuKeyHandler = null;   // listener Escape du menu ouvert (retiré par closeMenu, pas seulement sur Escape)
   function closeMenu() {
     if (!menuEl) return;
     menuEl.remove(); menuEl = null;
     document.removeEventListener('pointerdown', onDocDown, true);
+    if (menuKeyHandler) { document.removeEventListener('keydown', menuKeyHandler, true); menuKeyHandler = null; }
   }
   function onDocDown(e) { if (menuEl && !menuEl.contains(e.target)) closeMenu(); }
 
@@ -484,8 +486,8 @@ export function createTree(root, model, { selection, setSelection, getActivePage
     if (mr.bottom > window.innerHeight) menuEl.style.top = Math.max(4, window.innerHeight - mr.height - 4) + 'px';
     if (mr.right > window.innerWidth) menuEl.style.left = Math.max(4, window.innerWidth - mr.width - 4) + 'px';
     document.addEventListener('pointerdown', onDocDown, true);
-    const onKey = e => { if (e.key === 'Escape') { closeMenu(); document.removeEventListener('keydown', onKey, true); } };
-    document.addEventListener('keydown', onKey, true);
+    menuKeyHandler = e => { if (e.key === 'Escape') closeMenu(); };   // closeMenu retire ce listener
+    document.addEventListener('keydown', menuKeyHandler, true);
   }
 
   return { render, beginRename };
