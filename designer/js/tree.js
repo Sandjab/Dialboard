@@ -3,7 +3,7 @@
 // Remplace nav#pages : Document → pages (ordre nav) → composants (z-order INVERSÉ). cf. spec §1.
 import { COMPONENTS } from './registry.js';
 import { iconFor } from './icons.js';
-import { setComponentProp, addPage, removePage, renamePage, reorderPages, uniquePageName, pageNameTaken } from './mutations.js';
+import { setComponentProp, addPage, removePage, renamePage, reorderPages, uniquePageName, pageNameTaken, renameComponent } from './mutations.js';
 import { showToast } from './toast.js';
 
 // Œil de visibilité — mêmes icônes que l'en-tête inspecteur (brique commune, cf. spec §1).
@@ -77,6 +77,7 @@ export function contextMenuItems(sel, state, { hasClipboard = false } = {}) {
 // active vit dans canvas.js) PLUS le store de sélection (selection/setSelection). Pilote pages + comps.
 export function createTree(root, model, { selection, setSelection, getActivePage = () => 0, setPage } = {}) {
   let renaming = null;   // index de la page en cours de renommage inline, ou null
+  let renamingComp = null;   // { page, index } du composant en rename inline, ou null
   const expanded = new Set([getActivePage()]);   // pages dépliées (page active auto-dépliée)
   // setPage du host (canvas) + auto-dépliage de la page qui devient active.
   const goPage = (i) => { expanded.add(i); setPage(i); };
@@ -90,6 +91,32 @@ export function createTree(root, model, { selection, setSelection, getActivePage
   }
 
   function compRow(c, pageIndex, sel) {
+    if (renamingComp && renamingComp.page === pageIndex && renamingComp.index === c.index) {
+      const row = document.createElement('div'); row.className = 'tree-row tree-comp';
+      const inp = document.createElement('input'); inp.className = 'tree-rename'; inp.value = c.ref;
+      const orig = c.ref;
+      const tryCommit = () => {
+        const id = inp.value.trim();
+        if (!id || id === orig) { renamingComp = null; render(); return true; }   // vide/identique → annule
+        if (model.state.components?.[id]) { showToast(`L'id « ${id} » est déjà pris`); return false; }
+        renamingComp = null;
+        model.commit(s => renameComponent(s, orig, id));   // → subscribe → render()
+        return true;
+      };
+      inp.addEventListener('input', () => {
+        const v = inp.value.trim();
+        inp.classList.toggle('invalid', !!v && v !== orig && !!model.state.components?.[v]);
+      });
+      inp.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); tryCommit(); }
+        else if (e.key === 'Escape') { e.preventDefault(); renamingComp = null; render(); }
+      });
+      inp.addEventListener('blur', () => { if (renamingComp && !tryCommit()) { renamingComp = null; render(); } });
+      row.appendChild(inp);
+      queueMicrotask(() => { inp.focus(); inp.select(); });
+      return row;
+    }
+
     const row = document.createElement('div');
     const isSel = sel && sel.kind === 'comp' && sel.page === pageIndex && sel.index === c.index;
     row.className = 'tree-row tree-comp' + (c.visible ? '' : ' hidden') + (isSel ? ' selected' : '');
@@ -101,6 +128,13 @@ export function createTree(root, model, { selection, setSelection, getActivePage
     row.addEventListener('click', () => {
       if (pageIndex !== getActivePage()) goPage(pageIndex);      // bascule de page d'abord (met sel à null)…
       setSelection({ kind: 'comp', page: pageIndex, index: c.index });  // …puis sélectionne le composant
+      render();
+    });
+    row.addEventListener('dblclick', e => {
+      e.preventDefault();
+      if (pageIndex !== getActivePage()) goPage(pageIndex);
+      setSelection({ kind: 'comp', page: pageIndex, index: c.index });
+      renamingComp = { page: pageIndex, index: c.index };
       render();
     });
     // Œil de visibilité (brique commune avec l'en-tête inspecteur) : toggle de la clé `visible`.
