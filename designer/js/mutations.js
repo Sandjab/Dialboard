@@ -179,6 +179,41 @@ export function reorderPages(state, from, to) {
   pages.splice(to, 0, p);
 }
 
+// Nom unique pour une page dupliquée : « <base> (copie) », puis « (copie 2) »… 1er libre. Le nom de
+// page est la cible de POST /page → unicité obligatoire (cf. uniquePageName / pageNameTaken).
+export function uniqueCopyName(state, base) {
+  const used = new Set((state.pages || []).map(p => p.name));
+  let name = `${base} (copie)`;
+  let n = 2;
+  while (used.has(name)) name = `${base} (copie ${n++})`;
+  return name;
+}
+
+// Duplique une page JUSTE APRÈS la source. La page repart d'un clone profond → les props de page (fond
+// couleur/image, et toute clé future) sont préservées. Chaque placement devient une copie INDÉPENDANTE
+// (modèle 1:1) : nouvel id (uniqueId), compDef cloné, placement cloné re-pointé — SANS offset (copie
+// fidèle, ≠ placeComponentCopy). Un ref orphelin est copié tel quel (pas de composant créé). Renvoie
+// l'index de la nouvelle page, ou -1 si la source est absente.
+export function duplicatePage(state, pageIndex) {
+  const src = state.pages?.[pageIndex];
+  if (!src) return -1;
+  const newPage = structuredClone(src);                 // préserve background / background_image / autres props de page
+  newPage.name = uniqueCopyName(state, src.name || `Page ${pageIndex + 1}`);
+  newPage.place = [];
+  for (const pl of src.place || []) {
+    const compDef = state.components?.[pl.ref];
+    if (compDef) {
+      const id = uniqueId(state, compDef.type);
+      addComponent(state, id, structuredClone(compDef));
+      newPage.place.push({ ...structuredClone(pl), ref: id });
+    } else {
+      newPage.place.push(structuredClone(pl));          // orphelin : copié tel quel
+    }
+  }
+  state.pages.splice(pageIndex + 1, 0, newPage);
+  return pageIndex + 1;
+}
+
 // Déplace un placement de `from` vers `to` dans pages[pageIndex].place. L'ordre du tableau = l'ordre de
 // rendu (z-index : le dernier est dessus). No-op si page/place absent, index hors bornes ou identiques.
 // Miroir de reorderPages (même garde de bornes).

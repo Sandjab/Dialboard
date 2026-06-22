@@ -11,7 +11,9 @@ import {
   removePlacementAndOrphan,
   reorderPlacement,
   movePlacementToPage,
-  renameComponent
+  renameComponent,
+  uniqueCopyName,
+  duplicatePage
 } from '../js/mutations.js';
 
 const fresh = () => ({ components: {}, pages: [{ name: 'P1', place: [] }] });
@@ -495,4 +497,90 @@ test('renameComponent : nouveau nom vide ou identique → false (no-op)', () => 
   assert.equal(renameComponent(s, 'a', ''), false);
   assert.equal(renameComponent(s, 'a', 'a'), false);
   assert.deepEqual(Object.keys(s.components), ['a']);
+});
+
+test('uniqueCopyName : base libre → « X (copie) »', () => {
+  const s = { pages: [{ name: 'Accueil', place: [] }] };
+  assert.equal(uniqueCopyName(s, 'Accueil'), 'Accueil (copie)');
+});
+
+test('uniqueCopyName : « X (copie) » pris → « X (copie 2) »', () => {
+  const s = { pages: [{ name: 'A', place: [] }, { name: 'A (copie)', place: [] }] };
+  assert.equal(uniqueCopyName(s, 'A'), 'A (copie 2)');
+});
+
+test('uniqueCopyName : « X (copie) » et « X (copie 2) » pris → « X (copie 3) »', () => {
+  const s = { pages: [{ name: 'A' }, { name: 'A (copie)' }, { name: 'A (copie 2)' }] };
+  assert.equal(uniqueCopyName(s, 'A'), 'A (copie 3)');
+});
+
+test('duplicatePage : insère la copie juste après la source et renvoie son index', () => {
+  const s = { pages: [{ name: 'P1', place: [] }, { name: 'P2', place: [] }], components: {} };
+  const idx = duplicatePage(s, 0);
+  assert.equal(idx, 1);
+  assert.deepEqual(s.pages.map(p => p.name), ['P1', 'P1 (copie)', 'P2']);
+});
+
+test('duplicatePage : composants copiés en ids indépendants (modèle 1:1)', () => {
+  const s = {
+    pages: [{ name: 'P1', place: [{ ref: 'lbl1', dx: 10, dy: 20 }] }],
+    components: { lbl1: { type: 'label', text: 'Salut' } },
+  };
+  const idx = duplicatePage(s, 0);
+  const copyPlace = s.pages[idx].place[0];
+  assert.notEqual(copyPlace.ref, 'lbl1');
+  assert.ok(s.components[copyPlace.ref], 'le composant copié existe');
+  assert.equal(copyPlace.dx, 10);
+  assert.equal(copyPlace.dy, 20);
+  s.components[copyPlace.ref].text = 'Modifié';
+  assert.equal(s.components.lbl1.text, 'Salut');
+});
+
+test('duplicatePage : la map components d’origine est intacte', () => {
+  const s = {
+    pages: [{ name: 'P1', place: [{ ref: 'lbl1' }] }],
+    components: { lbl1: { type: 'label', text: 'X' } },
+  };
+  duplicatePage(s, 0);
+  assert.ok(s.components.lbl1, 'l’original reste');
+});
+
+test('duplicatePage : page sans place → copie vide, pas de throw', () => {
+  const s = { pages: [{ name: 'P1' }], components: {} };
+  const idx = duplicatePage(s, 0);
+  assert.deepEqual(s.pages[idx].place, []);
+});
+
+test('duplicatePage : ref orphelin copié tel quel (aucun composant créé)', () => {
+  const s = { pages: [{ name: 'P1', place: [{ ref: 'fantome' }] }], components: {} };
+  const idx = duplicatePage(s, 0);
+  assert.equal(s.pages[idx].place[0].ref, 'fantome');
+  assert.equal(Object.keys(s.components).length, 0);
+});
+
+test('duplicatePage : index hors borne → no-op (renvoie -1)', () => {
+  const s = { pages: [{ name: 'P1', place: [] }], components: {} };
+  assert.equal(duplicatePage(s, 5), -1);
+  assert.equal(s.pages.length, 1);
+});
+
+test('duplicatePage : préserve background et background_image de la page', () => {
+  const s = {
+    pages: [{ name: 'P1', place: [], background: '#112233', background_image: 'fnv:abc' }],
+    components: {},
+  };
+  const idx = duplicatePage(s, 0);
+  assert.equal(s.pages[idx].background, '#112233');
+  assert.equal(s.pages[idx].background_image, 'fnv:abc');
+});
+
+test('duplicatePage : page à 2 composants → 2 nouveaux ids distincts', () => {
+  const s = {
+    pages: [{ name: 'P1', place: [{ ref: 'a' }, { ref: 'b' }] }],
+    components: { a: { type: 'label' }, b: { type: 'label' } },
+  };
+  const idx = duplicatePage(s, 0);
+  const [r0, r1] = s.pages[idx].place.map(p => p.ref);
+  assert.notEqual(r0, r1);
+  assert.ok(!['a', 'b'].includes(r0) && !['a', 'b'].includes(r1));
 });
