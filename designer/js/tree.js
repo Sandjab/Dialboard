@@ -3,7 +3,7 @@
 // Remplace nav#pages : Document → pages (ordre nav) → composants (z-order INVERSÉ). cf. spec §1.
 import { COMPONENTS } from './registry.js';
 import { iconFor } from './icons.js';
-import { setComponentProp, addPage, removePage, renamePage, reorderPages, uniquePageName, pageNameTaken, renameComponent } from './mutations.js';
+import { setComponentProp, addPage, removePage, renamePage, reorderPages, uniquePageName, pageNameTaken, renameComponent, duplicatePage } from './mutations.js';
 import { showToast } from './toast.js';
 
 // Œil de visibilité — mêmes icônes que l'en-tête inspecteur (brique commune, cf. spec §1).
@@ -217,6 +217,12 @@ export function createTree(root, model, { selection, setSelection, getActivePage
       actions.appendChild(b);
     };
     mkAct('✎', 'Renommer', () => { goPage(p.index); renaming = p.index; render(); });
+    mkAct('⧉', 'Dupliquer la page', () => {
+      let ni = -1;
+      model.commit(s => { ni = duplicatePage(s, p.index); });
+      if (ni >= 0) { goPage(ni); setSelection({ kind: 'page', page: ni }); }
+      render();
+    });
     mkAct('↑', 'Monter', () => {
       model.commit(s => reorderPages(s, p.index, p.index - 1)); goPage(p.index - 1); render();
     }, p.index <= 0);
