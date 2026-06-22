@@ -107,11 +107,48 @@ async function main() {
     onCreated: i => canvas.selectPlacement(i)
   });
 
+  // Presse-papier interne (session) : copie indépendante d'un composant + son placement, sans id.
+  let clipboard = null;
+  // Actions composant réutilisables (raccourcis clavier ET menu contextuel de l'arbre). Opèrent sur la
+  // sélection courante (page active + index), donc la ligne cliquée-droit doit être sélectionnée avant.
+  const compActions = {
+    copy() {
+      const sel = canvas.getSelected();
+      if (sel == null) return;
+      const pl = model.state.pages?.[canvas.getActivePage()]?.place?.[sel];
+      const cd = pl && model.state.components?.[pl.ref];
+      if (!cd) return;
+      clipboard = { compDef: structuredClone(cd), placement: structuredClone(pl) };
+    },
+    paste() {
+      if (!clipboard) return;
+      let ni = -1;
+      model.commit(s => { ni = placeComponentCopy(s, canvas.getActivePage(), clipboard.compDef, clipboard.placement); });
+      if (ni >= 0) canvas.selectPlacement(ni);
+    },
+    duplicate() {
+      const sel = canvas.getSelected();
+      if (sel == null) return;
+      let ni = -1;
+      model.commit(s => { ni = duplicateComponent(s, canvas.getActivePage(), sel); });
+      if (ni >= 0) canvas.selectPlacement(ni);
+    },
+    remove() {
+      const sel = canvas.getSelected();
+      if (sel == null) return;
+      canvas.selectPlacement(null);
+      model.commit(s => removePlacementAndOrphan(s, canvas.getActivePage(), sel));
+    },
+    cut() { compActions.copy(); compActions.remove(); },
+  };
+  const getClipboard = () => clipboard;
+
   // Arbre des calques (dock gauche) : pilote la page active + CRUD pages + sélection (remplace nav#pages).
   const tree = createTree($('layers'), model, {
     selection, setSelection,
     getActivePage: canvas.getActivePage,
     setPage: i => canvas.setPage(i),
+    compActions, getClipboard,
   });
 
   // Export / import fichier layout.json (filet indépendant du device). Après import, on revient à la
@@ -134,9 +171,6 @@ async function main() {
   model.subscribe(syncUndo); syncUndo();
   $('undo').onclick = () => { $('json').blur(); model.undo(); };
   $('redo').onclick = () => { $('json').blur(); model.redo(); };
-
-  // Presse-papier interne (session) : copie indépendante d'un composant + son placement, sans id.
-  let clipboard = null;
 
   // Raccourcis clavier globaux : Cmd/Ctrl+Z = annuler, +Shift+Z = rétablir, Échap = désélectionner,
   // Cmd/Ctrl+D = dupliquer, +C = copier, +V = coller (copies indépendantes ; coller sur la page
@@ -162,38 +196,27 @@ async function main() {
       return;
     }
     if (action === 'copy') {
-      const sel = canvas.getSelected();
-      if (sel == null) return;
-      const pl = model.state.pages?.[canvas.getActivePage()]?.place?.[sel];
-      const cd = pl && model.state.components?.[pl.ref];
-      if (!cd) return;
+      if (canvas.getSelected() == null) return;   // rien à copier → laisser la copie native
       e.preventDefault();
-      clipboard = { compDef: structuredClone(cd), placement: structuredClone(pl) };
+      compActions.copy();
       return;
     }
     if (action === 'paste') {
       if (!clipboard) return;
       e.preventDefault();
-      let ni = -1;
-      model.commit(s => { ni = placeComponentCopy(s, canvas.getActivePage(), clipboard.compDef, clipboard.placement); });
-      if (ni >= 0) canvas.selectPlacement(ni);          // sélectionne la copie après re-render
+      compActions.paste();
       return;
     }
     if (action === 'duplicate') {
-      const sel = canvas.getSelected();
-      if (sel == null) return;
+      if (canvas.getSelected() == null) return;
       e.preventDefault();
-      let ni = -1;
-      model.commit(s => { ni = duplicateComponent(s, canvas.getActivePage(), sel); });
-      if (ni >= 0) canvas.selectPlacement(ni);
+      compActions.duplicate();
       return;
     }
     // delete : ne consomme la touche que s'il y a une sélection.
-    const sel = canvas.getSelected();
-    if (sel == null) return;
+    if (canvas.getSelected() == null) return;
     e.preventDefault();
-    canvas.selectPlacement(null);                       // désélectionne avant le commit (cf. inspector.js)
-    model.commit(s => removePlacementAndOrphan(s, canvas.getActivePage(), sel));
+    compActions.remove();
   });
 
   // Clic ailleurs que sur un composant → désélectionne : zone vide du disque, coins, marge, palette,
