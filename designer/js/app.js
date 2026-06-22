@@ -198,11 +198,12 @@ async function main() {
   });
 
   // Clic ailleurs que sur un composant → désélectionne : zone vide du disque, coins, marge, palette,
-  // en-tête… Exclus : un composant (.w — son propre pointerdown le sélectionne) et l'inspecteur
-  // (il édite la sélection, le désélectionner au clic le rendrait inutilisable).
+  // en-tête… Exclus : un composant (.w — son propre pointerdown le sélectionne), l'inspecteur
+  // (il édite la sélection, le désélectionner au clic le rendrait inutilisable) et l'arbre des calques
+  // (#layers — surface de sélection : ses propres clics gèrent doc/page/comp ; l'œil garde la sélection).
   document.addEventListener('pointerdown', e => {
     if (canvas.getSelected() == null) return;
-    if (e.target.closest('.w') || e.target.closest('#inspector')) return;
+    if (e.target.closest('.w') || e.target.closest('#inspector') || e.target.closest('#layers')) return;
     canvas.selectPlacement(null);
   });
 
