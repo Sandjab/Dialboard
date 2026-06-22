@@ -4,7 +4,7 @@
 // L'aperçu (build) reste dans render.js (double-maintenance du rendu firmware) ; ici on le référence
 // via une signature normalisée (comp, placement, mock).
 import { snapPlacement } from './geometry.js';
-import { buildLabel, buildReadout, buildBar, buildRing, buildChart, buildMeter, buildImage, buildImageAnim, buildLed } from './render.js';
+import { buildLabel, buildReadout, buildBar, buildRing, buildChart, buildMeter, buildImage, buildImageAnim, buildLed, buildRect, buildCircle, buildLine } from './render.js';
 
 // Placement initial d'un widget d'écran : ancrage + offset déduits du point de dépôt (boîte ~0).
 const screenPlacement = (id, x, y) => {
@@ -119,6 +119,42 @@ export const COMPONENTS = {
     placeFields: [['anchor', 'Ancrage', 'anchor'], ['dx', 'dx', 'num'], ['dy', 'dy', 'num'], ['size', 'Diamètre', 'num']],
     mockFields: [['value', 'Valeur (aperçu)']],
     build: (comp, pl, mock) => buildLed(comp, pl, mock),
+  },
+  rect: {
+    label: 'Rectangle',
+    defaults: () => ({ type: 'rect', fill: '#38BDF8', border_width: 0, border_color: '#FFFFFF' }),
+    makePlacement: (id, x, y) => ({ ...screenPlacement(id, x, y), width: 120, height: 60, radius: 0 }),
+    centered: false, physical: false,
+    compFields: [['fill', 'Fond', 'fill'], ['border_width', 'Épaisseur contour', 'num'],
+                 ['border_color', 'Couleur contour', 'color', c => (c.border_width || 0) > 0]],
+    placeFields: [['anchor', 'Ancrage', 'anchor'], ['dx', 'dx', 'num'], ['dy', 'dy', 'num'],
+                  ['width', 'Largeur', 'num', 120], ['height', 'Hauteur', 'num', 60], ['radius', 'Rayon coin', 'num', 0]],
+    mockFields: [],
+    build: (comp, pl) => buildRect(comp, pl),
+  },
+  circle: {
+    label: 'Cercle',
+    defaults: () => ({ type: 'circle', fill: '#38BDF8', border_width: 0, border_color: '#FFFFFF' }),
+    makePlacement: (id, x, y) => ({ ...screenPlacement(id, x, y), size: 60 }),
+    centered: false, physical: false,
+    compFields: [['fill', 'Fond', 'fill'], ['border_width', 'Épaisseur contour', 'num'],
+                 ['border_color', 'Couleur contour', 'color', c => (c.border_width || 0) > 0]],
+    placeFields: [['anchor', 'Ancrage', 'anchor'], ['dx', 'dx', 'num'], ['dy', 'dy', 'num'],
+                  ['size', 'Diamètre', 'num', 60]],
+    mockFields: [],
+    build: (comp, pl) => buildCircle(comp, pl),
+  },
+  line: {
+    label: 'Droite',
+    defaults: () => ({ type: 'line', color: '#FFFFFF', orientation: 'horizontal', dash: 'solid', rounded: false }),
+    makePlacement: (id, x, y) => ({ ...screenPlacement(id, x, y), width: 120, thickness: 2 }),
+    centered: false, physical: false,
+    compFields: [['color', 'Couleur', 'color'], ['orientation', 'Orientation', 'orient'],
+                 ['dash', 'Motif', 'dash'], ['rounded', 'Bouts arrondis', 'bool']],
+    placeFields: [['anchor', 'Ancrage', 'anchor'], ['dx', 'dx', 'num'], ['dy', 'dy', 'num'],
+                  ['width', 'Longueur', 'num', 120], ['thickness', 'Épaisseur', 'num', 2]],
+    mockFields: [],
+    build: (comp, pl) => buildLine(comp, pl),
   },
   led_ring: {
     label: 'LED ring',

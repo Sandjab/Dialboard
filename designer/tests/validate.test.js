@@ -98,3 +98,24 @@ test('bind avec variable de source déclarée → pas d\'avertissement', () => {
   assert.equal(r.valid, true);
   assert.deepEqual(r.warnings, []);
 });
+
+test('layout avec formes (rect/circle/line) est valide', () => {
+  const l = structuredClone(DEFAULT_LAYOUT);
+  l.components.r1 = { type: 'rect', fill: '#FF0000', border_width: 2, border_color: '#FFFFFF' };
+  l.components.c1 = { type: 'circle' };
+  l.components.l1 = { type: 'line', color: '#FFFFFF', orientation: 'vertical', dash: 'dashed', rounded: true };
+  l.pages[0].place.push(
+    { ref: 'r1', anchor: 'CENTER', dx: 0, dy: 0, width: 120, height: 60, radius: 8 },
+    { ref: 'c1', anchor: 'CENTER', dx: 0, dy: 0, size: 60 },
+    { ref: 'l1', anchor: 'CENTER', dx: 0, dy: 0, width: 100, thickness: 2 },
+  );
+  const r = validate(l);
+  assert.equal(r.valid, true, JSON.stringify(r.errors));
+});
+
+test('propriété inconnue sur une forme → invalide (additionalProperties:false)', () => {
+  const l = structuredClone(DEFAULT_LAYOUT);
+  l.components.r1 = { type: 'rect', wat: 1 };
+  l.pages[0].place.push({ ref: 'r1', anchor: 'CENTER' });
+  assert.equal(validate(l).valid, false);
+});
