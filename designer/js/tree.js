@@ -176,7 +176,8 @@ export function createTree(root, model, { selection, setSelection, getActivePage
       const r = row.getBoundingClientRect();
       const before = (e.clientY - r.top) < r.height / 2;
       const from = dragSrc.index;
-      const place = model.state.pages[pageIndex].place;
+      const place = model.state.pages?.[pageIndex]?.place;
+      if (!place) { clearDropMarks(); return; }   // page disparue (undo concurrent) : pas de TypeError, on nettoie
       const to = reorderTargetIndex(place, from, c.index, before);
       clearDropMarks();
       if (to !== from) {
@@ -281,7 +282,7 @@ export function createTree(root, model, { selection, setSelection, getActivePage
       clearDropMarks();
       const fromPage = dragSrc.page, placeIndex = dragSrc.index, toPage = p.index;
       model.commit(s => movePlacementToPage(s, fromPage, placeIndex, toPage));
-      const last = (model.state.pages[toPage].place?.length || 1) - 1;
+      const last = (model.state.pages?.[toPage]?.place?.length || 1) - 1;
       goPage(toPage);
       setSelection({ kind: 'comp', page: toPage, index: last });
       dragSrc = null;
@@ -427,7 +428,7 @@ export function createTree(root, model, { selection, setSelection, getActivePage
     if (!sel) return;
     if (sel.kind === 'comp') {
       const page = sel.page, index = sel.index;
-      const place = () => model.state.pages[page].place;
+      const place = () => model.state.pages?.[page]?.place || [];
       if (id === 'rename')    return beginRename();
       if (id === 'duplicate') return compActions.duplicate?.();
       if (id === 'copy')      return compActions.copy?.();
@@ -440,7 +441,7 @@ export function createTree(root, model, { selection, setSelection, getActivePage
         model.commit(s => reorderPlacement(s, page, index, to)); setSelection({ kind: 'comp', page, index: to }); return; }
       if (id === 'moveTo')  { const toPage = extra.page;
         model.commit(s => movePlacementToPage(s, page, index, toPage));
-        const last = (model.state.pages[toPage].place?.length || 1) - 1;
+        const last = (model.state.pages?.[toPage]?.place?.length || 1) - 1;
         goPage(toPage); setSelection({ kind: 'comp', page: toPage, index: last }); return; }
     } else if (sel.kind === 'page') {
       const pi = sel.page, total = () => model.state.pages.length;
