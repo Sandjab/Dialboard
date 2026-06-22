@@ -10,6 +10,7 @@ import { createCanvas } from './canvas.js';
 import { createPalette } from './palette.js';
 import { createInspector } from './inspector.js';
 import { createPages } from './pages.js';
+import { createTree } from './tree.js';
 import { bindFileIO } from './file-io.js';
 import { createSources } from './sources.js';
 import { createDevicePanel } from './device-panel.js';
@@ -111,6 +112,13 @@ async function main() {
   const pages = createPages($('pages'), model, {
     getActivePage: canvas.getActivePage,
     setPage: i => canvas.setPage(i)
+  });
+
+  // Arbre des calques (dock gauche). Coexiste avec nav#pages jusqu'à son retrait (Phase 3a, dernière tâche).
+  const tree = createTree($('layers'), model, {
+    selection, setSelection,
+    getActivePage: canvas.getActivePage,
+    setPage: i => canvas.setPage(i),
   });
 
   // Export / import fichier layout.json (filet indépendant du device). Après import, on revient à la
