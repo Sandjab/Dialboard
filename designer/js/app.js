@@ -184,7 +184,8 @@ async function main() {
     if (action === 'undo') { e.preventDefault(); if (model.canUndo()) model.undo(); return; }
     if (action === 'redo') { e.preventDefault(); if (model.canRedo()) model.redo(); return; }
     if (action === 'rename') {
-      if (selection.get() == null) return;
+      const s = selection.get();
+      if (!s || s.kind === 'doc') return;   // rien / Document : pas de renommage inline → laisser la touche
       e.preventDefault();
       tree.beginRename();
       return;
