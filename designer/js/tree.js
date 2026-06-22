@@ -36,6 +36,43 @@ export function treeModel(state) {
   return { title: state?.title ?? '', pages };
 }
 
+// Modèle PUR du menu contextuel (testé node ; le rendu DOM + dispatch est ailleurs, vérifié navigateur).
+// Items : { id, label, disabled?, submenu? }. doc/null → [] (pas de menu). z-order : raiseZ = vers la FIN de
+// place[] (dessus), lowerZ = vers le DÉBUT (fond). moveToPage.submenu = { id:'moveTo', label, page } des AUTRES
+// pages (absent si une seule page).
+export function contextMenuItems(sel, state, { hasClipboard = false } = {}) {
+  if (!sel || sel.kind === 'doc') return [];
+  const pages = state?.pages || [];
+  if (sel.kind === 'page') {
+    return [
+      { id: 'rename', label: 'Renommer' },
+      { id: 'duplicate', label: 'Dupliquer la page' },
+      { id: 'delete', label: 'Supprimer la page', disabled: pages.length <= 1 },
+      { id: 'moveUp', label: 'Monter', disabled: sel.page <= 0 },
+      { id: 'moveDown', label: 'Descendre', disabled: sel.page >= pages.length - 1 },
+    ];
+  }
+  // comp
+  const place = pages[sel.page]?.place || [];
+  const items = [
+    { id: 'rename', label: 'Renommer (id)' },
+    { id: 'duplicate', label: 'Dupliquer' },
+    { id: 'copy', label: 'Copier' },
+    { id: 'cut', label: 'Couper' },
+    { id: 'paste', label: 'Coller', disabled: !hasClipboard },
+    { id: 'delete', label: 'Supprimer' },
+    { id: 'raiseZ', label: 'Monter (avant-plan)', disabled: sel.index >= place.length - 1 },
+    { id: 'lowerZ', label: 'Descendre (arrière-plan)', disabled: sel.index <= 0 },
+  ];
+  if (pages.length > 1) {
+    const submenu = pages
+      .map((p, i) => ({ id: 'moveTo', label: p.name || `Page ${i + 1}`, page: i }))
+      .filter(s => s.page !== sel.page);
+    items.push({ id: 'moveToPage', label: 'Déplacer vers…', submenu });
+  }
+  return items;
+}
+
 // Rendu DOM de l'arbre + pilotage de la sélection partagée. Deps : getActivePage/setPage (la page
 // active vit dans canvas.js) PLUS le store de sélection (selection/setSelection). Pilote pages + comps.
 export function createTree(root, model, { selection, setSelection, getActivePage = () => 0, setPage } = {}) {
