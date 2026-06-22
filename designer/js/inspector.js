@@ -1,12 +1,13 @@
 // Inspecteur : édite le composant + le placement sélectionnés. Pilote les champs par des tables de
 // descripteurs (DRY). Chaque édition committée = UN commit (sur 'change', pas par frappe → pas de
 // flood undo). Le signalement ASCII est live (sur 'input'). S'abonne au modèle pour se rafraîchir.
-import { setComponentProp, setPlacementProp, setBarOrientation, setThresholds, removePlacementAndOrphan, setPageBackground, setPageBackgroundImage, setNavWrap, renamePage, pageNameTaken } from './mutations.js';
+import { setComponentProp, setPlacementProp, setBarOrientation, setThresholds, setIconStates, removePlacementAndOrphan, setPageBackground, setPageBackgroundImage, setNavWrap, renamePage, pageNameTaken } from './mutations.js';
 import { showToast } from './toast.js';
 import { imageFileToBg, previewUrl } from './bg-image.js';
 import { imageFileToAsset, previewUrl as imagePreviewUrl } from './image-asset.js';
 import { decodeGif, decodeImages, framesToAsset, previewUrls as aimgPreviewUrls } from './image-anim-asset.js';
 import { COMPONENTS } from './registry.js';
+import { ICON_SVG } from './render.js';
 import { ANCHORS, ANCHORS_OUT } from './geometry.js';
 import { getMock, setMock } from './mocks.js';
 
@@ -17,6 +18,7 @@ const SELECTS = {
   orient:  [['horizontal', 'Horizontal'], ['vertical', 'Vertical']],
   arcmode: [['normal', 'Normal'], ['symmetrical', 'Symétrique'], ['reverse', 'Inversé']],
   dash:    [['solid', 'Plein'], ['dashed', 'Tirets'], ['dotted', 'Pointillé']],
+  symbol:  Object.keys(ICON_SVG).map(n => [n, n]),
 };
 const nonAscii = v => /[^\x00-\x7F]/.test(v ?? '');
 
@@ -154,6 +156,40 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
       });
       const add = document.createElement('button'); add.className = 'insp-th-add'; add.textContent = '+ seuil';
       add.addEventListener('click', () => { ths.push([0, '#FF0000']); commitThs(); });
+      body.appendChild(add);
+    }
+
+    // --- États icon (table {at, symbol?, color?} ; 1re bande où valeur < at gagne ; omis = base) ---
+    if (c.type === 'icon') {
+      sub(body, 'États (glyphe/couleur si valeur < seuil)');
+      note(body, 'Vide = icône statique. « (base) » / couleur décochée = retombe sur le symbole/la couleur de base.');
+      const ref = sel.ref;                                   // figée au rendu (cf. invariant inspecteur)
+      const names = Object.keys(ICON_SVG);
+      const st = (c.states || []).map(s => ({ ...s }));       // copie locale éditable
+      const commit = (opts) => model.commit(s2 => setIconStates(s2, ref, st.map(e => ({
+        at: e.at ?? 0,
+        ...(e.symbol ? { symbol: e.symbol } : {}),
+        ...(e.color ? { color: e.color } : {}),
+      }))), opts);
+      st.forEach((e, idx) => {
+        const row = document.createElement('div'); row.className = 'insp-row';
+        const at = makeInput('num', e.at, v => { st[idx].at = v === '' ? 0 : v; commit({ coalesce: 'num' }); });   // F2 num
+        const symSel = document.createElement('select');
+        const base = document.createElement('option'); base.value = ''; base.textContent = '(base)';
+        symSel.appendChild(base);
+        for (const nm of names) { const o = document.createElement('option'); o.value = nm; o.textContent = nm; if (nm === e.symbol) o.selected = true; symSel.appendChild(o); }
+        symSel.addEventListener('change', () => { st[idx].symbol = symSel.value || undefined; commit(); });
+        const colOn = document.createElement('input'); colOn.type = 'checkbox'; colOn.checked = e.color != null; colOn.title = 'Forcer une couleur';
+        const col = document.createElement('input'); col.type = 'color'; col.value = e.color || '#FF0000'; col.disabled = e.color == null;
+        colOn.addEventListener('change', () => { col.disabled = !colOn.checked; st[idx].color = colOn.checked ? col.value.toUpperCase() : undefined; commit(); });
+        col.addEventListener('change', () => { st[idx].color = col.value.toUpperCase(); commit(); });
+        const rm = document.createElement('button'); rm.className = 'insp-th-rm'; rm.textContent = '×';
+        rm.addEventListener('click', () => { st.splice(idx, 1); commit(); });
+        row.append(at, symSel, colOn, col, rm);
+        body.appendChild(row);
+      });
+      const add = document.createElement('button'); add.className = 'insp-th-add'; add.textContent = '+ état';
+      add.addEventListener('click', () => { st.push({ at: 0, symbol: names[0] }); commit(); });
       body.appendChild(add);
     }
 

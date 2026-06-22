@@ -13,7 +13,8 @@ import {
   movePlacementToPage,
   renameComponent,
   uniqueCopyName,
-  duplicatePage
+  duplicatePage,
+  setIconStates
 } from '../js/mutations.js';
 
 const fresh = () => ({ components: {}, pages: [{ name: 'P1', place: [] }] });
@@ -604,4 +605,12 @@ test('setNavWrap : coerce en booléen (intention : jamais de valeur non-bool dan
   assert.equal(s.nav.wrap, true);
   setNavWrap(s, 0);
   assert.equal(s.nav.wrap, false);
+});
+
+test('setIconStates : pose le tableau, vide => supprime la clé', () => {
+  const st = { components: { i1: { type: 'icon' } } };
+  setIconStates(st, 'i1', [{ at: 1, symbol: 'close' }]);
+  assert.deepEqual(st.components.i1.states, [{ at: 1, symbol: 'close' }]);
+  setIconStates(st, 'i1', []);
+  assert.equal('states' in st.components.i1, false);
 });
