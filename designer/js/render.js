@@ -504,3 +504,49 @@ export function buildLed(comp, placement, mock = MOCKS.led) {
   }
   return n;
 }
+
+// --- Formes de base (décoratives, statiques). bg/border CSS ↔ lv_obj ; bordure DANS la box (box-sizing). ---
+const DASH_CSS = { solid: 'solid', dashed: 'dashed', dotted: 'dotted' };
+
+export function buildRect(comp, placement) {
+  const n = document.createElement('div');
+  n.className = 'w w-rect';
+  n.style.boxSizing = 'border-box';
+  n.style.width  = (placement.width  || 120) + 'px';
+  n.style.height = (placement.height || 60)  + 'px';
+  n.style.background = comp.fill != null ? comp.fill : 'transparent';
+  const bw = comp.border_width || 0;
+  n.style.border = bw > 0 ? `${bw}px solid ${comp.border_color || '#FFFFFF'}` : 'none';
+  n.style.borderRadius = (placement.radius || 0) + 'px';
+  return n;
+}
+
+export function buildCircle(comp, placement) {
+  const n = document.createElement('div');
+  n.className = 'w w-circle';
+  n.style.boxSizing = 'border-box';
+  const d = placement.size || 60;
+  n.style.width = d + 'px'; n.style.height = d + 'px';
+  n.style.borderRadius = '50%';
+  n.style.background = comp.fill != null ? comp.fill : 'transparent';
+  const bw = comp.border_width || 0;
+  n.style.border = bw > 0 ? `${bw}px solid ${comp.border_color || '#FFFFFF'}` : 'none';
+  return n;
+}
+
+export function buildLine(comp, placement) {
+  const n = document.createElement('div');
+  n.className = 'w w-line';
+  const len = placement.width || 120;
+  const th  = placement.thickness || 2;
+  const style = DASH_CSS[comp.dash] || 'solid';
+  const color = comp.color || '#FFFFFF';
+  if (comp.orientation === 'vertical') {
+    n.style.width = '0'; n.style.height = len + 'px';
+    n.style.borderLeft = `${th}px ${style} ${color}`;
+  } else {
+    n.style.height = '0'; n.style.width = len + 'px';
+    n.style.borderTop = `${th}px ${style} ${color}`;
+  }
+  return n;
+}
