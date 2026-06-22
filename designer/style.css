@@ -74,6 +74,14 @@ main { display: grid; grid-template-columns: 170px 1fr 200px; gap: 10px; padding
 .tree-row.drop-after  { box-shadow: inset 0 -2px 0 0 var(--accent); }
 .tree-row.drop-into   { box-shadow: inset 0 0 0 2px var(--accent); }
 .tree-row[draggable="true"] { cursor: grab; }
+.tree-menu { position: fixed; z-index: 1000; min-width: 180px; padding: 4px;
+  background: #16161c; border: 1px solid #2a2a33; border-radius: 6px; box-shadow: 0 6px 24px rgba(0,0,0,.5); }
+.tree-menu-item { position: relative; padding: 5px 10px; border-radius: 4px; cursor: pointer; white-space: nowrap; }
+.tree-menu-item:hover { background: rgba(167,139,250,.18); }
+.tree-menu-item.disabled { opacity: .4; pointer-events: none; }
+.tree-submenu { display: none; position: absolute; left: 100%; top: 0; min-width: 160px; padding: 4px;
+  background: #16161c; border: 1px solid #2a2a33; border-radius: 6px; box-shadow: 0 6px 24px rgba(0,0,0,.5); }
+.tree-menu-item.has-sub:hover > .tree-submenu { display: block; }
 footer { padding: 10px 12px; border-top: 1px solid var(--line); }
 textarea { width: 100%; height: 220px; background: #0a0a0e; color: #cbd5e1; border: 1px solid var(--line); border-radius: 8px; font: 12.5px/1.5 var(--font-mono); padding: 10px; }
 .row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }

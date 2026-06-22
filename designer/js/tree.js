@@ -87,7 +87,7 @@ export function reorderTargetIndex(place, fromReal, toReal, before) {
 
 // Rendu DOM de l'arbre + pilotage de la sélection partagée. Deps : getActivePage/setPage (la page
 // active vit dans canvas.js) PLUS le store de sélection (selection/setSelection). Pilote pages + comps.
-export function createTree(root, model, { selection, setSelection, getActivePage = () => 0, setPage } = {}) {
+export function createTree(root, model, { selection, setSelection, getActivePage = () => 0, setPage, compActions = {}, getClipboard = () => null } = {}) {
   let renaming = null;   // index de la page en cours de renommage inline, ou null
   let renamingComp = null;   // { page, index } du composant en rename inline, ou null
   let dragSrc = null;   // { page, index } du composant en cours de drag
@@ -185,6 +185,13 @@ export function createTree(root, model, { selection, setSelection, getActivePage
         setSelection({ kind: 'comp', page: pageIndex, index: to });   // la sélection suit
       }
       dragSrc = null;
+    });
+    row.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      if (pageIndex !== getActivePage()) goPage(pageIndex);
+      setSelection({ kind: 'comp', page: pageIndex, index: c.index });
+      render();
+      openMenu(e.clientX, e.clientY);
     });
     // Œil de visibilité (brique commune avec l'en-tête inspecteur) : toggle de la clé `visible`.
     const spacer = document.createElement('span'); spacer.className = 'tree-spacer';
@@ -305,6 +312,13 @@ export function createTree(root, model, { selection, setSelection, getActivePage
       }
       dragSrcPage = null;
     });
+    row.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      goPage(p.index);
+      setSelection({ kind: 'page', page: p.index });
+      render();
+      openMenu(e.clientX, e.clientY);
+    });
 
     // Contrôles au survol : renommer / monter / descendre / supprimer (réutilisent les mutations pages).
     const spacer = document.createElement('span'); spacer.className = 'tree-spacer'; row.appendChild(spacer);
@@ -390,6 +404,88 @@ export function createTree(root, model, { selection, setSelection, getActivePage
       renamingComp = { page: sel.page, index: sel.index };
       render();
     }
+  }
+
+  // --- Menu contextuel ---
+  let menuEl = null;
+  function closeMenu() {
+    if (!menuEl) return;
+    menuEl.remove(); menuEl = null;
+    document.removeEventListener('pointerdown', onDocDown, true);
+  }
+  function onDocDown(e) { if (menuEl && !menuEl.contains(e.target)) closeMenu(); }
+
+  // Exécute une action du menu sur la sélection COURANTE (la ligne a été sélectionnée à l'ouverture).
+  function runMenu(id, extra) {
+    const sel = selection.get();
+    closeMenu();
+    if (!sel) return;
+    if (sel.kind === 'comp') {
+      const page = sel.page, index = sel.index;
+      const place = () => model.state.pages[page].place;
+      if (id === 'rename')    return beginRename();
+      if (id === 'duplicate') return compActions.duplicate?.();
+      if (id === 'copy')      return compActions.copy?.();
+      if (id === 'cut')       return compActions.cut?.();
+      if (id === 'paste')     return compActions.paste?.();
+      if (id === 'delete')    return compActions.remove?.();
+      if (id === 'raiseZ')  { const to = Math.min(index + 1, place().length - 1);
+        model.commit(s => reorderPlacement(s, page, index, to)); setSelection({ kind: 'comp', page, index: to }); return; }
+      if (id === 'lowerZ')  { const to = Math.max(index - 1, 0);
+        model.commit(s => reorderPlacement(s, page, index, to)); setSelection({ kind: 'comp', page, index: to }); return; }
+      if (id === 'moveTo')  { const toPage = extra.page;
+        model.commit(s => movePlacementToPage(s, page, index, toPage));
+        const last = (model.state.pages[toPage].place?.length || 1) - 1;
+        goPage(toPage); setSelection({ kind: 'comp', page: toPage, index: last }); return; }
+    } else if (sel.kind === 'page') {
+      const pi = sel.page, total = () => model.state.pages.length;
+      if (id === 'rename')    return beginRename();
+      if (id === 'duplicate') { let ni = -1; model.commit(s => { ni = duplicatePage(s, pi); });
+        if (ni >= 0) { goPage(ni); setSelection({ kind: 'page', page: ni }); } return; }
+      if (id === 'delete')    { if (total() <= 1) return; model.commit(s => removePage(s, pi));
+        goPage(Math.min(pi, model.state.pages.length - 1)); render(); return; }
+      if (id === 'moveUp')    { if (pi <= 0) return; model.commit(s => reorderPages(s, pi, pi - 1));
+        goPage(pi - 1); setSelection({ kind: 'page', page: pi - 1 }); return; }
+      if (id === 'moveDown')  { if (pi >= total() - 1) return; model.commit(s => reorderPages(s, pi, pi + 1));
+        goPage(pi + 1); setSelection({ kind: 'page', page: pi + 1 }); return; }
+    }
+  }
+
+  function openMenu(x, y) {
+    closeMenu();
+    const items = contextMenuItems(selection.get(), model.state, { hasClipboard: !!getClipboard() });
+    if (!items.length) return;
+    menuEl = document.createElement('div'); menuEl.className = 'tree-menu';
+    menuEl.style.left = x + 'px'; menuEl.style.top = y + 'px';
+    for (const it of items) {
+      const row = document.createElement('div');
+      row.className = 'tree-menu-item' + (it.disabled ? ' disabled' : '') + (it.submenu ? ' has-sub' : '');
+      row.textContent = it.label + (it.submenu ? ' ▸' : '');
+      if (it.submenu) {
+        const sub = document.createElement('div'); sub.className = 'tree-submenu';
+        for (const s of it.submenu) {
+          const sr = document.createElement('div'); sr.className = 'tree-menu-item';
+          sr.textContent = s.label;
+          sr.addEventListener('click', ev => { ev.stopPropagation(); runMenu('moveTo', { page: s.page }); });
+          sub.appendChild(sr);
+        }
+        row.appendChild(sub);
+      } else if (!it.disabled) {
+        row.addEventListener('click', () => runMenu(it.id));
+      }
+      menuEl.appendChild(row);
+    }
+    document.body.appendChild(menuEl);
+    // Le menu vit hors de #layers : isoler son pointerdown pour que le listener global « clic ailleurs →
+    // désélectionne » (app.js) ne vide pas la sélection avant que l'action (click de l'item) ne s'exécute.
+    menuEl.addEventListener('pointerdown', e => e.stopPropagation());
+    // Repositionner pour rester dans le viewport (un clic-droit près d'un bord déborderait).
+    const mr = menuEl.getBoundingClientRect();
+    if (mr.bottom > window.innerHeight) menuEl.style.top = Math.max(4, window.innerHeight - mr.height - 4) + 'px';
+    if (mr.right > window.innerWidth) menuEl.style.left = Math.max(4, window.innerWidth - mr.width - 4) + 'px';
+    document.addEventListener('pointerdown', onDocDown, true);
+    const onKey = e => { if (e.key === 'Escape') { closeMenu(); document.removeEventListener('keydown', onKey, true); } };
+    document.addEventListener('keydown', onKey, true);
   }
 
   return { render, beginRename };
