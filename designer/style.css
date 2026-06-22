@@ -60,6 +60,15 @@ main { display: grid; grid-template-columns: 170px 1fr 200px; gap: 10px; padding
 .tree-comp.hidden .tree-label,
 .tree-comp.hidden .tree-ref { opacity: .45; text-decoration: line-through; }
 .tree-spacer { flex: 1 1 auto; }            /* pousse l'œil/contrôles à droite */
+
+/* --- Contrôles de page (au survol) + en-tête + Page --- */
+.tree-actions { display: none; gap: 2px; flex: none; }
+.tree-row:hover .tree-actions { display: flex; }
+.tree-actions button { padding: 1px 6px; font-size: 12px; line-height: 1.2; }
+.tree-rename { width: 110px; }
+.tree-rename.invalid { border-color: var(--err); color: var(--err); }
+.tree-head { display: flex; justify-content: flex-end; margin-bottom: 6px; }
+.tree-addbtn { padding: 3px 9px; font-size: 12px; }
 footer { padding: 10px 12px; border-top: 1px solid var(--line); }
 textarea { width: 100%; height: 220px; background: #0a0a0e; color: #cbd5e1; border: 1px solid var(--line); border-radius: 8px; font: 12.5px/1.5 var(--font-mono); padding: 10px; }
 .row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
