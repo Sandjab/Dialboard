@@ -2,6 +2,7 @@ import { createModel } from './model.js';
 import { createValidator } from './validate.js';
 import { createStatusbar } from './statusbar.js';
 import { createConsole } from './console.js';
+import { createDrawer } from './drawer.js';
 import { loadLayout, pushLayout, captureScreenshot, getStatus, setDevicePage, pushValues, uploadBgImage, fetchBgImage, uploadImage, fetchImage, uploadAimg, fetchAimg, formatDeviceStatus } from './device.js';
 import { referencedKeys, cacheBytes, cachePut, previewUrl } from './bg-image.js';
 import { referencedImageKeys, cacheBytes as imageCacheBytes, previewUrl as imagePreviewUrl, rehydrate as rehydrateImage } from './image-asset.js';
@@ -167,6 +168,7 @@ async function main() {
   createSources($('sources'), model);
   // Panneau Device : composants physiques (led_ring/sound) édités hors pages (sorties globales).
   createDevicePanel($('device'), model);
+  const drawer = createDrawer($('drawer'), { toggleBtn: $('drawer-toggle') });
 
   const dconsole = createConsole($('console'), model, { validate });
   createStatusbar($('statusbar'), model, { selection, validate, onValidClick: () => dconsole.open('problems') });
