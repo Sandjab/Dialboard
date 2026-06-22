@@ -275,5 +275,17 @@ export function createTree(root, model, { selection, setSelection, getActivePage
   model.subscribe(render);
   selection.subscribe(render);   // changement de sélection (canvas/inspecteur/Échap) → re-surligner
   render();
-  return { render };
+
+  function beginRename() {
+    const sel = selection.get();
+    if (!sel) return;
+    if (sel.kind === 'page') { goPage(sel.page); renaming = sel.page; render(); }
+    else if (sel.kind === 'comp') {
+      if (sel.page !== getActivePage()) goPage(sel.page);
+      renamingComp = { page: sel.page, index: sel.index };
+      render();
+    }
+  }
+
+  return { render, beginRename };
 }
