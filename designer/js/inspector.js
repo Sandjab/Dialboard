@@ -16,6 +16,7 @@ const SELECTS = {
   barmode: [['normal', 'Normal'], ['symmetrical', 'Symétrique']],
   orient:  [['horizontal', 'Horizontal'], ['vertical', 'Vertical']],
   arcmode: [['normal', 'Normal'], ['symmetrical', 'Symétrique'], ['reverse', 'Inversé']],
+  dash:    [['solid', 'Plein'], ['dashed', 'Tirets'], ['dotted', 'Pointillé']],
 };
 const nonAscii = v => /[^\x00-\x7F]/.test(v ?? '');
 
@@ -274,6 +275,27 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     return wrap;
   }
 
+  // Champ « Fond » d'une forme : case « Remplir » + couleur. Décochée → fill supprimé (= pas de fond,
+  // contour seul). Un <input type=color> natif ne peut pas être vide → la case porte l'état présent/absent.
+  // Commit sur 'change' (pas d'aperçu live ici, contrairement aux color pickers génériques).
+  function fillField(label, c) {
+    const ref = sel.ref;                                  // figée au rendu (cf. invariant inspecteur)
+    const row = document.createElement('div'); row.className = 'insp-row';
+    const span = document.createElement('span'); span.className = 'insp-label'; span.textContent = label;
+    row.appendChild(span);
+    const on = document.createElement('input'); on.type = 'checkbox'; on.checked = c.fill != null;
+    on.title = 'Remplir le fond';
+    const col = document.createElement('input'); col.type = 'color'; col.value = c.fill || '#38BDF8';
+    col.disabled = c.fill == null;
+    on.addEventListener('change', () => {
+      col.disabled = !on.checked;   // retour immédiat (le garde-focus de render() saute le rebuild tant que la case a le focus)
+      model.commit(s => setComponentProp(s, ref, 'fill', on.checked ? (col.value.toUpperCase()) : null));
+    });
+    col.addEventListener('change', () => model.commit(s => setComponentProp(s, ref, 'fill', col.value.toUpperCase())));
+    row.append(on, col);
+    return row;
+  }
+
   // Rien de sélectionné (null / sélection périmée / ref orpheline) : placeholder neutre. Cohérence stricte
   // arbre↔inspecteur (Option 1) : on n'édite rien tant que rien n'est sélectionné.
   function renderEmpty(body) {
@@ -442,6 +464,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     for (const [key, label, kind, enableWhen] of COMPONENTS[c.type].compFields) {
       if (kind === 'image') { body.appendChild(imageField(label, c)); continue; }   // picker bespoke
       if (kind === 'image_anim') { body.appendChild(imageAnimField(label, c)); continue; }   // editeur bespoke
+      if (kind === 'fill') { body.appendChild(fillField(label, c)); continue; }   // forme : fond optionnel
       // Color picker : aperçu live sur 'input' (canvas seul, hors modèle → pas de flood undo) ; commit
       // unique sur 'change' (makeInput), précédé d'un clearPreview pour que le commit re-rende l'état réel.
       // ref figée au rendu : le color picker émet son 'change' en DIFFÉRÉ (après qu'un clic ailleurs a
@@ -452,7 +475,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
       const commit = v => {
         if (kind === 'color') clearPreview?.();
         // Orientation barre : bascule + échange Largeur/Hauteur du placement en UN seul commit (1 undo).
-        if (key === 'orientation') { model.commit(s => setBarOrientation(s, ref, getActivePage(), placeIndex, v)); return; }
+        if (key === 'orientation' && c.type === 'bar') { model.commit(s => setBarOrientation(s, ref, getActivePage(), placeIndex, v)); return; }
         model.commit(s => setComponentProp(s, ref, key, v), kind === 'num' ? { coalesce: 'num' } : undefined);   // F2 : coalesce num
       };
       const input = makeInput(kind, c[key], commit);
