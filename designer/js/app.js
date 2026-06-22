@@ -268,7 +268,9 @@ async function main() {
   // HTTP 4xx ni une validation. Renvoie le texte de succès, ou undefined si échec/ré-entrée
   // (pushVisible s'en sert pour signaler le succès à l'inspecteur).
   async function withBusy(progressMsg, fn) {
-    if (busy) return undefined;                 // ré-entrée bloquée (double-clic)
+    // Ré-entrée bloquée. Les boutons device principaux sont déjà grisés ; mais le bouton « visibilité »
+    // de l'inspecteur n'en fait pas partie → un toast donne le retour qui manquerait sinon (no-op muet).
+    if (busy) { showToast('Opération device en cours…'); return undefined; }
     const t = makeToast(progressMsg);
     setDeviceBusy(true);
     try {
