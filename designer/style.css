@@ -95,13 +95,22 @@ footer { padding: 10px 12px; border-top: 1px solid var(--line); }
 .sb-valid.sb-err { color: var(--err); }
 .sb-zoom { display: flex; align-items: center; gap: 6px; color: var(--muted); }
 
-textarea { width: 100%; height: 220px; background: #0a0a0e; color: #cbd5e1; border: 1px solid var(--line); border-radius: 8px; font: 12.5px/1.5 var(--font-mono); padding: 10px; }
-.row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
-.valid { font-size: 12.5px; }
-.valid.ok { color: var(--ok); }
-.valid.err { color: var(--err); }
-.errors { color: var(--err); font: 12px/1.4 monospace; white-space: pre-wrap; margin: 6px 0 0; }
-.warnings { color: #FBBF24; font: 12px/1.4 monospace; white-space: pre-wrap; margin: 4px 0 0; }
+/* --- Console bas repliable (Phase 6) : [Problèmes | Source], corps replié par défaut --- */
+.console { border-top: 1px solid var(--line); background: var(--panel-2); }
+.console-head { display: flex; align-items: center; gap: 4px; padding: 4px 10px; }
+.console-tab { font-size: 12px; padding: 3px 10px; color: var(--muted); }
+.console-tab.active { color: var(--ink); border-color: var(--accent); }
+.console-spacer { flex: 1 1 auto; }
+.console-toggle { padding: 2px 8px; }
+.console-body { max-height: 30vh; overflow: auto; padding: 8px 12px; border-top: 1px solid var(--line); }
+.console-problems { display: flex; flex-direction: column; gap: 3px; font: 12px/1.4 var(--font-mono); }
+.console-empty { color: var(--muted); font-style: italic; }
+.console-err { color: var(--err); white-space: pre-wrap; }
+.console-warn { color: var(--warn); white-space: pre-wrap; }
+.console-source { position: relative; }
+.console-copy { position: absolute; top: 0; right: 0; font-size: 12px; padding: 2px 8px; }
+.console-json { margin: 0; background: #0a0a0e; color: #cbd5e1; border: 1px solid var(--line);
+  border-radius: 8px; font: 12.5px/1.5 var(--font-mono); padding: 10px; white-space: pre-wrap; word-break: break-all; }
 
 /* --- Plan B : webfont + canvas --- */
 @font-face {
