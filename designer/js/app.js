@@ -14,7 +14,7 @@ import { bindFileIO } from './file-io.js';
 import { createSources } from './sources.js';
 import { createDevicePanel } from './device-panel.js';
 import { stripPhysicalPlacements } from './physical.js';
-import { showToast } from './toast.js';
+import { showToast, makeToast } from './toast.js';
 import { resolveShortcut, isEditableTarget } from './shortcuts.js';
 import { placeComponentCopy, duplicateComponent, removePlacementAndOrphan } from './mutations.js';
 import { createSelection, sameSelection, isSelectionValid } from './selection.js';
@@ -43,9 +43,7 @@ async function main() {
     if (!r.ok) throw new Error(`HTTP ${r.status} — servir depuis Dialboard/, pas designer/`);
     schema = await r.json();
   } catch (e) {
-    const s = document.getElementById('status');
-    s.textContent = 'Erreur init schema : ' + e.message;
-    s.className = 'status err';
+    showToast('Erreur init schema : ' + e.message, { kind: 'err', ms: 6000 });
     return;
   }
   const validate = createValidator(schema);
@@ -94,13 +92,14 @@ async function main() {
     previewProp: canvas.previewProp,
     clearPreview: canvas.clearPreview,
     pushVisible: async (id, visible) => {
-      if (!$('base').value) { setStatus('URL device ?', 'err'); return false; }
-      setStatus('Visibilité…');
-      try {
-        await pushValues($('base').value, { [id]: { visible } });
-        setStatus(visible ? 'Affiché sur le device' : 'Caché sur le device', 'ok');
-        return true;
-      } catch (e) { setStatus('Échec : ' + e.message, 'err'); return false; }
+      const base = $('base').value;
+      if (!base) { showToast('URL device ?'); return false; }
+      // withBusy renvoie le texte de succès (truthy) ou undefined (échec/ré-entrée) → booléen pour l'inspecteur.
+      const r = await withBusy(visible ? 'Affichage…' : 'Masquage…', async () => {
+        await pushValues(base, { [id]: { visible } });
+        return visible ? 'Affiché sur le device' : 'Caché sur le device';
+      });
+      return r !== undefined;
     }
   });
 
@@ -256,17 +255,38 @@ async function main() {
   baseInput.value = savedBase || (isLocalDev ? '' : location.origin);
   baseInput.addEventListener('change', () => { try { localStorage.setItem(BASE_KEY, baseInput.value); } catch (e) {} });
 
-  // La barre #status garde la trace (dont la progression « … » sans kind) ; un verdict ok/err part aussi
-  // en toast (échec rouge / succès vert) — plus visible que la petite barre. Cf. toast.js.
-  const setStatus = (msg, kind) => {
-    $('status').textContent = msg; $('status').className = 'status' + (kind ? ' ' + kind : '');
-    if (kind === 'ok' || kind === 'err') showToast(msg, { kind });
-  };
-  $('load').onclick = async () => {
-    if (!$('base').value) return setStatus('URL device ?', 'err');
-    setStatus('Chargement…');
+  // --- Notifications unifiées + verrou busy (modèle A, cf. spec §3) ---
+  // Une seule I/O device en vol à la fois : `busy` bloque la ré-entrée (double-clic) ET désactive les
+  // boutons device (feedback visuel). Les éditions locales (inspecteur/arbre/undo) ne sont PAS bloquées.
+  const deviceBtns = ['load', 'push', 'values', 'statusbtn', 'capture', 'shot-prev', 'shot-next'].map($);
+  let busy = false;
+  const setDeviceBusy = (b) => { busy = b; for (const el of deviceBtns) if (el) el.disabled = b; };
+
+  // withBusy(progressMsg, fn) : pose un toast progress (spinner), sérialise l'I/O, mue le toast en
+  // verdict. fn renvoie le texte de succès (string) ; une exception → verdict d'échec. Le suffixe
+  // « réseau/CORS » n'apparaît que sur un vrai échec réseau (fetch rejette → TypeError), pas sur un
+  // HTTP 4xx ni une validation. Renvoie le texte de succès, ou undefined si échec/ré-entrée
+  // (pushVisible s'en sert pour signaler le succès à l'inspecteur).
+  async function withBusy(progressMsg, fn) {
+    if (busy) return undefined;                 // ré-entrée bloquée (double-clic)
+    const t = makeToast(progressMsg);
+    setDeviceBusy(true);
     try {
-      const base = $('base').value;
+      const okMsg = await fn();
+      t.morph(typeof okMsg === 'string' ? okMsg : 'Terminé', 'ok');
+      return okMsg;
+    } catch (e) {
+      const hint = e instanceof TypeError ? ' (réseau/CORS ? cf. README)' : '';
+      t.morph('Échec : ' + e.message + hint, 'err');
+      return undefined;
+    } finally {
+      setDeviceBusy(false);
+    }
+  }
+  $('load').onclick = () => {
+    const base = $('base').value;
+    if (!base) return void showToast('URL device ?');
+    withBusy('Chargement…', async () => {
       const lay = await loadLayout(base);
       stripPhysicalPlacements(lay);            // migration avant chargement dans le modèle
       model.loadJSON(JSON.stringify(lay));
@@ -283,17 +303,15 @@ async function main() {
         const b = await fetchImage(base, ic.src);
         if (b) rehydrateImage(ic.src, id, b, ic.w, ic.h);
       }
-      setStatus('Chargé', 'ok');
-    }
-    catch (e) { setStatus('Échec : ' + e.message + ' (CORS ? cf. README)', 'err'); }
+      return 'Chargé';
+    });
   };
-  $('push').onclick = async () => {
-    if (!$('base').value) return setStatus('URL device ?', 'err');
-    if ($('json').value.trim() !== model.toJSON().trim()) return setStatus('Modifs JSON non appliquées — clique « Appliquer » d’abord', 'err');
-    if (!validate(model.state).valid) return setStatus('Layout invalide', 'err');
-    setStatus('Envoi…');
-    try {
-      const base = $('base').value;
+  $('push').onclick = () => {
+    const base = $('base').value;
+    if (!base) return void showToast('URL device ?');
+    if ($('json').value.trim() !== model.toJSON().trim()) return void showToast('Modifs JSON non appliquées — clique « Appliquer » d’abord');
+    if (!validate(model.state).valid) return void showToast('Layout invalide');
+    withBusy('Envoi…', async () => {
       for (const k of referencedKeys(model.state)) {
         const bytes = cacheBytes(k);
         if (bytes) await uploadBgImage(base, k, bytes);   // avant pushLayout (le sweep tourne au POST /layout)
@@ -307,9 +325,8 @@ async function main() {
         if (bytes) await uploadAimg(base, k, bytes);   // avant pushLayout (le sweep tourne au POST /layout)
       }
       await pushLayout(base, model.toJSON());
-      setStatus('Poussé et persisté', 'ok');
-    }
-    catch (e) { setStatus('Échec : ' + e.message + ' (CORS ? cf. README)', 'err'); }
+      return 'Poussé et persisté';
+    });
   };
   // --- Boucle device : santé (/status), valeurs de test (/update), capture + navigation (/page + /screenshot) ---
   const devbar = $('devbar');
@@ -318,19 +335,23 @@ async function main() {
     devbar.className = 'devbar'; devbar.hidden = false;
     devbar.textContent = `● ${s.ip} · page ${(+s.page) + 1}/${s.pages} · up ${s.uptime_s}s · ${s.components} comp.` + (srcs ? ` · sources ${srcs}` : '');
   };
-  $('statusbtn').onclick = async () => {
-    if (!$('base').value) return setStatus('URL device ?', 'err');
-    setStatus('Statut…');
-    try { renderStatus(await getStatus($('base').value)); setStatus('Statut OK', 'ok'); }
-    catch (e) { devbar.hidden = false; devbar.className = 'devbar err'; devbar.textContent = '○ injoignable : ' + e.message; setStatus('Échec statut', 'err'); }
+  $('statusbtn').onclick = () => {
+    const base = $('base').value;
+    if (!base) return void showToast('URL device ?');
+    withBusy('Statut…', async () => {
+      try { renderStatus(await getStatus(base)); return 'Statut OK'; }
+      catch (e) { devbar.hidden = false; devbar.className = 'devbar err'; devbar.textContent = '○ injoignable : ' + e.message; throw e; }
+    });
   };
-  $('values').onclick = async () => {
-    if (!$('base').value) return setStatus('URL device ?', 'err');
+  $('values').onclick = () => {
+    const base = $('base').value;
+    if (!base) return void showToast('URL device ?');
     const payload = buildUpdatePayload(model.state);
-    if (!Object.keys(payload).length) return setStatus('Aucune valeur de test à pousser', 'err');
-    setStatus('Valeurs…');
-    try { const r = await pushValues($('base').value, payload); setStatus(`Valeurs poussées (${r.updated ?? '?'})`, 'ok'); }
-    catch (e) { setStatus('Échec : ' + e.message, 'err'); }
+    if (!Object.keys(payload).length) return void showToast('Aucune valeur de test à pousser');
+    withBusy('Valeurs…', async () => {
+      const r = await pushValues(base, payload);
+      return `Valeurs poussées (${r.updated ?? '?'})`;
+    });
   };
 
   // Capture écran (+ navigation device dans l'overlay). Révoque l'ancienne blob URL (anti-fuite).
@@ -344,20 +365,23 @@ async function main() {
     try { const s = await getStatus($('base').value); $('shot-page').textContent = `page ${(+s.page) + 1}/${s.pages}`; }
     catch (e) { $('shot-page').textContent = ''; }
   };
-  $('capture').onclick = async () => {
-    if (!$('base').value) return setStatus('URL device ?', 'err');
-    setStatus('Capture…');
-    try { await doCapture(); await refreshShotPage(); $('shot-overlay').hidden = false; setStatus('Capturé', 'ok'); }
-    catch (e) { setStatus('Échec : ' + e.message + ' (CORS ? cf. README)', 'err'); }
+  $('capture').onclick = () => {
+    const base = $('base').value;
+    if (!base) return void showToast('URL device ?');
+    withBusy('Capture…', async () => {
+      await doCapture(); await refreshShotPage(); $('shot-overlay').hidden = false;
+      return 'Capturé';
+    });
   };
-  const navAndCapture = async (dir) => {
-    if (!$('base').value) return;
-    setStatus('Navigation…');
-    try {
-      await setDevicePage($('base').value, { dir });
+  const navAndCapture = (dir) => {
+    const base = $('base').value;
+    if (!base) return;
+    withBusy('Navigation…', async () => {
+      await setDevicePage(base, { dir });
       await new Promise(r => setTimeout(r, 350));   // laisse le device basculer + sync avant la capture
-      await doCapture(); await refreshShotPage(); setStatus('Capturé', 'ok');
-    } catch (e) { setStatus('Échec : ' + e.message, 'err'); }
+      await doCapture(); await refreshShotPage();
+      return 'Capturé';
+    });
   };
   $('shot-prev').onclick = () => navAndCapture('prev');
   $('shot-next').onclick = () => navAndCapture('next');
