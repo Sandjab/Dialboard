@@ -85,3 +85,11 @@ test('Cmd+C dans un champ éditable → null (copie de texte native)', () => {
 test('Cmd+Shift+D → null (non mappé, évite les raccourcis navigateur)', () => {
   assert.equal(resolveShortcut({ key: 'd', metaKey: true, shiftKey: true, editable: false }), null);
 });
+
+test('resolveShortcut : F2 (hors champ) → rename', () => {
+  assert.equal(resolveShortcut({ key: 'F2', editable: false }), 'rename');
+});
+
+test('resolveShortcut : F2 dans un champ éditable → null (rename natif éventuel laissé)', () => {
+  assert.equal(resolveShortcut({ key: 'F2', editable: true }), null);
+});
