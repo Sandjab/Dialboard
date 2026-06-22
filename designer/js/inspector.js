@@ -1,7 +1,8 @@
 // Inspecteur : édite le composant + le placement sélectionnés. Pilote les champs par des tables de
 // descripteurs (DRY). Chaque édition committée = UN commit (sur 'change', pas par frappe → pas de
 // flood undo). Le signalement ASCII est live (sur 'input'). S'abonne au modèle pour se rafraîchir.
-import { setComponentProp, setPlacementProp, setBarOrientation, setThresholds, removePlacementAndOrphan, setPageBackground, setPageBackgroundImage } from './mutations.js';
+import { setComponentProp, setPlacementProp, setBarOrientation, setThresholds, removePlacementAndOrphan, setPageBackground, setPageBackgroundImage, setNavWrap, renamePage, pageNameTaken } from './mutations.js';
+import { showToast } from './toast.js';
 import { imageFileToBg, previewUrl } from './bg-image.js';
 import { imageFileToAsset, previewUrl as imagePreviewUrl } from './image-asset.js';
 import { decodeGif, decodeImages, framesToAsset, previewUrls as aimgPreviewUrls } from './image-anim-asset.js';
@@ -113,101 +114,6 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
   // Sous-titre de section.
   function sub(body, text) { const h = document.createElement('div'); h.className = 'insp-sub'; h.textContent = text; body.appendChild(h); }
   function note(body, text) { const n = document.createElement('div'); n.className = 'insp-note'; n.textContent = text; body.appendChild(n); }
-
-  // Rien de sélectionné : l'inspecteur édite le layout (titre/fond — jusqu'ici accessibles seulement
-  // via le JSON brut) et résume la page active, au lieu de laisser la colonne droite vide.
-  function renderPagePanel(body) {
-    const s = model.state;
-    const head = document.createElement('div'); head.className = 'insp-head'; head.textContent = 'Layout';
-    body.appendChild(head);
-    const title = makeInput('text', s.title ?? '', v => model.commit(st => { st.title = v; }));
-    body.appendChild(fieldRow('Titre', title, { ascii: true }));            // texte affiché par le device = ASCII
-    const bg = makeInput('color', s.background || '#000000', v => model.commit(st => { st.background = v; }));
-    body.appendChild(fieldRow('Fond', bg));
-    sub(body, 'Page active');
-    const pi = getActivePage();
-    const pg = s.pages?.[pi];
-    // Fond de la page : override optionnel. (hérité) si absent (= fond global) ; ↺ pour réhériter sinon.
-    if (pg) {
-      const hasBgImg = !!pg.background_image;   // image présente → la couleur de page n'est plus qu'un repli
-      const pbg = makeInput('color', pg.background || s.background || '#000000',
-        v => model.commit(st => setPageBackground(st, pi, v)));
-      const row = fieldRow('Fond page', pbg);
-      if (hasBgImg) { row.classList.add('insp-row--fallback'); pbg.title = "Repli : ne s'affiche que si l'image de fond est absente."; }
-      if (pg.background == null) {
-        const hint = document.createElement('span'); hint.className = 'insp-bg-hint'; hint.textContent = '(hérité)';
-        row.appendChild(hint);
-      } else {
-        const reset = document.createElement('button');
-        reset.type = 'button'; reset.className = 'insp-bg-reset'; reset.textContent = '↺';
-        reset.title = 'Hériter du fond global';
-        reset.addEventListener('click', () => model.commit(st => setPageBackground(st, pi, null)));
-        row.appendChild(reset);
-      }
-      body.appendChild(row);
-      // Image de fond de la page : override optionnel, prime sur la couleur. Le file natif est masqué
-      // (laid + texte de statut « Aucun fichier ») et ouvert via un bouton à icône dossier. Conversion +
-      // upload au navigateur (cf. bg-image.js) ; la clé (hash) est posée dans le layout, les octets sont
-      // poussés au device au « Pousser » (app.js).
-      const imgRow = document.createElement('div'); imgRow.className = 'insp-row insp-bg-row';
-      const imgLabel = document.createElement('span'); imgLabel.className = 'insp-label';
-      imgLabel.textContent = 'Image de fond';
-      imgRow.appendChild(imgLabel);
-      const file = document.createElement('input');
-      file.type = 'file'; file.accept = 'image/*'; file.className = 'insp-bg-file';   // masqué (CSS), ouvert par le bouton dossier
-      file.addEventListener('change', async () => {
-        const f = file.files?.[0]; if (!f) return;
-        try {
-          const { key } = await imageFileToBg(f);
-          model.commit(st => setPageBackgroundImage(st, pi, key));
-        } catch (e) { console.error('bg image:', e); }
-        file.value = '';
-      });
-      imgRow.appendChild(file);
-      if (pg.background_image) {                                  // aperçu ; cadre « octets sur le device » si pas en cache local
-        const u = previewUrl(pg.background_image);
-        if (u) {
-          const thumb = document.createElement('img');
-          thumb.className = 'insp-bg-thumb'; thumb.src = u; thumb.alt = 'aperçu du fond';
-          imgRow.appendChild(thumb);
-        } else {
-          const ph = document.createElement('span');
-          ph.className = 'insp-bg-thumb insp-bg-thumb--empty';
-          ph.title = 'Fond défini — aperçu indisponible (octets stockés sur le device)';
-          const phIcon = document.createElement('img');
-          phIcon.src = IMAGE_URI; phIcon.width = 18; phIcon.height = 18; phIcon.alt = '';
-          ph.appendChild(phIcon);
-          imgRow.appendChild(ph);
-        }
-      }
-      const pick = document.createElement('button');
-      pick.type = 'button'; pick.className = 'insp-iconbtn';
-      pick.title = pg.background_image ? "Changer l'image" : "Choisir une image";
-      const pickIcon = document.createElement('img');
-      pickIcon.src = FOLDER_URI; pickIcon.width = 16; pickIcon.height = 16; pickIcon.alt = pick.title;
-      pick.appendChild(pickIcon);
-      pick.addEventListener('click', () => file.click());
-      imgRow.appendChild(pick);
-      if (pg.background_image) {
-        const del = document.createElement('button');
-        del.type = 'button'; del.className = 'insp-iconbtn';
-        del.title = "Retirer l'image";
-        const delIcon = document.createElement('img');
-        delIcon.src = TRASH_URI; delIcon.width = 16; delIcon.height = 16; delIcon.alt = "Retirer l'image";
-        del.appendChild(delIcon);
-        del.addEventListener('click', () => model.commit(st => setPageBackgroundImage(st, pi, null)));
-        imgRow.appendChild(del);
-      }
-      body.appendChild(imgRow);
-      if (hasBgImg) note(body, "L'image de fond prime sur la couleur ; celle-ci sert de repli si l'image est absente du device.");
-    }
-    const onPage = pg?.place?.length ?? 0;
-    const total = Object.keys(s.components || {}).length;
-    note(body, `${pg?.name || `Page ${pi + 1}`} — ${onPage} placé(s) · ${total} composant(s) au total`);
-    const tip = document.createElement('p'); tip.className = 'todo';
-    tip.textContent = 'Sélectionne un widget sur le canvas pour l’éditer.';
-    body.appendChild(tip);
-  }
 
   function renderExtras(body, c) {
     const p = place();
@@ -368,6 +274,136 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     return wrap;
   }
 
+  // Rien de sélectionné (null / sélection périmée / ref orpheline) : placeholder neutre. Cohérence stricte
+  // arbre↔inspecteur (Option 1) : on n'édite rien tant que rien n'est sélectionné.
+  function renderEmpty(body) {
+    const tip = document.createElement('p'); tip.className = 'todo';
+    tip.textContent = 'Rien de sélectionné — choisis un élément dans l’arbre, ou un widget sur le canvas.';
+    body.appendChild(tip);
+  }
+
+  // Vue Document : params globaux du layout. title (poussé au device → ASCII) + background (couleur globale)
+  // + nav.wrap (boucle de navigation). Reprend l'édition inline title/background de l'ancien renderPagePanel.
+  function renderDoc(body) {
+    const s = model.state;
+    const head = document.createElement('div'); head.className = 'insp-head';
+    const htitle = document.createElement('span'); htitle.textContent = 'Document';
+    head.appendChild(htitle);
+    body.appendChild(head);
+
+    const titleInput = makeInput('text', s.title ?? '', v => model.commit(st => { st.title = v; }));
+    body.appendChild(fieldRow('Titre', titleInput, { ascii: true }));          // texte affiché par le device = ASCII
+    const bg = makeInput('color', s.background || '#000000', v => model.commit(st => { st.background = v; }));
+    body.appendChild(fieldRow('Fond', bg));
+
+    sub(body, 'Navigation');
+    // wrap : défaut firmware true (boucle). Coché = boucler (dernière → première) ; décoché = buter au bord.
+    const wrap = s.nav?.wrap !== false;
+    const cb = makeInput('bool', wrap, v => model.commit(st => setNavWrap(st, v)));
+    body.appendChild(fieldRow('Boucler la navigation', cb));
+
+    const np = s.pages?.length ?? 0;
+    const nc = Object.keys(s.components || {}).length;
+    note(body, `${np} page(s) · ${nc} composant(s)`);
+  }
+
+  // Vue Page : nom de la page (libellé designer — pas poussé au device, donc pas de garde ASCII ; garde-
+  // doublon partagée avec l'arbre via pageNameTaken) + fond couleur (override/hérité) + image de fond.
+  function renderPage(body, pi) {
+    const s = model.state;
+    const pg = s.pages?.[pi];
+    if (!pg) { renderEmpty(body); return; }   // robustesse : page disparue (reorder/suppr concurrente)
+
+    const head = document.createElement('div'); head.className = 'insp-head';
+    const htitle = document.createElement('span'); htitle.textContent = `Page « ${pg.name || `Page ${pi + 1}`} »`;
+    head.appendChild(htitle);
+    body.appendChild(head);
+
+    // Nom : commit sur change ; vide/inchangé → resync l'input ; doublon → toast + re-render (revient à pg.name).
+    const name = makeInput('text', pg.name ?? '', v => {
+      const nv = (v || '').trim();
+      if (!nv || nv === (pg.name || '')) { render(); return; }
+      if (pageNameTaken(s, nv, pi)) { showToast(`« ${nv} » est déjà utilisé`); render(); return; }
+      model.commit(st => renamePage(st, pi, nv));
+    });
+    body.appendChild(fieldRow('Nom', name));
+
+    // Fond de la page : override optionnel. (hérité) si absent (= fond global) ; ↺ pour réhériter sinon.
+    const hasBgImg = !!pg.background_image;   // image présente → la couleur de page n'est plus qu'un repli
+    const pbg = makeInput('color', pg.background || s.background || '#000000',
+      v => model.commit(st => setPageBackground(st, pi, v)));
+    const row = fieldRow('Fond page', pbg);
+    if (hasBgImg) { row.classList.add('insp-row--fallback'); pbg.title = "Repli : ne s'affiche que si l'image de fond est absente."; }
+    if (pg.background == null) {
+      const hint = document.createElement('span'); hint.className = 'insp-bg-hint'; hint.textContent = '(hérité)';
+      row.appendChild(hint);
+    } else {
+      const reset = document.createElement('button');
+      reset.type = 'button'; reset.className = 'insp-bg-reset'; reset.textContent = '↺';
+      reset.title = 'Hériter du fond global';
+      reset.addEventListener('click', () => model.commit(st => setPageBackground(st, pi, null)));
+      row.appendChild(reset);
+    }
+    body.appendChild(row);
+
+    // Image de fond de la page : override optionnel, prime sur la couleur. File natif masqué, ouvert par le
+    // bouton dossier ; conversion + upload au navigateur (bg-image.js) ; la clé (hash) est posée dans le layout.
+    const imgRow = document.createElement('div'); imgRow.className = 'insp-row insp-bg-row';
+    const imgLabel = document.createElement('span'); imgLabel.className = 'insp-label';
+    imgLabel.textContent = 'Image de fond';
+    imgRow.appendChild(imgLabel);
+    const file = document.createElement('input');
+    file.type = 'file'; file.accept = 'image/*'; file.className = 'insp-bg-file';   // masqué (CSS), ouvert par le bouton dossier
+    file.addEventListener('change', async () => {
+      const f = file.files?.[0]; if (!f) return;
+      try {
+        const { key } = await imageFileToBg(f);
+        model.commit(st => setPageBackgroundImage(st, pi, key));
+      } catch (e) { console.error('bg image:', e); }
+      file.value = '';
+    });
+    imgRow.appendChild(file);
+    if (pg.background_image) {                                  // aperçu ; cadre « octets sur le device » si pas en cache local
+      const u = previewUrl(pg.background_image);
+      if (u) {
+        const thumb = document.createElement('img');
+        thumb.className = 'insp-bg-thumb'; thumb.src = u; thumb.alt = 'aperçu du fond';
+        imgRow.appendChild(thumb);
+      } else {
+        const ph = document.createElement('span');
+        ph.className = 'insp-bg-thumb insp-bg-thumb--empty';
+        ph.title = 'Fond défini — aperçu indisponible (octets stockés sur le device)';
+        const phIcon = document.createElement('img');
+        phIcon.src = IMAGE_URI; phIcon.width = 18; phIcon.height = 18; phIcon.alt = '';
+        ph.appendChild(phIcon);
+        imgRow.appendChild(ph);
+      }
+    }
+    const pick = document.createElement('button');
+    pick.type = 'button'; pick.className = 'insp-iconbtn';
+    pick.title = pg.background_image ? "Changer l'image" : "Choisir une image";
+    const pickIcon = document.createElement('img');
+    pickIcon.src = FOLDER_URI; pickIcon.width = 16; pickIcon.height = 16; pickIcon.alt = pick.title;
+    pick.appendChild(pickIcon);
+    pick.addEventListener('click', () => file.click());
+    imgRow.appendChild(pick);
+    if (pg.background_image) {
+      const del = document.createElement('button');
+      del.type = 'button'; del.className = 'insp-iconbtn';
+      del.title = "Retirer l'image";
+      const delIcon = document.createElement('img');
+      delIcon.src = TRASH_URI; delIcon.width = 16; delIcon.height = 16; delIcon.alt = "Retirer l'image";
+      del.appendChild(delIcon);
+      del.addEventListener('click', () => model.commit(st => setPageBackgroundImage(st, pi, null)));
+      imgRow.appendChild(del);
+    }
+    body.appendChild(imgRow);
+    if (hasBgImg) note(body, "L'image de fond prime sur la couleur ; celle-ci sert de repli si l'image est absente du device.");
+
+    const onPage = pg.place?.length ?? 0;
+    note(body, `${onPage} composant(s) placé(s) sur cette page`);
+  }
+
   // Vue Composant : props/géométrie/seuils/aperçu mock + œil d'en-tête + bouton device visible + suppr.
   // Contenu inchangé (extrait de l'ancien render()) ; F5 (ref figée au rendu) et coalesce num préservés.
   function renderComp(body, c) {
@@ -466,18 +502,22 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
   function render() {
     // garde focus : ne pas reconstruire pendant qu'un champ de l'inspecteur est en cours d'édition.
     if (root.contains(document.activeElement) && document.activeElement !== document.body) return;
-    sel = currentSel();   // source de vérité : le store partagé (recalculé à chaque rendu)
+    sel = currentSel();   // null sauf composant valide (le `ref` se DÉRIVE — cf. spec §1)
     if (_aimgPreviewTimer) { clearInterval(_aimgPreviewTimer); _aimgPreviewTimer = null; }   // stoppe l'aperçu avant tout rebuild
     root.querySelectorAll('.insp-body').forEach(n => n.remove());
     placementInputs = {};   // les anciens champs viennent d'être retirés
-    const c = comp();
-    const p = place();
-    const body = document.createElement('div');
-    body.className = 'insp-body';
-    if (!c || !p) {                               // sélection absente ou obsolète → ancien panneau (provisoire)
-      renderPagePanel(body); root.appendChild(body); return;
+    const body = document.createElement('div'); body.className = 'insp-body';
+    const s = selection.get();
+    const c = sel ? comp() : null;   // composant vivant (sel non-null ⇒ kind comp ; null si ref orpheline)
+    if (c) {                                             // composant valide → vue Composant
+      renderComp(body, c);
+    } else if (s && s.kind === 'doc') {                  // nœud Document → globales
+      renderDoc(body);
+    } else if (s && s.kind === 'page' && model.state.pages?.[s.page]) {   // page existante → vue Page
+      renderPage(body, s.page);
+    } else {                                             // null / périmé / ref orpheline → placeholder
+      renderEmpty(body);
     }
-    renderComp(body, c);
     root.appendChild(body);
   }
 
