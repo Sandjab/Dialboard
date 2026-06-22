@@ -77,11 +77,16 @@ export function contextMenuItems(sel, state, { hasClipboard = false } = {}) {
 // active vit dans canvas.js) PLUS le store de sélection (selection/setSelection). Pilote pages + comps.
 export function createTree(root, model, { selection, setSelection, getActivePage = () => 0, setPage } = {}) {
   let renaming = null;   // index de la page en cours de renommage inline, ou null
+  const expanded = new Set([getActivePage()]);   // pages dépliées (page active auto-dépliée)
+  // setPage du host (canvas) + auto-dépliage de la page qui devient active.
+  const goPage = (i) => { expanded.add(i); setPage(i); };
 
   // Backstop : après removePage/undo/import l'index actif peut dépasser la liste → on le ramène.
   function clampActive() {
     const n = model.state.pages?.length ?? 0;
     if (n && getActivePage() > n - 1) setPage(n - 1);
+    for (const i of [...expanded]) if (i >= n) expanded.delete(i);
+    expanded.add(getActivePage());   // l'active reste toujours dépliée
   }
 
   function compRow(c, pageIndex, sel) {
@@ -94,7 +99,7 @@ export function createTree(root, model, { selection, setSelection, getActivePage
     const ref = document.createElement('span'); ref.className = 'tree-ref'; ref.textContent = c.ref;
     row.appendChild(lbl); row.appendChild(ref);
     row.addEventListener('click', () => {
-      if (pageIndex !== getActivePage()) setPage(pageIndex);     // bascule de page d'abord (met sel à null)…
+      if (pageIndex !== getActivePage()) goPage(pageIndex);      // bascule de page d'abord (met sel à null)…
       setSelection({ kind: 'comp', page: pageIndex, index: c.index });  // …puis sélectionne le composant
       render();
     });
@@ -117,7 +122,7 @@ export function createTree(root, model, { selection, setSelection, getActivePage
     return row;
   }
 
-  function pageRow(p, active, sel) {
+  function pageRow(p, sel) {
     // Mode renommage inline (garde anti-doublon : le nom de page est la cible de POST /page → pas
     // de doublon).
     if (renaming === p.index) {
@@ -150,12 +155,20 @@ export function createTree(root, model, { selection, setSelection, getActivePage
     const row = document.createElement('div');
     const isSel = sel && sel.kind === 'page' && sel.page === p.index;
     row.className = 'tree-row tree-page' + (isSel ? ' selected' : '');
-    const tw = document.createElement('span'); tw.className = 'tree-twist'; tw.textContent = active ? '▾' : '▸';
+    const tw = document.createElement('span'); tw.className = 'tree-twist';
+    const isOpen = expanded.has(p.index);
+    tw.textContent = isOpen ? '▾' : '▸';
+    tw.title = isOpen ? 'Replier' : 'Déplier';
+    tw.addEventListener('click', e => {
+      e.stopPropagation();
+      if (expanded.has(p.index)) expanded.delete(p.index); else expanded.add(p.index);
+      render();
+    });
     const lbl = document.createElement('span'); lbl.className = 'tree-label';
     lbl.textContent = p.name || `Page ${p.index + 1}`;
     row.appendChild(tw); row.appendChild(lbl);
     row.addEventListener('click', () => {
-      setPage(p.index);                                  // met la sélection à null (canvas)…
+      goPage(p.index);                                   // met la sélection à null (canvas)…
       setSelection({ kind: 'page', page: p.index });     // …puis sélectionne la page
       render();
     });
@@ -169,16 +182,16 @@ export function createTree(root, model, { selection, setSelection, getActivePage
       b.addEventListener('click', e => { e.stopPropagation(); if (!disabled) fn(); });   // ne pas (re)sélectionner la ligne
       actions.appendChild(b);
     };
-    mkAct('✎', 'Renommer', () => { setPage(p.index); renaming = p.index; render(); });
+    mkAct('✎', 'Renommer', () => { goPage(p.index); renaming = p.index; render(); });
     mkAct('↑', 'Monter', () => {
-      model.commit(s => reorderPages(s, p.index, p.index - 1)); setPage(p.index - 1); render();
+      model.commit(s => reorderPages(s, p.index, p.index - 1)); goPage(p.index - 1); render();
     }, p.index <= 0);
     mkAct('↓', 'Descendre', () => {
-      model.commit(s => reorderPages(s, p.index, p.index + 1)); setPage(p.index + 1); render();
+      model.commit(s => reorderPages(s, p.index, p.index + 1)); goPage(p.index + 1); render();
     }, p.index >= total - 1);
     mkAct('✕', 'Supprimer la page', () => {
       model.commit(s => removePage(s, p.index));
-      setPage(Math.min(p.index, model.state.pages.length - 1));
+      goPage(Math.min(p.index, model.state.pages.length - 1));
       render();
     }, total <= 1);
     row.appendChild(actions);
@@ -189,7 +202,6 @@ export function createTree(root, model, { selection, setSelection, getActivePage
     clampActive();
     root.querySelectorAll('.tree, .tree-head').forEach(n => n.remove());
     const t = treeModel(model.state);
-    const active = getActivePage();
     const sel = selection.get();
 
     // En-tête : ajout de page (hors .tree pour survivre à son nettoyage à chaque render).
@@ -198,7 +210,7 @@ export function createTree(root, model, { selection, setSelection, getActivePage
     addBtn.addEventListener('click', () => {
       model.commit(s => addPage(s, uniquePageName(s)));   // nom auto sans collision
       const last = model.state.pages.length - 1;
-      setPage(last);
+      goPage(last);
       setSelection({ kind: 'page', page: last });
       render();
     });
@@ -217,10 +229,10 @@ export function createTree(root, model, { selection, setSelection, getActivePage
     doc.addEventListener('click', () => { setSelection({ kind: 'doc' }); render(); });
     tree.appendChild(doc);
 
-    // Pages (+ composants de la page active uniquement, MVP)
+    // Pages (+ composants des pages dépliées)
     t.pages.forEach(p => {
-      tree.appendChild(pageRow(p, p.index === active, sel));
-      if (p.index === active) p.components.forEach(c => tree.appendChild(compRow(c, p.index, sel)));
+      tree.appendChild(pageRow(p, sel));
+      if (expanded.has(p.index)) p.components.forEach(c => tree.appendChild(compRow(c, p.index, sel)));
     });
 
     root.appendChild(tree);
