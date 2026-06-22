@@ -3,6 +3,11 @@
 // Remplace nav#pages : Document → pages (ordre nav) → composants (z-order INVERSÉ). cf. spec §1.
 import { COMPONENTS } from './registry.js';
 import { iconFor } from './icons.js';
+import { setComponentProp } from './mutations.js';
+
+// Œil de visibilité — mêmes icônes que l'en-tête inspecteur (brique commune, cf. spec §1).
+const EYE_OPEN_URI = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E5E7EB' stroke-width='2'%3E%3Cpath d='M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E";
+const EYE_OFF_URI  = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23EF4444' stroke-width='2'%3E%3Cpath d='M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cline x1='3' y1='3' x2='21' y2='21'/%3E%3C/svg%3E";
 
 // Structure pure pour le rendu. Les composants sont renvoyés en ordre inversé (dernier placement =
 // dessus = première ligne) MAIS chaque item garde son index RÉEL dans place[] (cible de la sélection
@@ -54,6 +59,22 @@ export function createTree(root, model, { selection, setSelection, getActivePage
       setSelection({ kind: 'comp', page: pageIndex, index: c.index });  // …puis sélectionne le composant
       render();
     });
+    // Œil de visibilité (brique commune avec l'en-tête inspecteur) : toggle de la clé `visible`.
+    const spacer = document.createElement('span'); spacer.className = 'tree-spacer';
+    row.appendChild(spacer);
+    const eye = document.createElement('button');
+    eye.className = 'insp-eye';                       // style partagé (icône bouton plat)
+    eye.title = c.visible ? 'Visible — cliquer pour cacher' : 'Caché — cliquer pour afficher';
+    const icon = document.createElement('img');
+    icon.src = c.visible ? EYE_OPEN_URI : EYE_OFF_URI;
+    icon.width = 14; icon.height = 14; icon.alt = c.visible ? 'visible' : 'caché';
+    eye.appendChild(icon);
+    const cref = c.ref, cvis = c.visible;            // figés au rendu (closure)
+    eye.addEventListener('click', e => {
+      e.stopPropagation();                            // ne pas sélectionner la ligne
+      model.commit(s => setComponentProp(s, cref, 'visible', cvis ? false : true));
+    });
+    row.appendChild(eye);
     return row;
   }
 
