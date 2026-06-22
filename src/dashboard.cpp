@@ -29,6 +29,7 @@ static const struct { const char* name; CompType type; } COMP_NAMES[] = {
     { "ring",     COMP_RING     }, { "led_ring", COMP_LED_RING }, { "sound", COMP_SOUND },
     { "chart",    COMP_CHART    }, { "meter",    COMP_METER    }, { "image", COMP_IMAGE },
     { "image_anim", COMP_IMAGE_ANIM }, { "led", COMP_LED },
+    { "rect", COMP_RECT }, { "circle", COMP_CIRCLE }, { "line", COMP_LINE },
 };
 
 static CompType parse_type(const char* s) {
@@ -59,6 +60,11 @@ static ArcMode parse_arc_mode(const char* s) {
     if (s && !strcmp(s, "symmetrical")) return ARC_SYMMETRICAL;
     if (s && !strcmp(s, "reverse"))     return ARC_REVERSE;
     return ARC_NORMAL;
+}
+static LineDash parse_line_dash(const char* s) {
+    if (s && !strcmp(s, "dashed")) return LINE_DASHED;
+    if (s && !strcmp(s, "dotted")) return LINE_DOTTED;
+    return LINE_SOLID;
 }
 
 bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
@@ -110,6 +116,13 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
         if (c.bar_anim_ms < 0) c.bar_anim_ms = 0;
         c.arc_mode     = parse_arc_mode(o["mode"] | "normal");
         c.arc_rounded  = o["rounded"] | true;
+        c.fill_set     = o["fill"].is<const char*>();
+        c.fill         = c.fill_set ? parse_hex_color(o["fill"], 0) : 0;
+        c.border_color = parse_hex_color(o["border_color"] | "#FFFFFF", 0xFFFFFF);
+        c.border_width = o["border_width"] | 0;
+        if (c.border_width < 0) c.border_width = 0;
+        c.line_dash    = parse_line_dash(o["dash"] | "solid");
+        c.line_rounded = o["rounded"] | false;   // line : defaut false (ring lit aussi "rounded" -> arc_rounded, defaut true)
         c.led_brightness_cfg = o["brightness"] | 64;
         strlcpy(c.bind, o["bind"] | "", sizeof(c.bind));
         c.chart_points = o["points"] | 30;
@@ -289,6 +302,10 @@ static void apply_led(Component& c, JsonVariantConst v) {
 static void apply_image(Component&, JsonVariantConst) {
     // Image statique : pas de /update en v1 (asset GET-only). Entree de vtable requise.
 }
+static void apply_shape(Component&, JsonVariantConst) {
+    // rect/circle/line : statiques, pas de push de valeur. `visible` est gere universellement
+    // (dash_apply_update) avant apply_one. Entree de vtable requise (static_assert COMP_COUNT).
+}
 static void apply_image_anim(Component& c, JsonVariantConst v) {
     if (v["stop"] | false) {
         c.aimg_playing = false;
@@ -328,6 +345,9 @@ static const comp_apply_fn APPLY[] = {
     /* COMP_IMAGE    */ apply_image,
     /* COMP_IMAGE_ANIM */ apply_image_anim,
     /* COMP_LED      */ apply_led,
+    /* COMP_RECT     */ apply_shape,
+    /* COMP_CIRCLE   */ apply_shape,
+    /* COMP_LINE     */ apply_shape,
 };
 static_assert(sizeof(APPLY) / sizeof(APPLY[0]) == COMP_COUNT,
               "APPLY desync avec CompType : ajoute la ligne du nouveau type");

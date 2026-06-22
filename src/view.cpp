@@ -16,6 +16,11 @@ static lv_obj_t* s_sub1  [MAX_PAGES][MAX_PLACEMENTS_PER_PAGE];
 static lv_obj_t* s_sub2  [MAX_PAGES][MAX_PLACEMENTS_PER_PAGE];
 static lv_obj_t* s_dots = nullptr;
 
+// line : lv_line_set_points conserve le POINTEUR (pas de copie) -> tableau persistant par placement.
+// Rempli par build_line ; s_cur_page/s_cur_place sont poses par la boucle de build avant chaque build().
+static lv_point_precise_t s_line_pts[MAX_PAGES][MAX_PLACEMENTS_PER_PAGE][2];
+static int s_cur_page = 0, s_cur_place = 0;
+
 static uint8_t*     s_bg_buf[MAX_PAGES] = {0};   // RGB565 en PSRAM par page (nullptr = pas d'image)
 static lv_image_dsc_t s_bg_dsc[MAX_PAGES];
 
@@ -449,6 +454,78 @@ static void sync_led(Component& c, Placement&, lv_obj_t* w, lv_obj_t* sub1, lv_o
     }
 }
 
+// Formes decoratives : lv_obj style (rect/circle) ou lv_line (line). Statiques (sync=nullptr).
+static void build_rect(lv_obj_t* parent, Component& c, Placement& q,
+                       lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
+    lv_obj_t* o = lv_obj_create(parent);
+    lv_obj_remove_style_all(o);
+    lv_obj_remove_flag(o, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_size(o, q.width > 0 ? q.width : 120, q.height > 0 ? q.height : 60);
+    lv_obj_set_style_radius(o, q.radius > 0 ? q.radius : 0, LV_PART_MAIN);
+    if (c.fill_set) {
+        lv_obj_set_style_bg_color(o, lv_color_hex(c.fill), LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(o, LV_OPA_COVER, LV_PART_MAIN);
+    } else {
+        lv_obj_set_style_bg_opa(o, LV_OPA_TRANSP, LV_PART_MAIN);
+    }
+    if (c.border_width > 0) {
+        lv_obj_set_style_border_width(o, c.border_width, LV_PART_MAIN);
+        lv_obj_set_style_border_color(o, lv_color_hex(c.border_color), LV_PART_MAIN);
+        lv_obj_set_style_border_opa(o, LV_OPA_COVER, LV_PART_MAIN);
+    }
+    lv_obj_align(o, ALIGN_MAP[q.anchor], q.dx, q.dy);
+    *main = o;
+}
+
+static void build_circle(lv_obj_t* parent, Component& c, Placement& q,
+                         lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
+    lv_obj_t* o = lv_obj_create(parent);
+    lv_obj_remove_style_all(o);
+    lv_obj_remove_flag(o, LV_OBJ_FLAG_SCROLLABLE);
+    int d = q.size > 0 ? q.size : 60;
+    lv_obj_set_size(o, d, d);
+    lv_obj_set_style_radius(o, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+    if (c.fill_set) {
+        lv_obj_set_style_bg_color(o, lv_color_hex(c.fill), LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(o, LV_OPA_COVER, LV_PART_MAIN);
+    } else {
+        lv_obj_set_style_bg_opa(o, LV_OPA_TRANSP, LV_PART_MAIN);
+    }
+    if (c.border_width > 0) {
+        lv_obj_set_style_border_width(o, c.border_width, LV_PART_MAIN);
+        lv_obj_set_style_border_color(o, lv_color_hex(c.border_color), LV_PART_MAIN);
+        lv_obj_set_style_border_opa(o, LV_OPA_COVER, LV_PART_MAIN);
+    }
+    lv_obj_align(o, ALIGN_MAP[q.anchor], q.dx, q.dy);
+    *main = o;
+}
+
+static void build_line(lv_obj_t* parent, Component& c, Placement& q,
+                       lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
+    lv_obj_t* o = lv_line_create(parent);
+    lv_obj_remove_style_all(o);
+    int len = q.width > 0 ? q.width : 80;
+    int th  = q.thickness > 0 ? q.thickness : 2;
+    lv_point_precise_t* pts = s_line_pts[s_cur_page][s_cur_place];
+    pts[0].x = 0; pts[0].y = 0;
+    if (c.bar_vertical) { pts[1].x = 0;   pts[1].y = len; lv_obj_set_size(o, th, len); }
+    else                { pts[1].x = len; pts[1].y = 0;   lv_obj_set_size(o, len, th); }
+    lv_line_set_points(o, pts, 2);
+    lv_obj_set_style_line_width(o, th, LV_PART_MAIN);
+    lv_obj_set_style_line_color(o, lv_color_hex(c.color), LV_PART_MAIN);
+    lv_obj_set_style_line_opa(o, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_line_rounded(o, c.line_rounded, LV_PART_MAIN);
+    if (c.line_dash == LINE_DASHED) {
+        lv_obj_set_style_line_dash_width(o, 10, LV_PART_MAIN);
+        lv_obj_set_style_line_dash_gap(o, 6, LV_PART_MAIN);
+    } else if (c.line_dash == LINE_DOTTED) {
+        lv_obj_set_style_line_dash_width(o, 2, LV_PART_MAIN);
+        lv_obj_set_style_line_dash_gap(o, 4, LV_PART_MAIN);
+    }
+    lv_obj_align(o, ALIGN_MAP[q.anchor], q.dx, q.dy);
+    *main = o;
+}
+
 // Vtable vue indexée par CompType. Types physiques (led_ring/sound) : build/sync = nullptr
 // (rendus par leur tick dédié -> le moteur les saute). label/readout partagent build_text.
 struct ViewVTable {
@@ -470,6 +547,9 @@ static const ViewVTable VIEW[] = {
     /* COMP_IMAGE    */ { build_image, nullptr     },
     /* COMP_IMAGE_ANIM */ { build_image_anim, sync_image_anim },
     /* COMP_LED      */ { build_led, sync_led },
+    /* COMP_RECT     */ { build_rect,   nullptr },
+    /* COMP_CIRCLE   */ { build_circle, nullptr },
+    /* COMP_LINE     */ { build_line,   nullptr },
 };
 static_assert(sizeof(VIEW) / sizeof(VIEW[0]) == COMP_COUNT,
               "VIEW desync avec CompType : ajoute la ligne du nouveau type");
@@ -715,6 +795,7 @@ void view_rebuild(Dashboard* d) {
             Component& c = d->components[q.comp_index];
             if (c.type == COMP_IMAGE) img_load_component(d, q.comp_index);
             if (c.type == COMP_IMAGE_ANIM) aimg_load_component(d, q.comp_index);
+            s_cur_page = p; s_cur_place = i;   // pour build_line (points persistants par placement)
             if ((unsigned)c.type < COMP_COUNT && VIEW[c.type].build)
                 VIEW[c.type].build(cont, c, q, &s_widget[p][i], &s_sub1[p][i], &s_sub2[p][i]);
         }
