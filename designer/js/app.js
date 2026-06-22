@@ -149,6 +149,12 @@ async function main() {
     if (!action) return;
     if (action === 'undo') { e.preventDefault(); if (model.canUndo()) model.undo(); return; }
     if (action === 'redo') { e.preventDefault(); if (model.canRedo()) model.redo(); return; }
+    if (action === 'rename') {
+      if (selection.get() == null) return;
+      e.preventDefault();
+      tree.beginRename();
+      return;
+    }
     if (action === 'deselect') {
       if (selection.get() == null) return;   // toute sélection (doc/page/comp), pas seulement un composant
       e.preventDefault();
