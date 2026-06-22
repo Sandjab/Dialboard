@@ -368,20 +368,9 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     return wrap;
   }
 
-  function render() {
-    // garde focus : ne pas reconstruire pendant qu'un champ de l'inspecteur est en cours d'édition.
-    if (root.contains(document.activeElement) && document.activeElement !== document.body) return;
-    sel = currentSel();   // source de vérité : le store partagé (recalculé à chaque rendu)
-    if (_aimgPreviewTimer) { clearInterval(_aimgPreviewTimer); _aimgPreviewTimer = null; }   // stoppe l'apercu avant tout rebuild de l'inspecteur
-    root.querySelectorAll('.insp-body').forEach(n => n.remove());
-    placementInputs = {};   // les anciens champs viennent d'être retirés
-    const c = comp();
-    const p = place();
-    const body = document.createElement('div');
-    body.className = 'insp-body';
-    if (!c || !p) {                               // sélection absente ou devenue obsolète (page changée, undo…)
-      renderPagePanel(body); root.appendChild(body); return;
-    }
+  // Vue Composant : props/géométrie/seuils/aperçu mock + œil d'en-tête + bouton device visible + suppr.
+  // Contenu inchangé (extrait de l'ancien render()) ; F5 (ref figée au rendu) et coalesce num préservés.
+  function renderComp(body, c) {
     const head = document.createElement('div'); head.className = 'insp-head';
     const title = document.createElement('span'); title.textContent = `${c.type} · ${sel.ref}`;
     head.appendChild(title);
@@ -472,6 +461,23 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
       model.commit(s => removePlacementAndOrphan(s, getActivePage(), i));
     });
     body.appendChild(del);
+  }
+
+  function render() {
+    // garde focus : ne pas reconstruire pendant qu'un champ de l'inspecteur est en cours d'édition.
+    if (root.contains(document.activeElement) && document.activeElement !== document.body) return;
+    sel = currentSel();   // source de vérité : le store partagé (recalculé à chaque rendu)
+    if (_aimgPreviewTimer) { clearInterval(_aimgPreviewTimer); _aimgPreviewTimer = null; }   // stoppe l'aperçu avant tout rebuild
+    root.querySelectorAll('.insp-body').forEach(n => n.remove());
+    placementInputs = {};   // les anciens champs viennent d'être retirés
+    const c = comp();
+    const p = place();
+    const body = document.createElement('div');
+    body.className = 'insp-body';
+    if (!c || !p) {                               // sélection absente ou obsolète → ancien panneau (provisoire)
+      renderPagePanel(body); root.appendChild(body); return;
+    }
+    renderComp(body, c);
     root.appendChild(body);
   }
 
