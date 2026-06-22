@@ -112,6 +112,13 @@ export function setThresholds(state, id, thresholds) {
   else delete c.thresholds;
 }
 
+// Navigation circulaire (nav.wrap) : true = boucle (dernière page → première, défaut firmware), false =
+// bute au bord. Crée l'objet nav au besoin ; n'écrit que la clé wrap (le spread préserve d'éventuelles
+// futures clés nav). Coerce en booléen — le layout ne porte jamais de wrap non-bool.
+export function setNavWrap(state, wrap) {
+  state.nav = { ...(state.nav || {}), wrap: !!wrap };
+}
+
 // --- Pages (Plan C2) ---
 
 // Nom de page auto unique (« Page N » au premier N libre) : évite les collisions à la création, le
