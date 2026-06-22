@@ -104,6 +104,14 @@ export function setBarOrientation(state, id, pageIndex, placeIndex, orientation)
   p.width = h; p.height = w;
 }
 
+// icon states : tableau de {at, symbol?, color?}. Vide => suppression de la clé (icône statique).
+export function setIconStates(state, id, states) {
+  const c = state.components[id];
+  if (!c) return;
+  if (states && states.length) c.states = states;
+  else delete c.states;
+}
+
 // thresholds : tableau de [limite, "#hex"]. Vide => suppression de la clé.
 export function setThresholds(state, id, thresholds) {
   const c = state.components[id];
