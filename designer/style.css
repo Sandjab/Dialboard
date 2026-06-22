@@ -295,10 +295,11 @@ textarea { width: 100%; height: 220px; background: #0a0a0e; color: #cbd5e1; bord
 .shot-nav { display: flex; align-items: center; gap: 10px; }
 .shot-nav span { font-size: 12.5px; color: var(--muted); min-width: 78px; text-align: center; }
 
-/* Barre de santé device (GET /status) */
-.devbar { padding: 5px 12px; font: 12.5px/1.4 ui-monospace, monospace; color: var(--muted);
-  border-bottom: 1px solid var(--line); background: var(--panel-2); }
-.devbar.err { color: var(--err); }
+/* Pastille device (toolbar, cf. app.js setDevicePill) : état de connexion permanent (modèle A). */
+.dev-pill { font: 12.5px/1 ui-monospace, monospace; color: var(--muted);
+  padding: 4px 9px; border: 1px solid var(--line); border-radius: 999px; white-space: nowrap; }
+.dev-pill.ok { color: var(--ok); border-color: var(--ok); }
+.dev-pill.err { color: var(--err); border-color: var(--err); }
 
 /* Toasts unifiés (cf. toast.js, modèle A) : pile haut-droite, non bloquante. Un toast progress (spinner)
    se mue en verdict EN PLACE. */
