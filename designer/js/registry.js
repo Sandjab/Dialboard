@@ -4,7 +4,7 @@
 // L'aperçu (build) reste dans render.js (double-maintenance du rendu firmware) ; ici on le référence
 // via une signature normalisée (comp, placement, mock).
 import { snapPlacement } from './geometry.js';
-import { buildLabel, buildReadout, buildBar, buildRing, buildChart, buildMeter, buildImage, buildImageAnim, buildLed, buildRect, buildCircle, buildLine } from './render.js';
+import { buildLabel, buildReadout, buildBar, buildRing, buildChart, buildMeter, buildImage, buildImageAnim, buildLed, buildRect, buildCircle, buildLine, buildIcon } from './render.js';
 
 // Placement initial d'un widget d'écran : ancrage + offset déduits du point de dépôt (boîte ~0).
 const screenPlacement = (id, x, y) => {
@@ -119,6 +119,17 @@ export const COMPONENTS = {
     placeFields: [['anchor', 'Ancrage', 'anchor'], ['dx', 'dx', 'num'], ['dy', 'dy', 'num'], ['size', 'Diamètre', 'num']],
     mockFields: [['value', 'Valeur (aperçu)']],
     build: (comp, pl, mock) => buildLed(comp, pl, mock),
+  },
+  icon: {
+    label: 'Icône',
+    defaults: () => ({ type: 'icon', symbol: 'bell', color: '#FFFFFF', font: 28 }),
+    makePlacement: screenPlacement,
+    centered: false, physical: false,
+    compFields: [['symbol', 'Symbole', 'symbol'], ['color', 'Couleur', 'color'],
+                 ['font', 'Taille', 'font'], ['bind', 'Variable (pull)', 'asciitext']],
+    placeFields: [['anchor', 'Ancrage', 'anchor'], ['dx', 'dx', 'num'], ['dy', 'dy', 'num']],
+    mockFields: [['value', 'Valeur (aperçu)']],
+    build: (comp, _pl, mock) => buildIcon(comp, mock),
   },
   rect: {
     label: 'Rectangle',

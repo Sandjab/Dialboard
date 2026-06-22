@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   pickFontPx, barFill, barGeometry, pickThresholdColor, formatValue, formatRemaining,
-  ringSweepDeg, arcIndicatorAngles, pointOnArc, arcPath, ringPaths, sparklinePoints, meterAngle, capArcPath, ledLit
+  ringSweepDeg, arcIndicatorAngles, pointOnArc, arcPath, ringPaths, sparklinePoints, meterAngle, capArcPath, ledLit,
+  resolveIcon
 } from '../js/render.js';
 
 test('pickFontPx retombe sur les 5 tailles LVGL', () => {
@@ -130,4 +131,31 @@ test('ringPaths : reverse garde le même fond mais inverse l’indicateur', () =
   const rev  = ringPaths(80, 16, 70, 50, 0, 100, 'reverse');
   assert.equal(norm.track, rev.track);             // fond identique
   assert.notEqual(norm.indicator, rev.indicator);  // remplissage à l’opposé
+});
+
+test('resolveIcon : sans states -> base (symbol+color)', () => {
+  const r = resolveIcon({ symbol: 'wifi', color: '#112233' }, 5);
+  assert.deepEqual(r, { symbol: 'wifi', color: '#112233' });
+});
+
+test('resolveIcon : défauts bell/#FFFFFF quand base absente', () => {
+  assert.deepEqual(resolveIcon({}, 0), { symbol: 'bell', color: '#FFFFFF' });
+});
+
+test('resolveIcon : 1re bande où value < at gagne (glyphe + couleur)', () => {
+  const comp = { symbol: 'battery_full', color: '#00FF00',
+    states: [{ at: 15, symbol: 'battery_empty', color: '#FF0000' },
+             { at: 50, symbol: 'battery_2', color: '#FFAA00' }] };
+  assert.deepEqual(resolveIcon(comp, 10), { symbol: 'battery_empty', color: '#FF0000' });
+  assert.deepEqual(resolveIcon(comp, 30), { symbol: 'battery_2',     color: '#FFAA00' });
+  assert.deepEqual(resolveIcon(comp, 90), { symbol: 'battery_full',  color: '#00FF00' });
+  // exactement à la borne du dernier seuil : value < at est STRICT → la bande ne se déclenche pas (retombe sur la base)
+  assert.deepEqual(resolveIcon(comp, 50), { symbol: 'battery_full',  color: '#00FF00' });
+});
+
+test('resolveIcon : champ omis dans une bande retombe sur la base', () => {
+  const comp = { symbol: 'wifi', color: '#FFFFFF', states: [{ at: 1, color: '#888888' }] };
+  assert.deepEqual(resolveIcon(comp, 0), { symbol: 'wifi', color: '#888888' });
+  const comp2 = { symbol: 'wifi', color: '#FFFFFF', states: [{ at: 1, symbol: 'close' }] };
+  assert.deepEqual(resolveIcon(comp2, 0), { symbol: 'close', color: '#FFFFFF' });
 });

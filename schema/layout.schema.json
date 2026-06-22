@@ -93,7 +93,8 @@
         { "$ref": "#/$defs/comp_led" },
         { "$ref": "#/$defs/comp_rect" },
         { "$ref": "#/$defs/comp_circle" },
-        { "$ref": "#/$defs/comp_line" }
+        { "$ref": "#/$defs/comp_line" },
+        { "$ref": "#/$defs/comp_icon" }
       ]
     },
     "comp_label": {
@@ -274,6 +275,36 @@
         "bezel": { "type": "boolean", "description": "Anneau encastre (boitier). Defaut true." },
         "specular": { "type": "boolean", "description": "Reflet speculaire (point brillant). Defaut true." },
         "off_glass": { "type": "boolean", "description": "Garder un faible reflet de verre quand eteint (sous-option de specular). Defaut true." }
+      }
+    },
+    "symbolName": {
+      "enum": ["wifi", "bluetooth", "gps", "usb", "battery_empty", "battery_1", "battery_2", "battery_3", "battery_full", "charge", "power", "bell", "warning", "ok", "close", "play", "pause", "stop", "volume_max", "mute", "home", "settings", "refresh"],
+      "description": "Nom de symbole LVGL (LV_SYMBOL_*). Firmware: glyphe ; designer: SVG equivalent (parite best-effort)."
+    },
+    "icon_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["at"],
+      "description": "Bande d'etat : 1re bande ou value < at gagne. symbol/color omis = retombe sur la base.",
+      "properties": {
+        "at": { "type": "number", "description": "Borne haute exclusive : bande choisie si value < at." },
+        "symbol": { "$ref": "#/$defs/symbolName", "description": "Glyphe de la bande. Omis = symbol de base." },
+        "color": { "$ref": "#/$defs/hexColor", "description": "Couleur de la bande. Omis = color de base." }
+      }
+    },
+    "comp_icon": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "description": "Icone/symbole (lv_label en police de symboles). Glyphe ET couleur pilotes par la valeur poussee (push par id ou bind) via une table d'etats. Place via anchor/dx/dy ; taille = font (defaut 28).",
+      "properties": {
+        "type": { "const": "icon" },
+        "visible": { "type": "boolean", "description": "Affiche le composant (defaut true). false = cache (LV_OBJ_FLAG_HIDDEN). Pilotable via /update {\"<id>\":{\"visible\":true}}." },
+        "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
+        "symbol": { "$ref": "#/$defs/symbolName", "description": "Glyphe de base (quand aucune bande de states ne matche). Defaut bell." },
+        "color": { "$ref": "#/$defs/hexColor", "description": "Couleur de base (text_color). Defaut #FFFFFF." },
+        "font": { "$ref": "#/$defs/font", "description": "Taille du glyphe. Defaut 28." },
+        "states": { "type": "array", "items": { "$ref": "#/$defs/icon_state" }, "description": "Table d'etats (glyphe/couleur selon la valeur). Vide = icone statique." }
       }
     },
     "comp_rect": {

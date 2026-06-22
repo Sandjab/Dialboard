@@ -88,3 +88,22 @@ test('registre : line expose color/orientation/dash/rounded et longueur/épaisse
   assert.equal(COMPONENTS.line.defaults().dash, 'solid');
   assert.equal(COMPONENTS.line.defaults().orientation, 'horizontal');
 });
+
+test('registre : icon déclaré, value-driven (mockFields value), non physique', () => {
+  assert.ok(COMPONENTS.icon, 'icon absent du registre');
+  assert.equal(COMPONENTS.icon.physical, false);
+  assert.equal(COMPONENTS.icon.centered, false);
+  assert.deepEqual(COMPONENTS.icon.mockFields, [['value', 'Valeur (aperçu)']]);
+  const cf = COMPONENTS.icon.compFields.map(f => f[0]);
+  for (const k of ['symbol', 'color', 'font', 'bind']) assert.ok(cf.includes(k), `icon : ${k} manquant`);
+  const d = COMPONENTS.icon.defaults();
+  assert.equal(d.symbol, 'bell');
+  assert.equal(d.font, 28);
+});
+
+test('conformité : enum symbolName du schéma == clés de ICON_SVG (render.js)', async () => {
+  const { ICON_SVG } = await import('../js/render.js');
+  const schemaNames = schema.$defs.symbolName.enum.slice().sort();
+  const svgNames = Object.keys(ICON_SVG).sort();
+  assert.deepEqual(svgNames, schemaNames);
+});

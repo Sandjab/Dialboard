@@ -119,3 +119,26 @@ test('propriété inconnue sur une forme → invalide (additionalProperties:fals
   l.pages[0].place.push({ ref: 'r1', anchor: 'CENTER' });
   assert.equal(validate(l).valid, false);
 });
+
+test('layout avec icon (base + states) est valide', () => {
+  const l = structuredClone(DEFAULT_LAYOUT);
+  l.components.i1 = { type: 'icon', symbol: 'wifi', color: '#FFFFFF', font: 28,
+    states: [{ at: 1, symbol: 'close', color: '#FF0000' }, { at: 50, color: '#FFAA00' }] };
+  l.pages[0].place.push({ ref: 'i1', anchor: 'CENTER', dx: 0, dy: 0 });
+  const r = validate(l);
+  assert.equal(r.valid, true, JSON.stringify(r.errors));
+});
+
+test('icon : symbole hors enum -> invalide', () => {
+  const l = structuredClone(DEFAULT_LAYOUT);
+  l.components.i1 = { type: 'icon', symbol: 'rocket' };
+  l.pages[0].place.push({ ref: 'i1', anchor: 'CENTER' });
+  assert.equal(validate(l).valid, false);
+});
+
+test('icon : state sans `at` -> invalide', () => {
+  const l = structuredClone(DEFAULT_LAYOUT);
+  l.components.i1 = { type: 'icon', states: [{ symbol: 'wifi' }] };
+  l.pages[0].place.push({ ref: 'i1', anchor: 'CENTER' });
+  assert.equal(validate(l).valid, false);
+});
