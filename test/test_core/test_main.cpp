@@ -887,6 +887,54 @@ void test_aimg_tick_infinite_keeps_playing(void) {
     TEST_ASSERT_TRUE(d.components[0].aimg_playing);       // infini : ne s'arrete jamais seul
 }
 
+void test_icon_resolve(void) {
+    // base = (sym 2, couleur 0x00FF00). Bandes : <15 -> (sym 0, 0xFF0000) ; <50 -> (couleur 0xFFAA00, sym omis)
+    IconState st[2];
+    st[0].at = 15; st[0].symbol = 0; st[0].color = 0xFF0000; st[0].has_symbol = true;  st[0].has_color = true;
+    st[1].at = 50; st[1].symbol = 0; st[1].color = 0xFFAA00; st[1].has_symbol = false; st[1].has_color = true;
+    uint8_t sym; uint32_t col;
+    icon_resolve(st, 2, 10, 2, 0x00FF00, &sym, &col);   // <15
+    TEST_ASSERT_EQUAL_UINT8(0, sym); TEST_ASSERT_EQUAL_HEX32(0xFF0000, col);
+    icon_resolve(st, 2, 30, 2, 0x00FF00, &sym, &col);   // <50 : sym omis -> base 2
+    TEST_ASSERT_EQUAL_UINT8(2, sym); TEST_ASSERT_EQUAL_HEX32(0xFFAA00, col);
+    icon_resolve(st, 2, 15, 2, 0x00FF00, &sym, &col);  // == st[0].at : pas de match band0, puis 15 < 50 -> band1 (couleur seule)
+    TEST_ASSERT_EQUAL_UINT8(2, sym); TEST_ASSERT_EQUAL_HEX32(0xFFAA00, col);
+    icon_resolve(st, 2, 90, 2, 0x00FF00, &sym, &col);   // aucune -> base
+    TEST_ASSERT_EQUAL_UINT8(2, sym); TEST_ASSERT_EQUAL_HEX32(0x00FF00, col);
+    icon_resolve(st, 0, 90, 5, 0x123456, &sym, &col);   // table vide -> base
+    TEST_ASSERT_EQUAL_UINT8(5, sym); TEST_ASSERT_EQUAL_HEX32(0x123456, col);
+}
+
+static const char* LAYOUT_ICON =
+  "{\"components\":{"
+    "\"i1\":{\"type\":\"icon\",\"symbol\":\"wifi\",\"color\":\"#00FF00\",\"font\":36,"
+      "\"states\":[{\"at\":1,\"symbol\":\"close\",\"color\":\"#FF0000\"},{\"at\":50,\"color\":\"#FFAA00\"}]},"
+    "\"i2\":{\"type\":\"icon\"}},"
+  "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"i1\"},{\"ref\":\"i2\"}]}]}";
+
+void test_icon_parsed(void) {
+    Dashboard d{}; char err[80];
+    TEST_ASSERT_TRUE_MESSAGE(dash_set_layout(&d, LAYOUT_ICON, err, sizeof(err)), err);
+    int i1 = dash_find(&d, "i1"), i2 = dash_find(&d, "i2");
+    TEST_ASSERT_TRUE(i1 >= 0 && i2 >= 0);
+    const Component& a = d.components[i1];
+    TEST_ASSERT_EQUAL_INT(COMP_ICON, a.type);
+    TEST_ASSERT_EQUAL_HEX32(0x00FF00, a.color);
+    TEST_ASSERT_EQUAL_INT(36, a.font);
+    TEST_ASSERT_EQUAL_UINT8(0, a.icon_symbol);                       // "wifi" -> index 0
+    TEST_ASSERT_EQUAL_INT(2, a.icon_state_count);
+    TEST_ASSERT_EQUAL_FLOAT(1.0f, a.icon_states[0].at);
+    TEST_ASSERT_TRUE(a.icon_states[0].has_symbol);
+    TEST_ASSERT_TRUE(a.icon_states[0].has_color);
+    TEST_ASSERT_EQUAL_HEX32(0xFF0000, a.icon_states[0].color);
+    TEST_ASSERT_FALSE(a.icon_states[1].has_symbol);    // 2e bande : color seul
+    TEST_ASSERT_TRUE(a.icon_states[1].has_color);
+    // i2 : défauts (font 28 specifique icon, base bell, pas d'états)
+    TEST_ASSERT_EQUAL_INT(28, d.components[i2].font);
+    TEST_ASSERT_EQUAL_UINT8(11, d.components[i2].icon_symbol);       // défaut "bell" -> index 11
+    TEST_ASSERT_EQUAL_INT(0, d.components[i2].icon_state_count);
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_remaining_seconds);
@@ -944,6 +992,8 @@ int main(int, char**) {
     RUN_TEST(test_ring_pill_and_center_coexist);
     RUN_TEST(test_layout_unknown_type_rejected);
     RUN_TEST(test_schema_types_all_resolve);
+    RUN_TEST(test_icon_resolve);
+    RUN_TEST(test_icon_parsed);
     RUN_TEST(test_shapes_parsed);
     RUN_TEST(test_ctx_set_find_num);
     RUN_TEST(test_ctx_overwrite_keeps_one_slot);

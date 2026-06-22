@@ -4,7 +4,7 @@
 #include "config.h"
 #include "context.h"
 
-enum CompType { COMP_NONE, COMP_LABEL, COMP_READOUT, COMP_BAR, COMP_RING, COMP_LED_RING, COMP_SOUND, COMP_CHART, COMP_METER, COMP_IMAGE, COMP_IMAGE_ANIM, COMP_LED, COMP_RECT, COMP_CIRCLE, COMP_LINE, COMP_COUNT };
+enum CompType { COMP_NONE, COMP_LABEL, COMP_READOUT, COMP_BAR, COMP_RING, COMP_LED_RING, COMP_SOUND, COMP_CHART, COMP_METER, COMP_IMAGE, COMP_IMAGE_ANIM, COMP_LED, COMP_RECT, COMP_CIRCLE, COMP_LINE, COMP_ICON, COMP_COUNT };
 enum LedMode  { LED_OFF, LED_SOLID, LED_PROGRESS, LED_SPINNER, LED_BLINK, LED_BREATHE };
 enum BarMode  { BAR_NORMAL, BAR_SYMMETRICAL };               // bar : lv_bar_set_mode
 enum ArcMode  { ARC_NORMAL, ARC_SYMMETRICAL, ARC_REVERSE };  // ring : lv_arc_set_mode
@@ -13,6 +13,10 @@ enum Anchor   { A_CENTER, A_TOP_MID, A_BOTTOM_MID, A_LEFT_MID, A_RIGHT_MID,
                 A_TOP_LEFT, A_TOP_RIGHT, A_BOTTOM_LEFT, A_BOTTOM_RIGHT };
 
 struct Threshold { float limit; uint32_t color; };
+
+struct IconState { float at; uint8_t symbol; uint32_t color; bool has_symbol; bool has_color; };
+// Nombre de symboles du set curaté (ICON_SYMBOL_NAMES dans dashboard.cpp == ICON_GLYPHS dans view.cpp).
+static constexpr int ICON_SYMBOL_COUNT = 23;
 
 struct Component {
     char     id[ID_LEN];
@@ -60,6 +64,11 @@ struct Component {
     int      border_width;    // rect/circle : epaisseur du contour (0 = aucun)
     LineDash line_dash;       // line : motif (plein/tirets/pointille)
     bool     line_rounded;    // line : bouts arrondis. NB: l'orientation reutilise bar_vertical (parse generique)
+
+    // icon : glyphe/couleur pilotes par la valeur via une table d'etats
+    uint8_t   icon_symbol;                       // index du glyphe de base (-> ICON_GLYPHS dans view.cpp)
+    IconState icon_states[MAX_ICON_STATES];
+    int       icon_state_count;
 
     // --- etat (modifie par /update) ---
     int32_t  value;

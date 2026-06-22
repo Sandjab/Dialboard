@@ -64,6 +64,18 @@ static const lv_font_t* pick_font(uint16_t px) {
     return &lv_font_montserrat_14;
 }
 
+// Glyphes du set icon. ORDRE == ICON_SYMBOL_NAMES (dashboard.cpp) : index commun. Symboles built-in
+// (deja dans les fontes Montserrat embarquees) -> aucun flag lv_conf.
+static const char* const ICON_GLYPHS[ICON_SYMBOL_COUNT] = {
+    LV_SYMBOL_WIFI, LV_SYMBOL_BLUETOOTH, LV_SYMBOL_GPS, LV_SYMBOL_USB,
+    LV_SYMBOL_BATTERY_EMPTY, LV_SYMBOL_BATTERY_1, LV_SYMBOL_BATTERY_2, LV_SYMBOL_BATTERY_3, LV_SYMBOL_BATTERY_FULL,
+    LV_SYMBOL_CHARGE, LV_SYMBOL_POWER, LV_SYMBOL_BELL, LV_SYMBOL_WARNING, LV_SYMBOL_OK, LV_SYMBOL_CLOSE,
+    LV_SYMBOL_PLAY, LV_SYMBOL_PAUSE, LV_SYMBOL_STOP, LV_SYMBOL_VOLUME_MAX, LV_SYMBOL_MUTE,
+    LV_SYMBOL_HOME, LV_SYMBOL_SETTINGS, LV_SYMBOL_REFRESH,
+};
+static_assert(sizeof(ICON_GLYPHS) / sizeof(ICON_GLYPHS[0]) == ICON_SYMBOL_COUNT,
+              "ICON_GLYPHS desync avec ICON_SYMBOL_NAMES (dashboard.cpp)");
+
 const char* view_default_layout() {
     return
       "{\"title\":\"Claude\",\"background\":\"#0B0B0F\",\"nav\":{\"wrap\":true},"
@@ -526,6 +538,25 @@ static void build_line(lv_obj_t* parent, Component& c, Placement& q,
     *main = o;
 }
 
+// Icone : lv_label en police de symboles. Glyphe + couleur resolus depuis la valeur (icon_resolve).
+static void build_icon(lv_obj_t* parent, Component& c, Placement& q,
+                       lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
+    lv_obj_t* l = lv_label_create(parent);
+    lv_obj_set_style_text_font(l, pick_font(c.font), 0);
+    uint8_t sym; uint32_t col;
+    icon_resolve(c.icon_states, c.icon_state_count, (float)c.value, c.icon_symbol, c.color, &sym, &col);
+    lv_obj_set_style_text_color(l, lv_color_hex(col), 0);
+    lv_label_set_text(l, ICON_GLYPHS[sym]);
+    lv_obj_align(l, ALIGN_MAP[q.anchor], q.dx, q.dy);
+    *main = l;
+}
+static void sync_icon(Component& c, Placement&, lv_obj_t* w, lv_obj_t*, lv_obj_t*) {
+    uint8_t sym; uint32_t col;
+    icon_resolve(c.icon_states, c.icon_state_count, (float)c.value, c.icon_symbol, c.color, &sym, &col);
+    lv_obj_set_style_text_color(w, lv_color_hex(col), 0);
+    lv_label_set_text(w, ICON_GLYPHS[sym]);
+}
+
 // Vtable vue indexée par CompType. Types physiques (led_ring/sound) : build/sync = nullptr
 // (rendus par leur tick dédié -> le moteur les saute). label/readout partagent build_text.
 struct ViewVTable {
@@ -550,6 +581,7 @@ static const ViewVTable VIEW[] = {
     /* COMP_RECT     */ { build_rect,   nullptr },
     /* COMP_CIRCLE   */ { build_circle, nullptr },
     /* COMP_LINE     */ { build_line,   nullptr },
+    /* COMP_ICON     */ { build_icon, sync_icon },
 };
 static_assert(sizeof(VIEW) / sizeof(VIEW[0]) == COMP_COUNT,
               "VIEW desync avec CompType : ajoute la ligne du nouveau type");

@@ -19,3 +19,16 @@ uint32_t threshold_color(const Threshold* t, int n, float value, uint32_t base) 
 bool led_is_lit(int32_t value, int32_t off_below) {
     return value >= off_below;
 }
+
+void icon_resolve(const IconState* st, int n, float value, uint8_t base_sym, uint32_t base_col,
+                  uint8_t* out_sym, uint32_t* out_col) {
+    uint8_t sym = base_sym; uint32_t col = base_col;
+    for (int i = 0; i < n; i++) {
+        if (value < st[i].at) {
+            if (st[i].has_symbol) sym = st[i].symbol;
+            if (st[i].has_color)  col = st[i].color;
+            break;
+        }
+    }
+    *out_sym = sym; *out_col = col;
+}
