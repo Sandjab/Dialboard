@@ -157,9 +157,9 @@ async function main() {
     if (action === 'undo') { e.preventDefault(); if (model.canUndo()) model.undo(); return; }
     if (action === 'redo') { e.preventDefault(); if (model.canRedo()) model.redo(); return; }
     if (action === 'deselect') {
-      if (canvas.getSelected() == null) return;
+      if (selection.get() == null) return;   // toute sélection (doc/page/comp), pas seulement un composant
       e.preventDefault();
-      canvas.selectPlacement(null);
+      setSelection(null);
       return;
     }
     if (action === 'copy') {
