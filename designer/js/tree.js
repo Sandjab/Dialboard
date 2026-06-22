@@ -40,24 +40,36 @@ export function createTree(root, model, { selection, setSelection, getActivePage
     if (n && getActivePage() > n - 1) setPage(n - 1);
   }
 
-  function compRow(c) {
+  function compRow(c, pageIndex, sel) {
     const row = document.createElement('div');
-    row.className = 'tree-row tree-comp' + (c.visible ? '' : ' hidden');
+    const isSel = sel && sel.kind === 'comp' && sel.page === pageIndex && sel.index === c.index;
+    row.className = 'tree-row tree-comp' + (c.visible ? '' : ' hidden') + (isSel ? ' selected' : '');
     const ic = c.type ? iconFor(c.type) : null;
     if (ic) { ic.classList.add('tree-icon'); row.appendChild(ic); }
     const lbl = document.createElement('span'); lbl.className = 'tree-label'; lbl.textContent = c.label;
     const ref = document.createElement('span'); ref.className = 'tree-ref'; ref.textContent = c.ref;
     row.appendChild(lbl); row.appendChild(ref);
+    row.addEventListener('click', () => {
+      if (pageIndex !== getActivePage()) setPage(pageIndex);     // bascule de page d'abord (met sel à null)…
+      setSelection({ kind: 'comp', page: pageIndex, index: c.index });  // …puis sélectionne le composant
+      render();
+    });
     return row;
   }
 
-  function pageRow(p, active) {
+  function pageRow(p, active, sel) {
     const row = document.createElement('div');
-    row.className = 'tree-row tree-page';
+    const isSel = sel && sel.kind === 'page' && sel.page === p.index;
+    row.className = 'tree-row tree-page' + (isSel ? ' selected' : '');
     const tw = document.createElement('span'); tw.className = 'tree-twist'; tw.textContent = active ? '▾' : '▸';
     const lbl = document.createElement('span'); lbl.className = 'tree-label';
     lbl.textContent = p.name || `Page ${p.index + 1}`;
     row.appendChild(tw); row.appendChild(lbl);
+    row.addEventListener('click', () => {
+      setPage(p.index);                                  // met la sélection à null (canvas)…
+      setSelection({ kind: 'page', page: p.index });     // …puis sélectionne la page
+      render();
+    });
     return row;
   }
 
@@ -66,26 +78,30 @@ export function createTree(root, model, { selection, setSelection, getActivePage
     root.querySelectorAll('.tree').forEach(n => n.remove());
     const t = treeModel(model.state);
     const active = getActivePage();
+    const sel = selection.get();
     const tree = document.createElement('div'); tree.className = 'tree';
 
     // Document
-    const doc = document.createElement('div'); doc.className = 'tree-row tree-doc';
+    const doc = document.createElement('div');
+    doc.className = 'tree-row tree-doc' + (sel && sel.kind === 'doc' ? ' selected' : '');
     const dtw = document.createElement('span'); dtw.className = 'tree-twist'; dtw.textContent = '⚙';
     const dlbl = document.createElement('span'); dlbl.className = 'tree-label';
     dlbl.textContent = `Document — ${t.title || '(sans titre)'}`;
     doc.appendChild(dtw); doc.appendChild(dlbl);
+    doc.addEventListener('click', () => { setSelection({ kind: 'doc' }); render(); });
     tree.appendChild(doc);
 
     // Pages (+ composants de la page active uniquement, MVP)
     t.pages.forEach(p => {
-      tree.appendChild(pageRow(p, p.index === active));
-      if (p.index === active) p.components.forEach(c => tree.appendChild(compRow(c)));
+      tree.appendChild(pageRow(p, p.index === active, sel));
+      if (p.index === active) p.components.forEach(c => tree.appendChild(compRow(c, p.index, sel)));
     });
 
     root.appendChild(tree);
   }
 
   model.subscribe(render);
+  selection.subscribe(render);   // changement de sélection (canvas/inspecteur/Échap) → re-surligner
   render();
   return { render };
 }
