@@ -39,3 +39,33 @@ export function formatSelectionContext(state, sel) {
   const dx = pl.dx ?? 0, dy = pl.dy ?? 0;
   return `${typeLabel} · ${pl.ref} · page « ${page.name ?? ''} » · ${pl.anchor ?? 'CENTER'} (${dx}, ${dy}) · ${vis}`;
 }
+
+// --- DOM (vérifié navigateur ; pas de test node, cf. convention projet) ---
+// Barre d'état : gauche = contexte de sélection (s'abonne à selection + model) ; droite = verdict de
+// validation cliquable (s'abonne à model → validate) qui ouvre la console Problèmes (onValidClick). Le
+// <select id="zoom"> vit dans le markup à droite (display-only, câblé par app.js — pas géré ici).
+export function createStatusbar(root, model, { selection, validate, onValidClick }) {
+  const context = document.createElement('span');
+  context.className = 'sb-context';
+  const valid = document.createElement('button');
+  valid.type = 'button';
+  valid.className = 'sb-valid';
+  valid.title = 'Voir les problèmes';
+  valid.onclick = () => onValidClick?.();
+  const spacer = document.createElement('span');
+  spacer.className = 'sb-spacer';
+  // Ordre : contexte | spacer | validation | (zoom déjà présent dans le markup HTML à droite).
+  root.prepend(context, spacer, valid);
+
+  const renderContext = () => { context.textContent = formatSelectionContext(model.state, selection.get()); };
+  const renderValid = () => {
+    const r = formatValidationSummary(validate(model.state));
+    valid.textContent = r.text;
+    valid.className = 'sb-valid sb-' + r.level;
+  };
+  // Le contexte dépend de la sélection ET du modèle (un rename/déplacement change le libellé sans changer
+  // la sélection). La validation ne dépend que du modèle.
+  selection.subscribe(renderContext);
+  model.subscribe(() => { renderContext(); renderValid(); });
+  renderContext(); renderValid();
+}

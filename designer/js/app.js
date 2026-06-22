@@ -1,6 +1,7 @@
 import { createModel } from './model.js';
 import { createValidator } from './validate.js';
 import { bindJsonView } from './json-view.js';
+import { createStatusbar } from './statusbar.js';
 import { loadLayout, pushLayout, captureScreenshot, getStatus, setDevicePage, pushValues, uploadBgImage, fetchBgImage, uploadImage, fetchImage, uploadAimg, fetchAimg, formatDeviceStatus } from './device.js';
 import { referencedKeys, cacheBytes, cachePut, previewUrl } from './bg-image.js';
 import { referencedImageKeys, cacheBytes as imageCacheBytes, previewUrl as imagePreviewUrl, rehydrate as rehydrateImage } from './image-asset.js';
@@ -170,6 +171,8 @@ async function main() {
   bindJsonView(model, {
     textarea: $('json'), applyBtn: $('apply'), validEl: $('valid'), errorsEl: $('errors'), warningsEl: $('warnings')
   }, validate);
+
+  createStatusbar($('statusbar'), model, { selection, validate, onValidClick: () => {} });
 
   const syncUndo = () => { $('undo').disabled = !model.canUndo(); $('redo').disabled = !model.canRedo(); };
   model.subscribe(syncUndo); syncUndo();
