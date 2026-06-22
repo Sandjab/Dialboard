@@ -62,7 +62,12 @@ async function main() {
   // avant tout changement RÉEL de sélection, si un champ de l'inspecteur a le focus, le blur. Cela
   // (a) committe l'édition en attente sur l'ANCIENNE sélection (closure à ref figée — F5) et (b) lève
   // le garde-focus de render() pour que l'inspecteur se reconstruise sur la nouvelle sélection.
-  const selection = createSelection(null);
+  // Démarrage sur le nœud Document (Option 1) : l'inspecteur montre les globales au lancement plutôt que
+  // le placeholder vide. Échap ramène ensuite à null (placeholder) ; un clic dans le vide du canvas ne
+  // désélectionne que depuis un composant (garde getSelected()==null préexistante). placementSelection({kind:
+  // 'doc'}) = null → aucune surbrillance canvas ; les raccourcis copier/coller/suppr lisent canvas.getSelected()
+  // (index de placement), indépendant de la sélection doc.
+  const selection = createSelection({ kind: 'doc' });
   const setSelection = (next) => {
     if (!sameSelection(selection.get(), next)) {
       const insp = $('inspector');
