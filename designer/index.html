@@ -33,6 +33,9 @@
       <button id="import" title="Charge un layout depuis un fichier .json local">Importer</button>
       <input id="import-file" type="file" accept="application/json,.json" hidden />
     </div>
+    <div class="hgroup">
+      <button id="drawer-toggle" type="button" title="Plomberie I/O : sorties physiques (led_ring/sound) + sources pull">⚙ Device</button>
+    </div>
     <span id="dev-pill" class="dev-pill" title="Aucune requête device effectuée">○ non vérifié</span>
   </header>
 
@@ -65,16 +68,25 @@
 
   <section id="console" class="console"><!-- bandeau + corps injectés par console.js --></section>
 
-  <footer>
-    <details>
-      <summary>Device (sorties physiques)</summary>
-      <div id="device" class="sources-panel"></div>
-    </details>
-    <details>
-      <summary>Sources (pull réseau)</summary>
-      <div id="sources" class="sources-panel"></div>
-    </details>
-  </footer>
+  <aside id="drawer" class="drawer" hidden>
+    <div class="drawer-backdrop"></div>
+    <div class="drawer-panel" role="dialog" aria-label="Device">
+      <div class="drawer-head">
+        <h2>Device</h2>
+        <button class="drawer-close" type="button" title="Fermer">✕</button>
+      </div>
+      <div class="drawer-tabs">
+        <button class="drawer-tab" type="button" data-tab="device">Sorties physiques</button>
+        <button class="drawer-tab" type="button" data-tab="sources">Sources pull</button>
+      </div>
+      <div id="device-pane" class="drawer-pane">
+        <div id="device" class="sources-panel"></div>
+      </div>
+      <div id="sources-pane" class="drawer-pane">
+        <div id="sources" class="sources-panel"></div>
+      </div>
+    </div>
+  </aside>
 
   <div id="shot-overlay" class="shot-overlay" hidden>
     <div class="shot-box">
