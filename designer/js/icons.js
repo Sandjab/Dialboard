@@ -17,6 +17,9 @@ const PATHS = {
   image_anim:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none"/>', // même cadre + lecture (play)
   led_ring:'<circle cx="12" cy="5" r="1.4" fill="currentColor" stroke="none"/><circle cx="17" cy="7" r="1.4" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="17" cy="17" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.4" fill="currentColor" stroke="none"/><circle cx="7" cy="17" r="1.4" fill="currentColor" stroke="none"/><circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="7" cy="7" r="1.4" fill="currentColor" stroke="none"/>', // couronne de LED (WS2812)
   sound:    '<path d="M4 9h3l4-3v12l-4-3H4z"/><path d="M15 9a4 4 0 0 1 0 6"/>', // haut-parleur + onde
+  rect:     '<rect x="4" y="6" width="16" height="12" rx="2"/>',
+  circle:   '<circle cx="12" cy="12" r="8"/>',
+  line:     '<path d="M4 12h16"/>',
 };
 
 // Construit un <svg> namespacé via DOMParser (parse en contexte SVG, sans innerHTML).

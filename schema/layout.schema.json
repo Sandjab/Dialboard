@@ -90,7 +90,10 @@
         { "$ref": "#/$defs/comp_meter" },
         { "$ref": "#/$defs/comp_image" },
         { "$ref": "#/$defs/comp_image_anim" },
-        { "$ref": "#/$defs/comp_led" }
+        { "$ref": "#/$defs/comp_led" },
+        { "$ref": "#/$defs/comp_rect" },
+        { "$ref": "#/$defs/comp_circle" },
+        { "$ref": "#/$defs/comp_line" }
       ]
     },
     "comp_label": {
@@ -271,6 +274,46 @@
         "bezel": { "type": "boolean", "description": "Anneau encastre (boitier). Defaut true." },
         "specular": { "type": "boolean", "description": "Reflet speculaire (point brillant). Defaut true." },
         "off_glass": { "type": "boolean", "description": "Garder un faible reflet de verre quand eteint (sous-option de specular). Defaut true." }
+      }
+    },
+    "comp_rect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "description": "Rectangle décoratif (lv_obj stylé). Aucune donnée. Géométrie sur le placement : width/height + radius (rayon de coin). Le contour est toujours plein (LVGL ne pointille pas les bordures d'objet).",
+      "properties": {
+        "type": { "const": "rect" },
+        "visible": { "type": "boolean", "description": "Affiche le composant (defaut true). false = cache (LV_OBJ_FLAG_HIDDEN). Pilotable via /update {\"<id>\":{\"visible\":true}}." },
+        "fill": { "$ref": "#/$defs/hexColor", "description": "Couleur de fond (bg_color). Absent = pas de fond (contour seul)." },
+        "border_color": { "$ref": "#/$defs/hexColor", "description": "Couleur du contour (border_color). Ignorée si border_width 0. Defaut #FFFFFF." },
+        "border_width": { "type": "integer", "minimum": 0, "description": "Épaisseur du contour en px. 0 = pas de contour. Defaut 0." }
+      }
+    },
+    "comp_circle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "description": "Cercle décoratif (lv_obj carré + radius LV_RADIUS_CIRCLE). Diamètre via placement.size. Mêmes options de fond/contour que rect.",
+      "properties": {
+        "type": { "const": "circle" },
+        "visible": { "type": "boolean", "description": "Affiche le composant (defaut true). false = cache (LV_OBJ_FLAG_HIDDEN). Pilotable via /update." },
+        "fill": { "$ref": "#/$defs/hexColor", "description": "Couleur de fond. Absent = pas de fond (contour seul)." },
+        "border_color": { "$ref": "#/$defs/hexColor", "description": "Couleur du contour. Ignorée si border_width 0. Defaut #FFFFFF." },
+        "border_width": { "type": "integer", "minimum": 0, "description": "Épaisseur du contour en px. 0 = pas de contour. Defaut 0." }
+      }
+    },
+    "comp_line": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "description": "Droite décorative (lv_line) horizontale ou verticale. Longueur = placement.width, épaisseur = placement.thickness. Le pointillé (dash) n'est rendu que sur les lignes H/V — toujours le cas ici.",
+      "properties": {
+        "type": { "const": "line" },
+        "visible": { "type": "boolean", "description": "Affiche le composant (defaut true). false = cache (LV_OBJ_FLAG_HIDDEN). Pilotable via /update." },
+        "color": { "$ref": "#/$defs/hexColor", "description": "Couleur du trait (line_color). Defaut #FFFFFF." },
+        "orientation": { "enum": ["horizontal", "vertical"], "description": "Sens du séparateur. Defaut horizontal. (réutilise le parsing orientation de bar)" },
+        "dash": { "enum": ["solid", "dashed", "dotted"], "description": "Motif du trait (line_dash_width/gap). Defaut solid." },
+        "rounded": { "type": "boolean", "description": "Bouts arrondis (line_rounded). Defaut false." }
       }
     },
     "page": {

@@ -58,3 +58,33 @@ test('registre : ring pill est un toggle indépendant (plus d’exclusivité ave
   const pill = COMPONENTS.ring.compFields.find(f => f[0] === 'pill');
   assert.equal(pill.length, 3, 'pill ne doit plus porter de garde enableWhen (4e élément) : il coexiste avec center_pct');
 });
+
+test('registre : rect/circle/line déclarés, statiques, non physiques', () => {
+  for (const t of ['rect', 'circle', 'line']) {
+    assert.ok(COMPONENTS[t], `${t} absent du registre`);
+    assert.equal(COMPONENTS[t].physical, false);
+    assert.equal(COMPONENTS[t].centered, false);
+    assert.deepEqual(COMPONENTS[t].mockFields, [], `${t} : pas de mock (statique)`);
+  }
+});
+
+test('registre : rect/circle exposent fill + contour', () => {
+  for (const t of ['rect', 'circle']) {
+    const keys = COMPONENTS[t].compFields.map(f => f[0]);
+    assert.ok(keys.includes('fill'), `${t} : fill manquant`);
+    assert.ok(keys.includes('border_width'), `${t} : border_width manquant`);
+    assert.ok(keys.includes('border_color'), `${t} : border_color manquant`);
+  }
+  assert.ok(COMPONENTS.rect.placeFields.map(f => f[0]).includes('radius'));
+  assert.ok(COMPONENTS.circle.placeFields.map(f => f[0]).includes('size'));
+});
+
+test('registre : line expose color/orientation/dash/rounded et longueur/épaisseur', () => {
+  const cf = COMPONENTS.line.compFields.map(f => f[0]);
+  for (const k of ['color', 'orientation', 'dash', 'rounded']) assert.ok(cf.includes(k), `line : ${k} manquant`);
+  const pf = COMPONENTS.line.placeFields.map(f => f[0]);
+  assert.ok(pf.includes('width'));
+  assert.ok(pf.includes('thickness'));
+  assert.equal(COMPONENTS.line.defaults().dash, 'solid');
+  assert.equal(COMPONENTS.line.defaults().orientation, 'horizontal');
+});
