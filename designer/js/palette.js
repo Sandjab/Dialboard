@@ -1,7 +1,7 @@
 // Palette : 6 créateurs de type — glisser un type sur le #stage crée un composant + un placement
 // au point de dépôt, sur la page ACTIVE, puis sélection du nouveau placement. Modèle 1:1 : un
 // composant = un placement ; pour réutiliser un widget, copier/coller (cross-page) ou dupliquer un
-// placement (cf. app.js/shortcuts.js). Drop = UN commit. (Pages = pages.js ; aperçu = mocks.js.)
+// placement (cf. app.js/shortcuts.js). Drop = UN commit. (Pages = tree.js ; aperçu = mocks.js.)
 import { uniqueId, addComponent, addPlacement } from './mutations.js';
 import { COMPONENTS } from './registry.js';
 import { iconFor } from './icons.js';
