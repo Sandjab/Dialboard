@@ -548,5 +548,6 @@ export function buildLine(comp, placement) {
     n.style.height = '0'; n.style.width = len + 'px';
     n.style.borderTop = `${th}px ${style} ${color}`;
   }
+  if (comp.rounded) n.style.borderRadius = Math.ceil(th / 2) + 'px';
   return n;
 }
