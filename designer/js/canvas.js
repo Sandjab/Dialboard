@@ -134,6 +134,9 @@ export function createCanvas({ stage }, model, { selection, setSelection, onLive
     if (comp.type === 'ring')  addRingHandles(node, selected, comp, pl);
     if (comp.type === 'image') addImageHandles(node, pl, comp);
     if (comp.type === 'chart') addChartHandles(node, selected, pl);
+    if (comp.type === 'rect')   addRectHandles(node, selected, pl);
+    if (comp.type === 'circle') addCircleHandle(node, selected, pl);
+    if (comp.type === 'line')   addLineHandle(node, selected, comp, pl);
   }
 
   // Écrit la sélection dans le store partagé (via le coordinateur app.js qui gère le garde F1).
@@ -245,6 +248,67 @@ export function createCanvas({ stage }, model, { selection, setSelection, onLive
       const svg = node.querySelector('svg');
       if (svg) { svg.setAttribute('width', dim.width); svg.setAttribute('height', dim.height); }
     }));
+  }
+
+  // Rectangle : taille sur le placement (width/height). Réutilise les multi-poignées génériques
+  // (E=largeur, S=hauteur, coin=les deux). Le rayon de coin reste édité à l'inspecteur.
+  function addRectHandles(node, i, pl) {
+    addResizeHandles(node, placementResize(i, pl, 120, 60, dim => {
+      node.style.width = dim.width + 'px'; node.style.height = dim.height + 'px';
+    }));
+  }
+
+  // Cercle : une seule poignée (coin SE) qui pilote le diamètre (size) ; garde le carré (delta max des 2 axes).
+  function addCircleHandle(node, i, pl) {
+    const h = document.createElement('div');
+    h.className = 'handle handle-br';
+    node.appendChild(h);
+    h.addEventListener('pointerdown', e => {
+      e.stopPropagation(); e.preventDefault();
+      const s = zoomScale();
+      const start = pl.size || 60;
+      const sx = e.clientX, sy = e.clientY;
+      h.setPointerCapture(e.pointerId);
+      let size = null;                       // null tant qu'aucun déplacement → pas de commit no-op (cf. addResizeHandles)
+      const move = ev => {
+        const d = Math.max((ev.clientX - sx) / s, (ev.clientY - sy) / s);   // le plus grand delta → reste rond
+        size = Math.max(8, Math.round(start + d));
+        node.style.width = size + 'px'; node.style.height = size + 'px';
+      };
+      const up = () => {
+        h.releasePointerCapture(e.pointerId);
+        h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', up);
+        if (size !== null) model.commit(st => { st.pages[activePage].place[i].size = size; });
+      };
+      h.addEventListener('pointermove', move); h.addEventListener('pointerup', up);
+    });
+  }
+
+  // Droite : une poignée à l'extrémité (Est si horizontale, Sud si verticale) qui pilote la longueur (width).
+  function addLineHandle(node, i, comp, pl) {
+    const vertical = comp.orientation === 'vertical';
+    const h = document.createElement('div');
+    h.className = 'handle ' + (vertical ? 'handle-s' : 'handle-e');
+    node.appendChild(h);
+    h.addEventListener('pointerdown', e => {
+      e.stopPropagation(); e.preventDefault();
+      const s = zoomScale();
+      const start = pl.width || 120;
+      const sx = e.clientX, sy = e.clientY;
+      h.setPointerCapture(e.pointerId);
+      let len = null;                        // null tant qu'aucun déplacement → pas de commit no-op (cf. addResizeHandles)
+      const move = ev => {
+        const d = vertical ? (ev.clientY - sy) / s : (ev.clientX - sx) / s;
+        len = Math.max(8, Math.round(start + d));
+        if (vertical) node.style.height = len + 'px'; else node.style.width = len + 'px';
+      };
+      const up = () => {
+        h.releasePointerCapture(e.pointerId);
+        h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', up);
+        if (len !== null) model.commit(st => { st.pages[activePage].place[i].width = len; });
+      };
+      h.addEventListener('pointermove', move); h.addEventListener('pointerup', up);
+    });
   }
 
   // Adaptateur « image » : la taille vit sur le composant (w/h). Au drop, re-rasterise la source à la
