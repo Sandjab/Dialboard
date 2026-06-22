@@ -1,7 +1,7 @@
 import { createModel } from './model.js';
 import { createValidator } from './validate.js';
-import { bindJsonView } from './json-view.js';
 import { createStatusbar } from './statusbar.js';
+import { createConsole } from './console.js';
 import { loadLayout, pushLayout, captureScreenshot, getStatus, setDevicePage, pushValues, uploadBgImage, fetchBgImage, uploadImage, fetchImage, uploadAimg, fetchAimg, formatDeviceStatus } from './device.js';
 import { referencedKeys, cacheBytes, cachePut, previewUrl } from './bg-image.js';
 import { referencedImageKeys, cacheBytes as imageCacheBytes, previewUrl as imagePreviewUrl, rehydrate as rehydrateImage } from './image-asset.js';
@@ -168,16 +168,13 @@ async function main() {
   // Panneau Device : composants physiques (led_ring/sound) édités hors pages (sorties globales).
   createDevicePanel($('device'), model);
 
-  bindJsonView(model, {
-    textarea: $('json'), applyBtn: $('apply'), validEl: $('valid'), errorsEl: $('errors'), warningsEl: $('warnings')
-  }, validate);
-
-  createStatusbar($('statusbar'), model, { selection, validate, onValidClick: () => {} });
+  const dconsole = createConsole($('console'), model, { validate });
+  createStatusbar($('statusbar'), model, { selection, validate, onValidClick: () => dconsole.open('problems') });
 
   const syncUndo = () => { $('undo').disabled = !model.canUndo(); $('redo').disabled = !model.canRedo(); };
   model.subscribe(syncUndo); syncUndo();
-  $('undo').onclick = () => { $('json').blur(); model.undo(); };
-  $('redo').onclick = () => { $('json').blur(); model.redo(); };
+  $('undo').onclick = () => { model.undo(); };
+  $('redo').onclick = () => { model.redo(); };
 
   // Raccourcis clavier globaux : Cmd/Ctrl+Z = annuler, +Shift+Z = rétablir, Échap = désélectionner,
   // Cmd/Ctrl+D = dupliquer, +C = copier, +V = coller (copies indépendantes ; coller sur la page
@@ -314,7 +311,6 @@ async function main() {
   $('push').onclick = () => {
     const base = $('base').value;
     if (!base) return void showToast('URL device ?');
-    if ($('json').value.trim() !== model.toJSON().trim()) return void showToast('Modifs JSON non appliquées — clique « Appliquer » d’abord');
     if (!validate(model.state).valid) return void showToast('Layout invalide');
     withBusy('Envoi…', async () => {
       for (const k of referencedKeys(model.state)) {

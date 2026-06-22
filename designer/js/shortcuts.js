@@ -8,7 +8,7 @@
 //   Suppr             → delete (Delete OU Backspace : la grande touche Suppr du Mac émet Backspace)
 //   Échap             → deselect (désélectionne le composant courant)
 // Aucun raccourci n'agit quand le focus est dans un champ éditable : on laisse le comportement natif
-// (édition de texte, undo natif du textarea JSON avancé).
+// (édition de texte : champs de l'inspecteur, renommage inline de l'arbre).
 
 // el peut être null (e.target / document.activeElement). Accepte un faux objet {tagName,isContentEditable} (tests).
 export function isEditableTarget(el) {
