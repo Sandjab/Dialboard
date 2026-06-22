@@ -591,10 +591,11 @@ test('setNavWrap : crée nav.wrap quand nav est absent', () => {
   assert.equal(s.nav.wrap, false);
 });
 
-test('setNavWrap : met à jour wrap sans détruire l\'objet nav', () => {
-  const s = fresh(); s.nav = { wrap: false };
+test('setNavWrap : met à jour wrap sans détruire les autres clés de nav', () => {
+  const s = fresh(); s.nav = { wrap: false, _futur: 1 };   // _futur = clé sœur hypothétique : le spread doit la garder
   setNavWrap(s, true);
   assert.equal(s.nav.wrap, true);
+  assert.equal(s.nav._futur, 1);   // verrouille le spread (échouerait si l'impl écrasait nav par { wrap })
 });
 
 test('setNavWrap : coerce en booléen (intention : jamais de valeur non-bool dans le layout)', () => {
