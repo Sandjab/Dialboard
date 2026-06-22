@@ -101,3 +101,16 @@ export async function fetchAimg(base, key) {
   if (!r.ok) throw new Error('HTTP ' + r.status);
   return new Uint8Array(await r.arrayBuffer());
 }
+
+// Présentation de GET /status pour la pastille device (séparée du transport → testable node).
+// { label } : court, pour la toolbar (pastille pleine ● + ip). { tooltip } : détail (page 1-based,
+// uptime, composants, état de chaque source pull). En Phase 5 le tooltip alimente le `title` de la
+// pastille ; en Phase 6 il alimentera la barre d'état. Reprend la mise en forme de l'ancien renderStatus.
+export function formatDeviceStatus(s) {
+  const srcs = (s.sources || []).map(x =>
+    `${x.name || '?'}:${x.last_status === 200 ? 'ok' : (x.err_count ? 'err' : '…')}`).join(' ');
+  const label = `● ${s.ip}`;
+  const tooltip = `page ${(+s.page) + 1}/${s.pages} · up ${s.uptime_s}s · ${s.components} comp.`
+    + (srcs ? ` · sources ${srcs}` : '');
+  return { label, tooltip };
+}
