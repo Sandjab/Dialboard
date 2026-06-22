@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { treeModel, contextMenuItems } from '../js/tree.js';
+import { treeModel, contextMenuItems, reorderTargetIndex } from '../js/tree.js';
 
 // État avec 2 pages ; page 0 a 3 placements dans l'ordre [ring, readout, image].
 const fresh = () => ({
@@ -133,4 +133,54 @@ test('contextMenuItems : page unique → delete désactivé', () => {
   assert.equal(items.find(i => i.id === 'delete').disabled, true);
   assert.equal(items.find(i => i.id === 'moveUp').disabled, true);
   assert.equal(items.find(i => i.id === 'moveDown').disabled, true);
+});
+
+// ── reorderTargetIndex ──────────────────────────────────────────────────────
+// Applique le déplacement et renvoie l'ordre d'AFFICHAGE (dessus d'abord = place[] inversé).
+function displayAfterDrop(refs, fromRef, toRef, before) {
+  const place = refs.map(r => ({ ref: r }));
+  const from = place.findIndex(p => p.ref === fromRef);
+  const to = place.findIndex(p => p.ref === toRef);
+  const target = reorderTargetIndex(place, from, to, before);
+  const [m] = place.splice(from, 1);
+  place.splice(target, 0, m);
+  return place.map(p => p.ref).reverse();   // display order
+}
+
+// Fournis par la spec (exemples de référence) :
+test('reorderTargetIndex : drag a au-dessus de c → a juste au-dessus de c en affichage', () => {
+  assert.deepEqual(displayAfterDrop(['a','b','c'], 'a', 'c', true), ['a','c','b']);
+});
+test('reorderTargetIndex : drag a au-dessus de b → a juste au-dessus de b', () => {
+  assert.deepEqual(displayAfterDrop(['a','b','c'], 'a', 'b', true), ['c','a','b']);
+});
+
+// Tests dérivés de l'INTENTION : before=false = curseur moitié basse → atterrit SOUS la ligne cible.
+// Affichage initial pour ['a','b','c'] = [c, b, a] (top-first).
+
+test('reorderTargetIndex : drag c en dessous de a (before=false) → c juste en-dessous de a', () => {
+  // Intention : 'c' (sommet display) déplacé sous 'a' (bas display) → affichage [b, a, c]
+  assert.deepEqual(displayAfterDrop(['a','b','c'], 'c', 'a', false), ['b','a','c']);
+});
+
+test('reorderTargetIndex : drag b en dessous de a (before=false) → b juste en-dessous de a', () => {
+  // Intention : 'b' déplacé sous 'a' → affichage [c, a, b]
+  assert.deepEqual(displayAfterDrop(['a','b','c'], 'b', 'a', false), ['c','a','b']);
+});
+
+test('reorderTargetIndex : drag sur soi-même → ordre inchangé (no-op)', () => {
+  // Un drop sur soi-même retourne from → le DOM ignore (to === from), l'ordre reste intact.
+  assert.deepEqual(displayAfterDrop(['a','b','c'], 'b', 'b', true), ['c','b','a']);
+});
+
+test('reorderTargetIndex : cas 4 éléments — drag d au-dessus de b', () => {
+  // place[]=[a,b,c,d], affichage=[d,c,b,a]. Drag d (sommet) au-dessus de b (display pos 2).
+  // Intention : d atterrit juste au-dessus de b → affichage [c,d,b,a]
+  assert.deepEqual(displayAfterDrop(['a','b','c','d'], 'd', 'b', true), ['c','d','b','a']);
+});
+
+test('reorderTargetIndex : drag c au-dessus de b → c juste au-dessus de b', () => {
+  // Intention : 'c' (display top) déplacé au-dessus de 'b' (display pos 1) → affichage [c, b, a]
+  // (c était déjà là — no-op effectif : target === from)
+  assert.deepEqual(displayAfterDrop(['a','b','c'], 'c', 'b', true), ['c','b','a']);
 });
