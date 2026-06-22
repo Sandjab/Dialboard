@@ -30,6 +30,7 @@ static const struct { const char* name; CompType type; } COMP_NAMES[] = {
     { "chart",    COMP_CHART    }, { "meter",    COMP_METER    }, { "image", COMP_IMAGE },
     { "image_anim", COMP_IMAGE_ANIM }, { "led", COMP_LED },
     { "rect", COMP_RECT }, { "circle", COMP_CIRCLE }, { "line", COMP_LINE },
+    { "icon", COMP_ICON },
 };
 
 static CompType parse_type(const char* s) {
@@ -65,6 +66,22 @@ static LineDash parse_line_dash(const char* s) {
     if (s && !strcmp(s, "dashed")) return LINE_DASHED;
     if (s && !strcmp(s, "dotted")) return LINE_DOTTED;
     return LINE_SOLID;
+}
+
+// Set curaté de symboles. ORDRE == ICON_GLYPHS (view.cpp) ; les deux indexent par la meme valeur.
+static const char* const ICON_SYMBOL_NAMES[ICON_SYMBOL_COUNT] = {
+    "wifi", "bluetooth", "gps", "usb",
+    "battery_empty", "battery_1", "battery_2", "battery_3", "battery_full",
+    "charge", "power", "bell", "warning", "ok", "close",
+    "play", "pause", "stop", "volume_max", "mute",
+    "home", "settings", "refresh",
+};
+static_assert(sizeof(ICON_SYMBOL_NAMES) / sizeof(ICON_SYMBOL_NAMES[0]) == ICON_SYMBOL_COUNT,
+              "ICON_SYMBOL_NAMES desync avec ICON_SYMBOL_COUNT");
+static uint8_t icon_symbol_index(const char* s) {
+    if (s) for (int i = 0; i < ICON_SYMBOL_COUNT; i++)
+        if (!strcmp(s, ICON_SYMBOL_NAMES[i])) return (uint8_t)i;
+    return 0;   // miss (impossible apres validation schema) -> 1er glyphe
 }
 
 bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
@@ -157,6 +174,21 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
             c.thresholds[c.threshold_count].limit = pair[0].as<float>();
             c.thresholds[c.threshold_count].color = parse_hex_color(pair[1] | "#FFFFFF", 0xFFFFFF);
             c.threshold_count++;
+        }
+        if (c.type == COMP_ICON) {
+            if (!o["font"].is<int>()) c.font = 28;                 // icon : defaut 28 (vs 20 generique)
+            c.icon_symbol = icon_symbol_index(o["symbol"] | "bell");
+            JsonArrayConst ist = o["states"].as<JsonArrayConst>();
+            for (JsonObjectConst s : ist) {
+                if (c.icon_state_count >= MAX_ICON_STATES) break;
+                IconState& is = c.icon_states[c.icon_state_count];
+                is.at         = s["at"] | 0.0f;
+                is.has_symbol = s["symbol"].is<const char*>();
+                is.symbol     = is.has_symbol ? icon_symbol_index(s["symbol"]) : 0;
+                is.has_color  = s["color"].is<const char*>();
+                is.color      = is.has_color ? parse_hex_color(s["color"], 0xFFFFFF) : 0;
+                c.icon_state_count++;
+            }
         }
         t.comp_count++;
     }
@@ -306,6 +338,9 @@ static void apply_shape(Component&, JsonVariantConst) {
     // rect/circle/line : statiques, pas de push de valeur. `visible` est gere universellement
     // (dash_apply_update) avant apply_one. Entree de vtable requise (static_assert COMP_COUNT).
 }
+static void apply_icon(Component& c, JsonVariantConst v) {
+    JsonVariantConst n; if (value_present(v, n)) c.value = n.as<int>();   // scalaire -> resolution glyphe+couleur
+}
 static void apply_image_anim(Component& c, JsonVariantConst v) {
     if (v["stop"] | false) {
         c.aimg_playing = false;
@@ -348,6 +383,7 @@ static const comp_apply_fn APPLY[] = {
     /* COMP_RECT     */ apply_shape,
     /* COMP_CIRCLE   */ apply_shape,
     /* COMP_LINE     */ apply_shape,
+    /* COMP_ICON     */ apply_icon,
 };
 static_assert(sizeof(APPLY) / sizeof(APPLY[0]) == COMP_COUNT,
               "APPLY desync avec CompType : ajoute la ligne du nouveau type");
