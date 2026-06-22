@@ -280,6 +280,8 @@ main { display: grid; grid-template-columns: 170px 1fr 200px; gap: 10px; padding
 .insp-aimg-frame { width: 32px; height: 32px; object-fit: cover; border: 1px solid transparent; cursor: pointer; border-radius: 3px; }
 .insp-aimg-frame.is-rest { border-color: var(--accent); }
 .insp-aimg-play { margin-top: 6px; padding: 2px 10px; }
+.insp-link { margin-top: 10px; align-self: flex-start; font-size: 12px; color: var(--info); border-color: transparent; padding: 2px 0; }
+.insp-link:hover:not(:disabled) { color: var(--ink); background: transparent; border-color: transparent; text-decoration: underline; }
 
 /* --- Panneau Sources (footer) --- */
 .sources-panel { display: flex; flex-direction: column; gap: 10px; padding: 6px 0; }

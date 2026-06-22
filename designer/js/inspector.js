@@ -82,7 +82,7 @@ function fieldRow(label, input, { ascii } = {}) {
   return row;
 }
 
-export function createInspector(root, model, { selection, rerenderCanvas, clearSelection, getActivePage = () => 0, previewProp, clearPreview, pushVisible } = {}) {
+export function createInspector(root, model, { selection, rerenderCanvas, clearSelection, getActivePage = () => 0, previewProp, clearPreview, pushVisible, openDrawer } = {}) {
   let sel = null; // { placeIndex, page, ref } ou null — RECALCULÉ depuis le store à chaque render()
   let placementInputs = {}; // { anchor, dx, dy } → <input>/<select> de la rubrique Placement, pour la MAJ live au drag
 
@@ -305,6 +305,15 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     const np = s.pages?.length ?? 0;
     const nc = Object.keys(s.components || {}).length;
     note(body, `${np} page(s) · ${nc} composant(s)`);
+    if (openDrawer) {
+      const link = document.createElement('button');
+      link.type = 'button';
+      link.className = 'insp-link';
+      link.textContent = 'Ouvrir la plomberie (Device) →';
+      link.title = 'Sorties physiques (led_ring/sound) + sources pull';
+      link.onclick = () => openDrawer();
+      body.appendChild(link);
+    }
   }
 
   // Vue Page : nom de la page (libellé designer — pas poussé au device, donc pas de garde ASCII ; garde-
