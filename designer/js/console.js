@@ -3,7 +3,7 @@
 // (validate) et la vue Source (model.toJSON()). Câblage DOM, vérifié navigateur (pas de test node).
 export function createConsole(root, model, { validate }) {
   let tab = 'problems';     // onglet actif
-  let open = false;         // corps déplié ?
+  let isOpen = false;       // corps déplié ? (≠ la méthode publique open(t) renvoyée plus bas)
 
   // --- Bandeau : onglets + bascule de pliage ---
   const head = document.createElement('div');
@@ -32,13 +32,13 @@ export function createConsole(root, model, { validate }) {
   root.append(head, body);
 
   const syncView = () => {
-    root.classList.toggle('open', open);
-    body.hidden = !open;
+    root.classList.toggle('open', isOpen);
+    body.hidden = !isOpen;
     tabProblems.classList.toggle('active', tab === 'problems');
     tabSource.classList.toggle('active', tab === 'source');
     problems.hidden = tab !== 'problems';
     source.hidden = tab !== 'source';
-    toggle.textContent = open ? '▾' : '▴';
+    toggle.textContent = isOpen ? '▾' : '▴';
   };
 
   const renderProblems = () => {
@@ -64,10 +64,10 @@ export function createConsole(root, model, { validate }) {
     setTimeout(() => { copyBtn.textContent = 'Copier'; }, 1500);
   };
 
-  const selectTab = (t) => { tab = t; open = true; syncView(); };
+  const selectTab = (t) => { tab = t; isOpen = true; syncView(); };
   tabProblems.onclick = () => selectTab('problems');
   tabSource.onclick = () => selectTab('source');
-  toggle.onclick = () => { open = !open; syncView(); };
+  toggle.onclick = () => { isOpen = !isOpen; syncView(); };
 
   model.subscribe(() => { renderProblems(); renderSource(); });
   renderProblems(); renderSource(); syncView();
