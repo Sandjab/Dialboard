@@ -58,10 +58,12 @@ export function createConsole(root, model, { validate }) {
   };
   const renderSource = () => { pre.textContent = model.toJSON(); };
 
+  let copyTimer = null;
   copyBtn.onclick = async () => {
+    if (copyTimer) clearTimeout(copyTimer);   // clics rapides : annule le reset en attente (pas de « Copier » prématuré)
     try { await navigator.clipboard.writeText(model.toJSON()); copyBtn.textContent = 'Copié ✓'; }
     catch (e) { copyBtn.textContent = 'Échec copie'; }
-    setTimeout(() => { copyBtn.textContent = 'Copier'; }, 1500);
+    copyTimer = setTimeout(() => { copyBtn.textContent = 'Copier'; copyTimer = null; }, 1500);
   };
 
   const selectTab = (t) => { tab = t; isOpen = true; syncView(); };
