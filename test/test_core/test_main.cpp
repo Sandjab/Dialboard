@@ -476,6 +476,39 @@ void test_led_is_lit_boundary(void) {
     TEST_ASSERT_TRUE (led_is_lit(0, 0));   // off_below 0 -> toujours allume
 }
 
+static const char* LAYOUT_SHAPES =
+  "{\"components\":{"
+    "\"r1\":{\"type\":\"rect\",\"fill\":\"#FF0000\",\"border_width\":3,\"border_color\":\"#00FF00\"},"
+    "\"c1\":{\"type\":\"circle\"},"
+    "\"l1\":{\"type\":\"line\",\"color\":\"#0000FF\",\"orientation\":\"vertical\",\"dash\":\"dashed\",\"rounded\":true}},"
+  "\"pages\":[{\"name\":\"p\",\"place\":["
+    "{\"ref\":\"r1\",\"width\":120,\"height\":60,\"radius\":8},"
+    "{\"ref\":\"c1\",\"size\":50},"
+    "{\"ref\":\"l1\",\"width\":100,\"thickness\":2}]}]}";
+
+void test_shapes_parsed(void) {
+    Dashboard d{}; char err[80];
+    TEST_ASSERT_TRUE_MESSAGE(dash_set_layout(&d, LAYOUT_SHAPES, err, sizeof(err)), err);
+    int ir = dash_find(&d, "r1"), ic = dash_find(&d, "c1"), il = dash_find(&d, "l1");
+    TEST_ASSERT_TRUE(ir >= 0 && ic >= 0 && il >= 0);
+    TEST_ASSERT_EQUAL_INT(COMP_RECT, d.components[ir].type);
+    TEST_ASSERT_TRUE(d.components[ir].fill_set);
+    TEST_ASSERT_EQUAL_HEX32(0xFF0000, d.components[ir].fill);
+    TEST_ASSERT_EQUAL_INT(3, d.components[ir].border_width);
+    TEST_ASSERT_EQUAL_HEX32(0x00FF00, d.components[ir].border_color);
+    TEST_ASSERT_EQUAL_INT(8, d.pages[0].places[0].radius);
+    TEST_ASSERT_EQUAL_INT(COMP_CIRCLE, d.components[ic].type);
+    TEST_ASSERT_FALSE(d.components[ic].fill_set);
+    TEST_ASSERT_EQUAL_INT(50, d.pages[0].places[1].size);
+    TEST_ASSERT_EQUAL_INT(COMP_LINE, d.components[il].type);
+    TEST_ASSERT_EQUAL_HEX32(0x0000FF, d.components[il].color);
+    TEST_ASSERT_TRUE(d.components[il].bar_vertical);
+    TEST_ASSERT_EQUAL_INT(LINE_DASHED, d.components[il].line_dash);
+    TEST_ASSERT_TRUE(d.components[il].line_rounded);
+    TEST_ASSERT_EQUAL_INT(100, d.pages[0].places[2].width);
+    TEST_ASSERT_EQUAL_INT(2, d.pages[0].places[2].thickness);
+}
+
 static const char* LAYOUT_LED =
     "{\"components\":{\"d\":{\"type\":\"led\",\"color\":\"#22C55E\",\"off_below\":3,"
     "\"thresholds\":[[1,\"#EF4444\"]]}},"
@@ -911,6 +944,7 @@ int main(int, char**) {
     RUN_TEST(test_ring_pill_and_center_coexist);
     RUN_TEST(test_layout_unknown_type_rejected);
     RUN_TEST(test_schema_types_all_resolve);
+    RUN_TEST(test_shapes_parsed);
     RUN_TEST(test_ctx_set_find_num);
     RUN_TEST(test_ctx_overwrite_keeps_one_slot);
     RUN_TEST(test_ctx_full_rejects);
