@@ -33,16 +33,6 @@
       <button id="import" title="Charge un layout depuis un fichier .json local">Importer</button>
       <input id="import-file" type="file" accept="application/json,.json" hidden />
     </div>
-    <!-- Affichage : zoom du canvas (visuel uniquement, n'affecte pas le layout) -->
-    <div class="hgroup">
-      <label>Zoom
-        <select id="zoom" title="Échelle d'affichage du canvas (n'affecte pas le layout)">
-          <option value="1">1×</option>
-          <option value="1.5">1,5×</option>
-          <option value="2">2×</option>
-        </select>
-      </label>
-    </div>
     <span id="dev-pill" class="dev-pill" title="Aucune requête device effectuée">○ non vérifié</span>
   </header>
 
@@ -61,6 +51,17 @@
     </section>
     <aside id="inspector" class="col"><h2>Inspecteur</h2></aside>
   </main>
+
+  <div id="statusbar" class="statusbar">
+    <!-- contexte (gauche) + validation injectés par statusbar.js ; zoom (display-only) câblé par app.js -->
+    <label class="sb-zoom">Zoom
+      <select id="zoom" title="Échelle d'affichage du canvas (n'affecte pas le layout)">
+        <option value="1">1×</option>
+        <option value="1.5">1,5×</option>
+        <option value="2">2×</option>
+      </select>
+    </label>
+  </div>
 
   <footer>
     <details>
