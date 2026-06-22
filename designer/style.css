@@ -300,15 +300,21 @@ textarea { width: 100%; height: 220px; background: #0a0a0e; color: #cbd5e1; bord
   border-bottom: 1px solid var(--line); background: var(--panel-2); }
 .devbar.err { color: var(--err); }
 
-/* Toasts éphémères (cf. toast.js) : empilés en bas-centre, non bloquants, auto-disparition. */
-.toast-host { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
-  display: flex; flex-direction: column; gap: 8px; z-index: 1000; pointer-events: none; }
-.toast { padding: 8px 14px; border-radius: 8px; font: 13px/1.4 var(--font-ui); color: var(--ink);
+/* Toasts unifiés (cf. toast.js, modèle A) : pile haut-droite, non bloquante. Un toast progress (spinner)
+   se mue en verdict EN PLACE. */
+.toast-host { position: fixed; right: 24px; top: 24px; z-index: 1000; pointer-events: none;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.toast { display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px; border-radius: 8px; font: 13px/1.4 var(--font-ui); color: var(--ink);
   background: var(--panel); border: 1px solid var(--line); box-shadow: 0 6px 20px rgba(0, 0, 0, .45);
-  opacity: 0; transform: translateY(8px); transition: opacity .15s, transform .15s; }
+  opacity: 0; transform: translateY(-8px); transition: opacity .15s, transform .15s; }
 .toast.show { opacity: 1; transform: translateY(0); }
-.toast-err { border-color: var(--err); color: var(--err); }
 .toast-ok { border-color: var(--ok); color: var(--ok); }
+.toast-err { border-color: var(--err); color: var(--err); }
+.toast-progress { border-color: var(--line); color: var(--muted); }
+.toast-spinner { flex: none; width: 13px; height: 13px; border-radius: 50%;
+  border: 2px solid var(--line); border-top-color: var(--accent); animation: toast-spin .7s linear infinite; }
+@keyframes toast-spin { to { transform: rotate(360deg); } }
 
 /* Composant image : conteneur a la taille du composant (w×h) ; placeholder si pas d'asset. */
 .w-image { overflow: hidden; }
