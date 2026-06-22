@@ -4,10 +4,11 @@
 #include "config.h"
 #include "context.h"
 
-enum CompType { COMP_NONE, COMP_LABEL, COMP_READOUT, COMP_BAR, COMP_RING, COMP_LED_RING, COMP_SOUND, COMP_CHART, COMP_METER, COMP_IMAGE, COMP_IMAGE_ANIM, COMP_LED, COMP_COUNT };
+enum CompType { COMP_NONE, COMP_LABEL, COMP_READOUT, COMP_BAR, COMP_RING, COMP_LED_RING, COMP_SOUND, COMP_CHART, COMP_METER, COMP_IMAGE, COMP_IMAGE_ANIM, COMP_LED, COMP_RECT, COMP_CIRCLE, COMP_LINE, COMP_COUNT };
 enum LedMode  { LED_OFF, LED_SOLID, LED_PROGRESS, LED_SPINNER, LED_BLINK, LED_BREATHE };
 enum BarMode  { BAR_NORMAL, BAR_SYMMETRICAL };               // bar : lv_bar_set_mode
 enum ArcMode  { ARC_NORMAL, ARC_SYMMETRICAL, ARC_REVERSE };  // ring : lv_arc_set_mode
+enum LineDash { LINE_SOLID, LINE_DASHED, LINE_DOTTED };      // line : motif du trait (line_dash_*)
 enum Anchor   { A_CENTER, A_TOP_MID, A_BOTTOM_MID, A_LEFT_MID, A_RIGHT_MID,
                 A_TOP_LEFT, A_TOP_RIGHT, A_BOTTOM_LEFT, A_BOTTOM_RIGHT };
 
@@ -51,6 +52,14 @@ struct Component {
     int      aimg_rest;              // frame affichee au repos / apres un play fini
     int      aimg_loop;              // nb de passes par defaut d'un play (0 = infini)
     bool     aimg_autoplay;          // demarre la lecture au chargement de la page
+
+    // formes de base (rect/circle/line)
+    bool     fill_set;        // rect/circle : fill present (sinon pas de fond)
+    uint32_t fill;            // rect/circle : couleur de fond
+    uint32_t border_color;    // rect/circle : couleur du contour (defaut 0xFFFFFF)
+    int      border_width;    // rect/circle : epaisseur du contour (0 = aucun)
+    LineDash line_dash;       // line : motif (plein/tirets/pointille)
+    bool     line_rounded;    // line : bouts arrondis. NB: l'orientation reutilise bar_vertical (parse generique)
 
     // --- etat (modifie par /update) ---
     int32_t  value;
