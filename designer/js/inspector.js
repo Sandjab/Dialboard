@@ -182,7 +182,15 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
         const colOn = document.createElement('input'); colOn.type = 'checkbox'; colOn.checked = e.color != null; colOn.title = 'Forcer une couleur';
         const col = document.createElement('input'); col.type = 'color'; col.value = e.color || '#FF0000'; col.disabled = e.color == null;
         colOn.addEventListener('change', () => { col.disabled = !colOn.checked; st[idx].color = colOn.checked ? col.value.toUpperCase() : undefined; commit(); });
-        col.addEventListener('change', () => { st[idx].color = col.value.toUpperCase(); commit(); });
+        col.addEventListener('change', () => { clearPreview?.(); st[idx].color = col.value.toUpperCase(); commit(); });
+        // Aperçu live de la couleur de l'état : override du tableau states complet (canvas seul, hors modèle).
+        col.addEventListener('input', () => { if (!colOn.checked) return; previewProp?.(ref, {
+          states: st.map((e, i) => ({
+            at: e.at ?? 0,
+            ...(e.symbol ? { symbol: e.symbol } : {}),
+            ...(i === idx ? { color: col.value.toUpperCase() } : (e.color ? { color: e.color } : {})),
+          })),
+        }); });
         const rm = document.createElement('button'); rm.className = 'insp-th-rm'; rm.textContent = '×';
         rm.addEventListener('click', () => { st.splice(idx, 1); commit(); });
         row.append(at, symSel, colOn, col, rm);
