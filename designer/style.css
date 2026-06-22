@@ -83,6 +83,18 @@ main { display: grid; grid-template-columns: 170px 1fr 200px; gap: 10px; padding
   background: #16161c; border: 1px solid #2a2a33; border-radius: 6px; box-shadow: 0 6px 24px rgba(0,0,0,.5); }
 .tree-menu-item.has-sub:hover > .tree-submenu { display: block; }
 footer { padding: 10px 12px; border-top: 1px solid var(--line); }
+
+/* --- Barre d'état (Phase 6) : contexte de sélection (gauche) · validation cliquable + zoom (droite) --- */
+.statusbar { display: flex; align-items: center; gap: 12px; padding: 5px 14px;
+  border-top: 1px solid var(--line); background: var(--panel-2); font-size: 12.5px; color: var(--muted); }
+.sb-context { color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-spacer { flex: 1 1 auto; }
+.sb-valid { font-size: 12.5px; padding: 2px 8px; border-color: transparent; }
+.sb-valid.sb-ok { color: var(--ok); }
+.sb-valid.sb-warn { color: var(--warn); }
+.sb-valid.sb-err { color: var(--err); }
+.sb-zoom { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+
 textarea { width: 100%; height: 220px; background: #0a0a0e; color: #cbd5e1; border: 1px solid var(--line); border-radius: 8px; font: 12.5px/1.5 var(--font-mono); padding: 10px; }
 .row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
 .valid { font-size: 12.5px; }
