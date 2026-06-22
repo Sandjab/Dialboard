@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   uniqueId, addComponent, addPlacement, removePlacement,
-  setComponentProp, setPlacementProp, setBarOrientation, setThresholds,
+  setComponentProp, setPlacementProp, setBarOrientation, setThresholds, setNavWrap,
   addPage, removePage, renamePage, reorderPages, uniquePageName, pageNameTaken,
   setPageBackground, effectivePageBg,
   setPageBackgroundImage, effectivePageBgImage,
@@ -583,4 +583,24 @@ test('duplicatePage : page à 2 composants → 2 nouveaux ids distincts', () => 
   const [r0, r1] = s.pages[idx].place.map(p => p.ref);
   assert.notEqual(r0, r1);
   assert.ok(!['a', 'b'].includes(r0) && !['a', 'b'].includes(r1));
+});
+
+test('setNavWrap : crée nav.wrap quand nav est absent', () => {
+  const s = fresh();
+  setNavWrap(s, false);
+  assert.equal(s.nav.wrap, false);
+});
+
+test('setNavWrap : met à jour wrap sans détruire l\'objet nav', () => {
+  const s = fresh(); s.nav = { wrap: false };
+  setNavWrap(s, true);
+  assert.equal(s.nav.wrap, true);
+});
+
+test('setNavWrap : coerce en booléen (intention : jamais de valeur non-bool dans le layout)', () => {
+  const s = fresh();
+  setNavWrap(s, 1);
+  assert.equal(s.nav.wrap, true);
+  setNavWrap(s, 0);
+  assert.equal(s.nav.wrap, false);
 });
