@@ -98,7 +98,11 @@ export function createCarousel({ host }, model, { selection, setSelection, getAc
       setSelection({ kind: 'page', page: i });    // puis sélectionne la page (cohérent avec l'arbre)
     });
     cell.draggable = true;
-    cell.addEventListener('dragstart', e => { dragFrom = i; e.dataTransfer.effectAllowed = 'move'; });
+    cell.addEventListener('dragstart', e => {
+      dragFrom = i;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', `page:${i}`);   // parité tree.js : drop autorisé cross-navigateur
+    });
     cell.addEventListener('dragend', () => { dragFrom = null; clearDropMarks(); });
     cell.addEventListener('dragover', e => {
       if (dragFrom === null || dragFrom === i) return;
