@@ -98,7 +98,7 @@ static void h_set_layout() {
     // Sweep : supprime les fonds /bg/*.565 que plus aucune page ne reference.
     {
         String victims[16]; int nv = 0;
-        File dir = LittleFS.open(BG_DIR);
+        File dir = asset_fs_target().open(asset_resolve(BG_DIR));
         if (dir && dir.isDirectory()) {
             for (File e = dir.openNextFile(); e && nv < 16; e = dir.openNextFile()) {
                 String full = e.name();                 // peut etre "/bg/<x>.565" ou "<x>.565" selon le core
@@ -110,16 +110,16 @@ static void h_set_layout() {
                 bool referenced = false;
                 for (int p = 0; p < D->page_count; p++)
                     if (key.length() && strcmp(D->pages[p].background_image, key.c_str()) == 0) { referenced = true; break; }
-                if (!referenced) victims[nv++] = String(BG_DIR) + "/" + base;
+                if (!referenced) victims[nv++] = asset_resolve((String(BG_DIR) + "/" + base).c_str());
             }
             dir.close();
         }
-        for (int i = 0; i < nv; i++) LittleFS.remove(victims[i]);
+        for (int i = 0; i < nv; i++) asset_fs_target().remove(victims[i]);
     }
     // Sweep : supprime les images /img/*.565a que plus aucun composant image ne reference.
     {
         String victims[16]; int nv = 0;
-        File dir = LittleFS.open(IMG_DIR);
+        File dir = asset_fs_target().open(asset_resolve(IMG_DIR));
         if (dir && dir.isDirectory()) {
             for (File e = dir.openNextFile(); e && nv < 16; e = dir.openNextFile()) {
                 String full = e.name();
@@ -132,16 +132,16 @@ static void h_set_layout() {
                 for (int c = 0; c < D->comp_count; c++)
                     if (D->components[c].type == COMP_IMAGE && key.length() &&
                         strcmp(D->components[c].image_src, key.c_str()) == 0) { referenced = true; break; }
-                if (!referenced) victims[nv++] = String(IMG_DIR) + "/" + b;
+                if (!referenced) victims[nv++] = asset_resolve((String(IMG_DIR) + "/" + b).c_str());
             }
             dir.close();
         }
-        for (int i = 0; i < nv; i++) LittleFS.remove(victims[i]);
+        for (int i = 0; i < nv; i++) asset_fs_target().remove(victims[i]);
     }
     // Sweep : supprime les packs /aimg/*.565p que plus aucun composant image_anim ne reference.
     {
         String victims[16]; int nv = 0;
-        File dir = LittleFS.open(AIMG_DIR);
+        File dir = asset_fs_target().open(asset_resolve(AIMG_DIR));
         if (dir && dir.isDirectory()) {
             for (File e = dir.openNextFile(); e && nv < 16; e = dir.openNextFile()) {
                 String full = e.name();
@@ -154,11 +154,11 @@ static void h_set_layout() {
                 for (int c = 0; c < D->comp_count; c++)
                     if (D->components[c].type == COMP_IMAGE_ANIM && key.length() &&
                         strcmp(D->components[c].image_src, key.c_str()) == 0) { referenced = true; break; }
-                if (!referenced) victims[nv++] = String(AIMG_DIR) + "/" + b;
+                if (!referenced) victims[nv++] = asset_resolve((String(AIMG_DIR) + "/" + b).c_str());
             }
             dir.close();
         }
-        for (int i = 0; i < nv; i++) LittleFS.remove(victims[i]);
+        for (int i = 0; i < nv; i++) asset_fs_target().remove(victims[i]);
     }
     S->send(200, "application/json", "{\"ok\":true}\n");
 }
