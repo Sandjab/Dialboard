@@ -52,19 +52,22 @@ export function buildPageStatic(page, comps) {
   // Attacher hors-écran pour mesurer (un nœud détaché rend 0×0 → placement non-centré faux).
   mini.style.position = 'fixed'; mini.style.left = '-99999px'; mini.style.top = '0';
   document.body.appendChild(mini);
-  for (const { node, pl, def } of built) {
-    if (def.centered) {
-      const r = pl.radius || 80;
-      node.style.left = (SCREEN / 2 - r) + 'px';
-      node.style.top  = (SCREEN / 2 - r) + 'px';
-    } else {
-      const rect = node.getBoundingClientRect();
-      const { x, y } = placeAt(pl.anchor || 'CENTER', pl.dx || 0, pl.dy || 0, rect.width, rect.height);
-      node.style.left = x + 'px';
-      node.style.top  = y + 'px';
+  try {
+    for (const { node, pl, def } of built) {
+      if (def.centered) {
+        const r = pl.radius || 80;
+        node.style.left = (SCREEN / 2 - r) + 'px';
+        node.style.top  = (SCREEN / 2 - r) + 'px';
+      } else {
+        const rect = node.getBoundingClientRect();
+        const { x, y } = placeAt(pl.anchor || 'CENTER', pl.dx || 0, pl.dy || 0, rect.width, rect.height);
+        node.style.left = x + 'px';
+        node.style.top  = y + 'px';
+      }
     }
+  } finally {
+    document.body.removeChild(mini);   // garanti même si un builder/placeAt lève → pas de nœud orphelin
   }
-  document.body.removeChild(mini);
   mini.style.position = 'relative'; mini.style.left = ''; mini.style.top = '';
   return mini;
 }
@@ -135,8 +138,10 @@ export function createCarousel({ host }, model, { selection, setSelection, getAc
     cell.addEventListener('dragover', e => {
       if (dragFrom === null || dragFrom === i) return;
       e.preventDefault();
-      clearDropMarks();
-      cell.classList.add('caro-drop');
+      if (!cell.classList.contains('caro-drop')) {   // dragover = très fréquent : ne nettoyer/repeindre qu'au changement de cible
+        clearDropMarks();
+        cell.classList.add('caro-drop');
+      }
     });
     cell.addEventListener('drop', e => {
       if (dragFrom === null || dragFrom === i) return;
@@ -199,8 +204,15 @@ export function createCarousel({ host }, model, { selection, setSelection, getAc
     syncArrows();   // état initial (après insertion : tailles connues)
   }
 
-  model.subscribe(render);        // mutations : structure des pages + édition des composants (miniatures)
-  selection.subscribe(render);    // changement de page active / sélection → surlignage
+  // Changement de sélection / page active : re-surligner SANS reconstruire (buildPageStatic force un
+  // reflow par page → coûteux à chaque clic). On ne bascule que la classe .active. Cf. canvas.js applySelection.
+  function updateActive() {
+    const act = getActivePage();
+    host.querySelectorAll('.caro-thumb').forEach((cell, i) => cell.classList.toggle('active', i === act));
+  }
+
+  model.subscribe(render);            // mutations : structure des pages + édition des composants (miniatures)
+  selection.subscribe(updateActive); // changement de page active / sélection → surlignage léger
   render();
   if (document.fonts?.ready) document.fonts.ready.then(render);   // fidélité Montserrat (cf. canvas.js)
   return { render };
