@@ -234,6 +234,14 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
       file.value = '';
     });
     row.appendChild(file);
+    const pick = document.createElement('button');                              // .insp-bg-file est masqué (CSS) : un bouton dossier l'ouvre, comme le fond
+    pick.type = 'button'; pick.className = 'insp-iconbtn';
+    pick.title = c.src ? "Changer l'image" : "Choisir une image";
+    const pickIcon = document.createElement('img');
+    pickIcon.src = FOLDER_URI; pickIcon.width = 16; pickIcon.height = 16; pickIcon.alt = pick.title;
+    pick.appendChild(pickIcon);
+    pick.addEventListener('click', () => file.click());
+    row.appendChild(pick);
     if (c.src) {
       const thumb = document.createElement('img'); thumb.className = 'insp-bg-thumb';
       const u = imagePreviewUrl(c.src);
@@ -278,6 +286,14 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
       file.value = '';
     });
     row.appendChild(file);
+    const pick = document.createElement('button');                              // .insp-bg-file est masqué (CSS) : un bouton dossier l'ouvre, comme le fond
+    pick.type = 'button'; pick.className = 'insp-iconbtn';
+    pick.title = c.src ? "Changer l'animation" : "Choisir une animation";
+    const pickIcon = document.createElement('img');
+    pickIcon.src = FOLDER_URI; pickIcon.width = 16; pickIcon.height = 16; pickIcon.alt = pick.title;
+    pick.appendChild(pickIcon);
+    pick.addEventListener('click', () => file.click());
+    row.appendChild(pick);
     if (c.src) {
       const del = document.createElement('button');
       del.type = 'button'; del.className = 'insp-bg-reset'; del.textContent = '↺';
