@@ -1,0 +1,65 @@
+# Publie le designer WYSIWYG sur GitHub Pages.
+#
+# Ne publie QUE designer/ + schema/ (pas le firmware), avec une redirection
+# racine vers designer/. Le schema reste un cran au-dessus de designer/ pour
+# que le fetch('../schema/layout.schema.json') de app.js résolve comme en local.
+#
+# Limite connue : les boutons « Device » (Charger/Pousser/Capture…) NE marchent
+# PAS depuis Pages — page HTTPS vs device HTTP sur le LAN = mixed content bloqué
+# par le navigateur. Pages sert l'éditeur ; workflow device = Exporter/Importer.
+name: Deploy designer to Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'designer/**'
+      - 'schema/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Une seule publication à la fois ; ne pas annuler un déploiement en cours.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble _site (designer + schema + redirect)
+        run: |
+          mkdir -p _site
+          cp -r designer _site/designer
+          cp -r schema   _site/schema
+          # Inutile en prod : tests node + manifeste npm du designer.
+          rm -rf _site/designer/tests _site/designer/package.json
+          cat > _site/index.html <<'HTML'
+          <!doctype html>
+          <meta charset="utf-8" />
+          <title>Dialboard — Designer</title>
+          <meta http-equiv="refresh" content="0; url=./designer/" />
+          <a href="./designer/">Dialboard Designer →</a>
+          HTML
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
