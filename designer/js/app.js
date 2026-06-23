@@ -12,6 +12,7 @@ import { createCanvas } from './canvas.js';
 import { createPalette } from './palette.js';
 import { createInspector } from './inspector.js';
 import { createTree } from './tree.js';
+import { createCarousel } from './carousel.js';
 import { bindFileIO } from './file-io.js';
 import { createSources } from './sources.js';
 import { createDevicePanel } from './device-panel.js';
@@ -156,6 +157,13 @@ async function main() {
     getActivePage: canvas.getActivePage,
     setPage: i => canvas.setPage(i),
     compActions, getClipboard,
+  });
+
+  // Carousel de vignettes de pages (sous le hero disque) : navigation visuelle rapide.
+  createCarousel({ host: $('carousel') }, model, {
+    selection, setSelection,
+    getActivePage: canvas.getActivePage,
+    setPage: i => canvas.setPage(i),
   });
 
   // Export / import fichier layout.json (filet indépendant du device). Après import, on revient à la
