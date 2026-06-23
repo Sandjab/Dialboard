@@ -7,3 +7,5 @@ playgrounds/*
 !playgrounds/README.md
 .playwright-mcp/
 .DS_Store
+# Identifiants WiFi — local uniquement, jamais committé (cf. src/secrets.h.example)
+src/secrets.h
