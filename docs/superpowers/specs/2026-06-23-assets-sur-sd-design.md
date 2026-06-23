@@ -48,7 +48,7 @@ Conséquences :
    `/dialboard/img`, `/dialboard/bg`, `/dialboard/aimg` → le GC/sweep ne peut jamais
    toucher les données de l'utilisateur, aucune pollution de la racine, aucune collision.
    Sur LittleFS, FS dédié, on garde `/img`, `/bg`, `/aimg` (pas d'isolation nécessaire).
-6. **État SD visible dans `/status`** (monté/non, type/taille). Évite qu'un échec de
+6. **État SD visible dans `/status`** (monté/non, taille/usage). Évite qu'un échec de
    montage (ex. exFAT) passe inaperçu derrière le fallback LittleFS silencieux.
 7. **FAT32 recommandé.** Le support exFAT du build Arduino/FATFS n'est pas garanti ; une
    carte exFAT (souvent les SDXC > 32 Go) peut ne pas se monter → fallback LittleFS.
@@ -108,7 +108,7 @@ anim). Les 3 gèrent déjà `if (!f) return false`.
   BG_DIR))`, etc.) et construisent les chemins de victimes via `asset_resolve`. Comme le
   sweep ne regarde que sous `/dialboard/` sur SD, il ne peut pas toucher les données de
   l'utilisateur.
-- `/status` (`h_status`) expose l'état SD (monté/non, type, taille/usage).
+- `/status` (`h_status`) expose l'état SD (monté/non `mounted`, `size_mb`, `used_mb`).
 
 **Boot** : init board → `k718_sd_begin()` → `persist_begin()` (LittleFS) → `asset_fs_init()`.
 Aucun ajout de `lib_deps` (`SD_MMC` est dans le core ESP32).
