@@ -98,6 +98,8 @@ export function createCarousel({ host }, model, { selection, setSelection, getAc
     host.replaceChildren();
     const pages = model.state.pages || [];
     const act = getActivePage();
+    const left  = document.createElement('button'); left.className  = 'caro-arrow'; left.textContent  = '◀';
+    const right = document.createElement('button'); right.className = 'caro-arrow'; right.textContent = '▶';
     const track = document.createElement('div');
     track.className = 'caro-track';
     pages.forEach((p, i) => track.appendChild(thumb(p, i, i === act)));
@@ -113,7 +115,16 @@ export function createCarousel({ host }, model, { selection, setSelection, getAc
       setPage(ni); setSelection({ kind: 'page', page: ni });
     });
     track.appendChild(add);
-    host.appendChild(track);
+    const syncArrows = () => {
+      const s = arrowState({ scrollLeft: track.scrollLeft, scrollWidth: track.scrollWidth, clientWidth: track.clientWidth });
+      left.disabled  = !s.left;
+      right.disabled = !s.right;
+    };
+    left.addEventListener('click',  () => { track.scrollBy({ left: -track.clientWidth * 0.8, behavior: 'smooth' }); });
+    right.addEventListener('click', () => { track.scrollBy({ left:  track.clientWidth * 0.8, behavior: 'smooth' }); });
+    track.addEventListener('scroll', syncArrows);
+    host.append(left, track, right);
+    syncArrows();   // état initial (après insertion : tailles connues)
   }
 
   model.subscribe(render);        // mutations : structure des pages + édition des composants (miniatures)
