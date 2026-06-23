@@ -46,6 +46,9 @@ export function buildPageStatic(page, comps) {
     built.push({ node, pl, def });
   }
   // Phase 2 : positionner (mesure à l'échelle 1, le carousel scale le conteneur ensuite).
+  // Attacher hors-écran pour mesurer (un nœud détaché rend 0×0 → placement non-centré faux).
+  mini.style.position = 'fixed'; mini.style.left = '-99999px'; mini.style.top = '0';
+  document.body.appendChild(mini);
   for (const { node, pl, def } of built) {
     if (def.centered) {
       const r = pl.radius || 80;
@@ -58,6 +61,8 @@ export function buildPageStatic(page, comps) {
       node.style.top  = y + 'px';
     }
   }
+  document.body.removeChild(mini);
+  mini.style.position = 'relative'; mini.style.left = ''; mini.style.top = '';
   return mini;
 }
 
