@@ -386,3 +386,4 @@ main { display: grid; grid-template-columns: var(--dock-w) 1fr var(--insp-w); ga
 .caro-arrow:disabled { opacity: .32; cursor: default; }
 .caro-thumb[draggable="true"] { cursor: grab; }
 .caro-thumb.caro-drop .caro-disk { box-shadow: inset 0 0 0 2px var(--accent); }
+.caro-rename { width: 84px; font-size: 11.5px; }
