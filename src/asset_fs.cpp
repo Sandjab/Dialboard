@@ -40,12 +40,11 @@ void asset_fs_init() {
 }
 
 File asset_open_read(const char* logical) {
-    if (s_sd_active) {
-        String sp = asset_resolve(logical);
-        if (SD_MMC.exists(sp)) {
-            File f = SD_MMC.open(sp, "r");
-            if (f) return f;
-        }
+    String sp = asset_resolve(logical);
+    bool on_sd = s_sd_active && SD_MMC.exists(sp);
+    if (asset_source_for_read(s_sd_active, on_sd) == ASSET_SD) {
+        File f = SD_MMC.open(sp, "r");
+        if (f) return f;
     }
     return LittleFS.open(logical, "r");   // fallback : chemin logique nu
 }
