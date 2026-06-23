@@ -375,3 +375,7 @@ main { display: grid; grid-template-columns: var(--dock-w) 1fr var(--insp-w); ga
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .caro-thumb.active .caro-cap { color: var(--ink); font-weight: 600; }
 .mini-stage { pointer-events: none; }   /* vignette non interactive (clic capté par .caro-thumb) */
+.caro-add { width: 72px; height: 72px; border-radius: 50%; border: 1px dashed #3a3a45;
+  color: var(--muted); font-size: 22px; background: transparent; cursor: pointer; flex: none; }
+.caro-add:hover:not(:disabled) { border-color: var(--accent); color: var(--ink); }
+.caro-add:disabled { opacity: .32; cursor: default; }

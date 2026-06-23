@@ -5,6 +5,7 @@
 import { COMPONENTS } from './registry.js';
 import { placeAt, SCREEN } from './geometry.js';
 import { getMock } from './mocks.js';
+import { addPage, uniquePageName } from './mutations.js';
 
 // Miroir de src/config.h:3 (#define MAX_PAGES 8) et de designer/js/validate.js:27 (LIM.pages).
 export const MAX_PAGES = 8;
@@ -100,6 +101,18 @@ export function createCarousel({ host }, model, { selection, setSelection, getAc
     const track = document.createElement('div');
     track.className = 'caro-track';
     pages.forEach((p, i) => track.appendChild(thumb(p, i, i === act)));
+    const add = document.createElement('button');
+    add.className = 'caro-add';
+    add.textContent = '+';
+    add.title = 'Ajouter une page';
+    add.disabled = !canAddPage(model.state);
+    add.addEventListener('click', () => {
+      const name = uniquePageName(model.state);
+      let ni = -1;
+      model.commit(s => { addPage(s, name); ni = s.pages.length - 1; });
+      setPage(ni); setSelection({ kind: 'page', page: ni });
+    });
+    track.appendChild(add);
     host.appendChild(track);
   }
 
