@@ -364,8 +364,8 @@ main { display: grid; grid-template-columns: var(--dock-w) 1fr var(--insp-w); ga
 
 /* --- Carousel de vignettes de pages (sous le hero disque) --- */
 .carousel { width: 100%; margin-top: 14px; display: flex; align-items: center; gap: 12px; }
-.caro-track { display: flex; align-items: flex-end; justify-content: center; gap: 18px;
-  overflow: hidden; padding: 10px 2px 2px; flex: 1; }
+.caro-track { display: flex; align-items: center; justify-content: center; gap: 18px;
+  overflow: hidden; padding: 18px 12px; flex: 1; }
 .caro-thumb { display: flex; flex-direction: column; align-items: center; gap: 7px; cursor: pointer; flex: none; }
 .caro-disk { width: 72px; height: 72px; border-radius: 50%; background: #000; border: 1px solid var(--line);
   overflow: hidden; position: relative; transition: transform .12s; }
