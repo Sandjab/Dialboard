@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { treeModel, contextMenuItems, reorderTargetIndex } from '../js/tree.js';
+import { treeModel, reorderTargetIndex } from '../js/tree.js';
+import { contextMenuItems } from '../js/contextmenu.js';
 
 // État avec 2 pages ; page 0 a 3 placements dans l'ordre [ring, readout, image].
 const fresh = () => ({

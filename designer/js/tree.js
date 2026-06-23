@@ -5,6 +5,7 @@ import { COMPONENTS } from './registry.js';
 import { iconFor } from './icons.js';
 import { setComponentProp, addPage, removePage, renamePage, reorderPages, uniquePageName, pageNameTaken, renameComponent, duplicatePage, reorderPlacement, movePlacementToPage } from './mutations.js';
 import { showToast } from './toast.js';
+import { contextMenuItems, openContextMenu, closeContextMenu } from './contextmenu.js';
 
 // Œil de visibilité — mêmes icônes que l'en-tête inspecteur (brique commune, cf. spec §1).
 const EYE_OPEN_URI = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E5E7EB' stroke-width='2'%3E%3Cpath d='M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E";
@@ -36,42 +37,8 @@ export function treeModel(state) {
   return { title: state?.title ?? '', pages };
 }
 
-// Modèle PUR du menu contextuel (testé node ; le rendu DOM + dispatch est ailleurs, vérifié navigateur).
-// Items : { id, label, disabled?, submenu? }. doc/null → [] (pas de menu). z-order : raiseZ = vers la FIN de
-// place[] (dessus), lowerZ = vers le DÉBUT (fond). moveToPage.submenu = { id:'moveTo', label, page } des AUTRES
-// pages (absent si une seule page).
-export function contextMenuItems(sel, state, { hasClipboard = false } = {}) {
-  if (!sel || sel.kind === 'doc') return [];
-  const pages = state?.pages || [];
-  if (sel.kind === 'page') {
-    return [
-      { id: 'rename', label: 'Renommer' },
-      { id: 'duplicate', label: 'Dupliquer la page' },
-      { id: 'delete', label: 'Supprimer la page', disabled: pages.length <= 1 },
-      { id: 'moveUp', label: 'Monter', disabled: sel.page <= 0 },
-      { id: 'moveDown', label: 'Descendre', disabled: sel.page >= pages.length - 1 },
-    ];
-  }
-  // comp
-  const place = pages[sel.page]?.place || [];
-  const items = [
-    { id: 'rename', label: 'Renommer (id)' },
-    { id: 'duplicate', label: 'Dupliquer' },
-    { id: 'copy', label: 'Copier' },
-    { id: 'cut', label: 'Couper' },
-    { id: 'paste', label: 'Coller', disabled: !hasClipboard },
-    { id: 'delete', label: 'Supprimer' },
-    { id: 'raiseZ', label: 'Monter (avant-plan)', disabled: sel.index >= place.length - 1 },
-    { id: 'lowerZ', label: 'Descendre (arrière-plan)', disabled: sel.index <= 0 },
-  ];
-  if (pages.length > 1) {
-    const submenu = pages
-      .map((p, i) => ({ id: 'moveTo', label: p.name || `Page ${i + 1}`, page: i }))
-      .filter(s => s.page !== sel.page);
-    items.push({ id: 'moveToPage', label: 'Déplacer vers…', submenu });
-  }
-  return items;
-}
+// contextMenuItems déplacé dans contextmenu.js (partagé avec le carousel). Ré-exporté pour compat.
+export { contextMenuItems } from './contextmenu.js';
 
 // Drop d'un composant (drag&drop arbre) → index cible dans place[]. L'arbre affiche place[] INVERSÉ
 // (dessus = fin de place[]). `before` = curseur dans la moitié HAUTE de la ligne cible. Pur (testé node) :
@@ -191,7 +158,9 @@ export function createTree(root, model, { selection, setSelection, getActivePage
       if (pageIndex !== getActivePage()) goPage(pageIndex);
       setSelection({ kind: 'comp', page: pageIndex, index: c.index });
       render();
-      openMenu(e.clientX, e.clientY);
+      openContextMenu(e.clientX, e.clientY,
+        contextMenuItems(selection.get(), model.state, { hasClipboard: !!getClipboard() }),
+        runMenu);
     });
     // Œil de visibilité (brique commune avec l'en-tête inspecteur) : toggle de la clé `visible`.
     const spacer = document.createElement('span'); spacer.className = 'tree-spacer';
@@ -317,7 +286,9 @@ export function createTree(root, model, { selection, setSelection, getActivePage
       goPage(p.index);
       setSelection({ kind: 'page', page: p.index });
       render();
-      openMenu(e.clientX, e.clientY);
+      openContextMenu(e.clientX, e.clientY,
+        contextMenuItems(selection.get(), model.state, { hasClipboard: !!getClipboard() }),
+        runMenu);
     });
 
     // Contrôles au survol : renommer / monter / descendre / supprimer (réutilisent les mutations pages).
@@ -410,21 +381,10 @@ export function createTree(root, model, { selection, setSelection, getActivePage
     }
   }
 
-  // --- Menu contextuel ---
-  let menuEl = null;
-  let menuKeyHandler = null;   // listener Escape du menu ouvert (retiré par closeMenu, pas seulement sur Escape)
-  function closeMenu() {
-    if (!menuEl) return;
-    menuEl.remove(); menuEl = null;
-    document.removeEventListener('pointerdown', onDocDown, true);
-    if (menuKeyHandler) { document.removeEventListener('keydown', menuKeyHandler, true); menuKeyHandler = null; }
-  }
-  function onDocDown(e) { if (menuEl && !menuEl.contains(e.target)) closeMenu(); }
-
   // Exécute une action du menu sur la sélection COURANTE (la ligne a été sélectionnée à l'ouverture).
   function runMenu(id, extra) {
     const sel = selection.get();
-    closeMenu();
+    closeContextMenu();
     if (!sel) return;
     if (sel.kind === 'comp') {
       const page = sel.page, index = sel.index;
@@ -455,43 +415,6 @@ export function createTree(root, model, { selection, setSelection, getActivePage
       if (id === 'moveDown')  { if (pi >= total() - 1) return; model.commit(s => reorderPages(s, pi, pi + 1));
         goPage(pi + 1); setSelection({ kind: 'page', page: pi + 1 }); return; }
     }
-  }
-
-  function openMenu(x, y) {
-    closeMenu();
-    const items = contextMenuItems(selection.get(), model.state, { hasClipboard: !!getClipboard() });
-    if (!items.length) return;
-    menuEl = document.createElement('div'); menuEl.className = 'tree-menu';
-    menuEl.style.left = x + 'px'; menuEl.style.top = y + 'px';
-    for (const it of items) {
-      const row = document.createElement('div');
-      row.className = 'tree-menu-item' + (it.disabled ? ' disabled' : '') + (it.submenu ? ' has-sub' : '');
-      row.textContent = it.label + (it.submenu ? ' ▸' : '');
-      if (it.submenu) {
-        const sub = document.createElement('div'); sub.className = 'tree-submenu';
-        for (const s of it.submenu) {
-          const sr = document.createElement('div'); sr.className = 'tree-menu-item';
-          sr.textContent = s.label;
-          sr.addEventListener('click', ev => { ev.stopPropagation(); runMenu('moveTo', { page: s.page }); });
-          sub.appendChild(sr);
-        }
-        row.appendChild(sub);
-      } else if (!it.disabled) {
-        row.addEventListener('click', () => runMenu(it.id));
-      }
-      menuEl.appendChild(row);
-    }
-    document.body.appendChild(menuEl);
-    // Le menu vit hors de #layers : isoler son pointerdown pour que le listener global « clic ailleurs →
-    // désélectionne » (app.js) ne vide pas la sélection avant que l'action (click de l'item) ne s'exécute.
-    menuEl.addEventListener('pointerdown', e => e.stopPropagation());
-    // Repositionner pour rester dans le viewport (un clic-droit près d'un bord déborderait).
-    const mr = menuEl.getBoundingClientRect();
-    if (mr.bottom > window.innerHeight) menuEl.style.top = Math.max(4, window.innerHeight - mr.height - 4) + 'px';
-    if (mr.right > window.innerWidth) menuEl.style.left = Math.max(4, window.innerWidth - mr.width - 4) + 'px';
-    document.addEventListener('pointerdown', onDocDown, true);
-    menuKeyHandler = e => { if (e.key === 'Escape') closeMenu(); };   // closeMenu retire ce listener
-    document.addEventListener('keydown', menuKeyHandler, true);
   }
 
   return { render, beginRename };
