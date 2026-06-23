@@ -5,7 +5,7 @@
 import { COMPONENTS } from './registry.js';
 import { placeAt, SCREEN } from './geometry.js';
 import { getMock } from './mocks.js';
-import { addPage, uniquePageName } from './mutations.js';
+import { addPage, uniquePageName, reorderPages } from './mutations.js';
 
 // Miroir de src/config.h:3 (#define MAX_PAGES 8) et de designer/js/validate.js:27 (LIM.pages).
 export const MAX_PAGES = 8;
@@ -68,9 +68,15 @@ export function buildPageStatic(page, comps) {
 }
 
 const THUMB = 72;   // diamètre d'une vignette (px)
+let dragFrom = null; // index source d'un glisser-déposer en cours (null = pas de drag)
 
 // host : élément #carousel ; deps : sélection partagée + accès page active (comme l'arbre).
 export function createCarousel({ host }, model, { selection, setSelection, getActivePage, setPage }) {
+  // Supprime les marqueurs de dépôt sur toutes les vignettes.
+  function clearDropMarks() {
+    host.querySelectorAll('.caro-drop').forEach(n => n.classList.remove('caro-drop'));
+  }
+
   // Construit une vignette (disque) pour la page d'index i.
   function thumb(page, i, active) {
     const cell = document.createElement('div');
@@ -90,6 +96,23 @@ export function createCarousel({ host }, model, { selection, setSelection, getAc
     cell.addEventListener('click', () => {
       setPage(i);                                 // active la page (re-render canvas) + vide la sélection
       setSelection({ kind: 'page', page: i });    // puis sélectionne la page (cohérent avec l'arbre)
+    });
+    cell.draggable = true;
+    cell.addEventListener('dragstart', e => { dragFrom = i; e.dataTransfer.effectAllowed = 'move'; });
+    cell.addEventListener('dragend', () => { dragFrom = null; clearDropMarks(); });
+    cell.addEventListener('dragover', e => {
+      if (dragFrom === null || dragFrom === i) return;
+      e.preventDefault();
+      clearDropMarks();
+      cell.classList.add('caro-drop');
+    });
+    cell.addEventListener('drop', e => {
+      if (dragFrom === null || dragFrom === i) return;
+      e.preventDefault();
+      const from = dragFrom, to = i;
+      model.commit(s => reorderPages(s, from, to));
+      setPage(to); setSelection({ kind: 'page', page: to });
+      dragFrom = null;
     });
     return cell;
   }
