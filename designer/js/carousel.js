@@ -5,7 +5,8 @@
 import { COMPONENTS } from './registry.js';
 import { placeAt, SCREEN } from './geometry.js';
 import { getMock } from './mocks.js';
-import { addPage, uniquePageName, reorderPages, duplicatePage, removePage, renamePage, pageNameTaken } from './mutations.js';
+import { addPage, uniquePageName, reorderPages, duplicatePage, removePage, renamePage, pageNameTaken, effectivePageBg, effectivePageBgImage } from './mutations.js';
+import { previewUrl } from './bg-image.js';
 import { contextMenuItems, openContextMenu } from './contextmenu.js';
 import { showToast } from './toast.js';
 
@@ -91,6 +92,14 @@ export function createCarousel({ host }, model, { selection, setSelection, getAc
     const disk = document.createElement('div');
     disk.className = 'caro-disk';
     const mini = buildPageStatic(page, model.state.components || {});
+    // Fond de page (couleur + image) comme le canvas (cf. canvas.js render) : sinon la vignette montre
+    // le #000 du disque, pas le vrai fond. previewUrl null (octets pas en cache) → couleur seule, comme le canvas.
+    mini.style.background = effectivePageBg(model.state, i);
+    const bgKey = effectivePageBgImage(model.state, i);
+    const bgUrl = bgKey ? previewUrl(bgKey) : null;
+    mini.style.backgroundImage = bgUrl ? `url(${bgUrl})` : '';
+    mini.style.backgroundSize = 'cover';
+    mini.style.backgroundPosition = 'center';
     disk.appendChild(mini);                       // attaché : buildPageStatic a déjà mesuré/positionné
     mini.style.transformOrigin = 'top left';
     mini.style.transform = `scale(${THUMB / 360})`;
