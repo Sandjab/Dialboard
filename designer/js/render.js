@@ -592,8 +592,9 @@ export const ICON_SVG = {
 export function resolveIcon(comp, value) {
   let symbol = comp.symbol || 'bell';
   let color = comp.color || '#FFFFFF';
+  const val = Number(value ?? 0);                 // défensif : aligne sur le cast (float)c.value du firmware
   for (const st of comp.states || []) {
-    if (value < st.at) {
+    if (val < st.at) {
       if (st.symbol != null) symbol = st.symbol;
       if (st.color != null) color = st.color;
       break;
