@@ -12,6 +12,7 @@
 #include <lvgl.h>
 #include "esp_heap_caps.h"
 #include <LittleFS.h>
+#include "asset_fs.h"
 
 extern String g_layout_json;
 extern SemaphoreHandle_t g_ctx_mutex;
@@ -260,7 +261,7 @@ static void h_screenshot() {
 }
 
 // --- POST /bgimage?key=<hex> : upload d'un fond RGB565 (360x360, 259200 octets) ---
-// Multipart streame directement en LittleFS (pas de gros buffer RAM, supporte les octets nuls).
+// Multipart streame directement vers le FS cible (SD ou LittleFS) (pas de gros buffer RAM, supporte les octets nuls).
 // Ecrit dans un fichier temp puis renomme vers /bg/<cle>.565 si la taille est exacte.
 static File   s_bg_up;
 static size_t s_bg_written = 0;
@@ -269,9 +270,10 @@ static const char* BG_TMP = BG_DIR "/_upload.tmp";
 static void h_bgimage_upload() {
     HTTPUpload& up = S->upload();
     if (up.status == UPLOAD_FILE_START) {
-        if (!LittleFS.exists(BG_DIR)) LittleFS.mkdir(BG_DIR);
+        String dir = asset_resolve(BG_DIR);
+        if (!asset_fs_target().exists(dir)) asset_fs_target().mkdir(dir);
         s_bg_written = 0;
-        s_bg_up = LittleFS.open(BG_TMP, "w");
+        s_bg_up = asset_fs_target().open(asset_resolve(BG_TMP), "w");
     } else if (up.status == UPLOAD_FILE_WRITE) {
         if (s_bg_up) s_bg_written += s_bg_up.write(up.buf, up.currentSize);
     } else if (up.status == UPLOAD_FILE_END) {
@@ -281,18 +283,19 @@ static void h_bgimage_upload() {
 
 static void h_bgimage_done() {
     String key = S->arg("key");
+    String tmp = asset_resolve(BG_TMP);
     if (s_bg_written != BG_IMG_BYTES) {
-        LittleFS.remove(BG_TMP);
+        asset_fs_target().remove(tmp);
         S->send(400, "text/plain", "bad size (expected 259200)\n"); return;
     }
     if (!bg_key_valid(key.c_str())) {
-        LittleFS.remove(BG_TMP);
+        asset_fs_target().remove(tmp);
         S->send(400, "text/plain", "bad key\n"); return;
     }
-    String dst = String(BG_DIR) + "/" + key + ".565";
-    LittleFS.remove(dst);                       // rename echoue si la cible existe
-    if (!LittleFS.rename(BG_TMP, dst)) {
-        LittleFS.remove(BG_TMP);
+    String dst = asset_resolve((String(BG_DIR) + "/" + key + ".565").c_str());
+    asset_fs_target().remove(dst);                       // rename echoue si la cible existe
+    if (!asset_fs_target().rename(tmp, dst)) {
+        asset_fs_target().remove(tmp);
         S->send(500, "text/plain", "FS rename failed\n"); return;
     }
     S->send(200, "application/json", "{\"ok\":true}\n");
@@ -302,7 +305,7 @@ static void h_bgimage_get() {
     String key = S->arg("key");
     if (!bg_key_valid(key.c_str())) { S->send(400, "text/plain", "bad key\n"); return; }
     String path = String(BG_DIR) + "/" + key + ".565";
-    File f = LittleFS.open(path, "r");
+    File f = asset_open_read(path.c_str());
     if (!f) { S->send(404, "text/plain", "not found\n"); return; }
     S->streamFile(f, "application/octet-stream");
     f.close();
@@ -316,9 +319,10 @@ static const char* IMG_TMP = IMG_DIR "/_upload.tmp";
 static void h_image_upload() {
     HTTPUpload& up = S->upload();
     if (up.status == UPLOAD_FILE_START) {
-        if (!LittleFS.exists(IMG_DIR)) LittleFS.mkdir(IMG_DIR);
+        String dir = asset_resolve(IMG_DIR);
+        if (!asset_fs_target().exists(dir)) asset_fs_target().mkdir(dir);
         s_img_written = 0;
-        s_img_up = LittleFS.open(IMG_TMP, "w");
+        s_img_up = asset_fs_target().open(asset_resolve(IMG_TMP), "w");
     } else if (up.status == UPLOAD_FILE_WRITE) {
         if (s_img_up) s_img_written += s_img_up.write(up.buf, up.currentSize);
     } else if (up.status == UPLOAD_FILE_END) {
@@ -328,20 +332,21 @@ static void h_image_upload() {
 
 static void h_image_done() {
     String key = S->arg("key");
+    String tmp = asset_resolve(IMG_TMP);
     // Taille variable : on borne (<= plein ecran) et on exige un multiple de 3 (RGB565A8). La validation
     // forte len == w*h*3 a lieu au chargement (img_load_component, ou w/h sont connus).
     if (s_img_written == 0 || s_img_written > (size_t)IMG_MAX_BYTES || (s_img_written % IMG_PX_BYTES) != 0) {
-        LittleFS.remove(IMG_TMP);
+        asset_fs_target().remove(tmp);
         S->send(400, "text/plain", "bad size\n"); return;
     }
     if (!bg_key_valid(key.c_str())) {
-        LittleFS.remove(IMG_TMP);
+        asset_fs_target().remove(tmp);
         S->send(400, "text/plain", "bad key\n"); return;
     }
-    String dst = String(IMG_DIR) + "/" + key + ".565a";
-    LittleFS.remove(dst);
-    if (!LittleFS.rename(IMG_TMP, dst)) {
-        LittleFS.remove(IMG_TMP);
+    String dst = asset_resolve((String(IMG_DIR) + "/" + key + ".565a").c_str());
+    asset_fs_target().remove(dst);
+    if (!asset_fs_target().rename(tmp, dst)) {
+        asset_fs_target().remove(tmp);
         S->send(500, "text/plain", "FS rename failed\n"); return;
     }
     S->send(200, "application/json", "{\"ok\":true}\n");
@@ -351,7 +356,7 @@ static void h_image_get() {
     String key = S->arg("key");
     if (!bg_key_valid(key.c_str())) { S->send(400, "text/plain", "bad key\n"); return; }
     String path = String(IMG_DIR) + "/" + key + ".565a";
-    File f = LittleFS.open(path, "r");
+    File f = asset_open_read(path.c_str());
     if (!f) { S->send(404, "text/plain", "not found\n"); return; }
     S->streamFile(f, "application/octet-stream");
     f.close();
@@ -365,9 +370,10 @@ static const char* AIMG_TMP = AIMG_DIR "/_upload.tmp";
 static void h_aimg_upload() {
     HTTPUpload& up = S->upload();
     if (up.status == UPLOAD_FILE_START) {
-        if (!LittleFS.exists(AIMG_DIR)) LittleFS.mkdir(AIMG_DIR);
+        String dir = asset_resolve(AIMG_DIR);
+        if (!asset_fs_target().exists(dir)) asset_fs_target().mkdir(dir);
         s_aimg_written = 0;
-        s_aimg_up = LittleFS.open(AIMG_TMP, "w");
+        s_aimg_up = asset_fs_target().open(asset_resolve(AIMG_TMP), "w");
     } else if (up.status == UPLOAD_FILE_WRITE) {
         if (s_aimg_up) s_aimg_written += s_aimg_up.write(up.buf, up.currentSize);
     } else if (up.status == UPLOAD_FILE_END) {
@@ -376,19 +382,20 @@ static void h_aimg_upload() {
 }
 static void h_aimg_done() {
     String key = S->arg("key");
+    String tmp = asset_resolve(AIMG_TMP);
     // Borne (<= AIMG_MAX_BYTES) + multiple de 3 (RGB565A8). Validation forte (== N*w*h*3) au chargement.
     if (s_aimg_written == 0 || s_aimg_written > (size_t)AIMG_MAX_BYTES || (s_aimg_written % AIMG_PX_BYTES) != 0) {
-        LittleFS.remove(AIMG_TMP);
+        asset_fs_target().remove(tmp);
         S->send(400, "text/plain", "bad size\n"); return;
     }
     if (!bg_key_valid(key.c_str())) {
-        LittleFS.remove(AIMG_TMP);
+        asset_fs_target().remove(tmp);
         S->send(400, "text/plain", "bad key\n"); return;
     }
-    String dst = String(AIMG_DIR) + "/" + key + ".565p";
-    LittleFS.remove(dst);
-    if (!LittleFS.rename(AIMG_TMP, dst)) {
-        LittleFS.remove(AIMG_TMP);
+    String dst = asset_resolve((String(AIMG_DIR) + "/" + key + ".565p").c_str());
+    asset_fs_target().remove(dst);
+    if (!asset_fs_target().rename(tmp, dst)) {
+        asset_fs_target().remove(tmp);
         S->send(500, "text/plain", "FS rename failed\n"); return;
     }
     S->send(200, "application/json", "{\"ok\":true}\n");
@@ -397,7 +404,7 @@ static void h_aimg_get() {
     String key = S->arg("key");
     if (!bg_key_valid(key.c_str())) { S->send(400, "text/plain", "bad key\n"); return; }
     String path = String(AIMG_DIR) + "/" + key + ".565p";
-    File f = LittleFS.open(path, "r");
+    File f = asset_open_read(path.c_str());
     if (!f) { S->send(404, "text/plain", "not found\n"); return; }
     S->streamFile(f, "application/octet-stream");
     f.close();
