@@ -5,7 +5,8 @@
 import { COMPONENTS } from './registry.js';
 import { placeAt, SCREEN } from './geometry.js';
 import { getMock } from './mocks.js';
-import { addPage, uniquePageName, reorderPages } from './mutations.js';
+import { addPage, uniquePageName, reorderPages, duplicatePage, removePage, renamePage, pageNameTaken } from './mutations.js';
+import { contextMenuItems, openContextMenu } from './contextmenu.js';
 
 // Miroir de src/config.h:3 (#define MAX_PAGES 8) et de designer/js/validate.js:27 (LIM.pages).
 export const MAX_PAGES = 8;
@@ -69,6 +70,7 @@ export function buildPageStatic(page, comps) {
 
 const THUMB = 72;   // diamètre d'une vignette (px)
 let dragFrom = null; // index source d'un glisser-déposer en cours (null = pas de drag)
+let renaming = null; // index de la page en cours de renommage inline, ou null
 
 // host : élément #carousel ; deps : sélection partagée + accès page active (comme l'arbre).
 export function createCarousel({ host }, model, { selection, setSelection, getActivePage, setPage }) {
@@ -89,13 +91,34 @@ export function createCarousel({ host }, model, { selection, setSelection, getAc
     mini.style.transformOrigin = 'top left';
     mini.style.transform = `scale(${THUMB / 360})`;
     cell.appendChild(disk);
-    const cap = document.createElement('div');
-    cap.className = 'caro-cap';
-    cap.textContent = page.name || `Page ${i + 1}`;
-    cell.appendChild(cap);
+    if (renaming === i) {
+      const inp = document.createElement('input'); inp.className = 'caro-rename'; inp.value = page.name || '';
+      const commit = () => {
+        const v = inp.value.trim(); renaming = null;
+        if (v && v !== page.name && !pageNameTaken(model.state, v, i)) model.commit(s => renamePage(s, i, v));
+        else render();
+      };
+      inp.addEventListener('change', commit);
+      inp.addEventListener('keydown', e => {
+        if (e.key === 'Enter') inp.blur();
+        if (e.key === 'Escape') { renaming = null; render(); }
+      });
+      cell.appendChild(inp); queueMicrotask(() => inp.focus());
+    } else {
+      const cap = document.createElement('div'); cap.className = 'caro-cap';
+      cap.textContent = page.name || `Page ${i + 1}`;
+      cell.appendChild(cap);
+    }
     cell.addEventListener('click', () => {
       setPage(i);                                 // active la page (re-render canvas) + vide la sélection
       setSelection({ kind: 'page', page: i });    // puis sélectionne la page (cohérent avec l'arbre)
+    });
+    cell.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      setPage(i); setSelection({ kind: 'page', page: i });
+      openContextMenu(e.clientX, e.clientY,
+        contextMenuItems({ kind: 'page', page: i }, model.state, {}),
+        (id) => runMenu(id, i));
     });
     cell.draggable = true;
     cell.addEventListener('dragstart', e => {
@@ -119,6 +142,23 @@ export function createCarousel({ host }, model, { selection, setSelection, getAc
       dragFrom = null;
     });
     return cell;
+  }
+
+  // Renommage inline : passe en mode édition pour la vignette d'index pi.
+  function beginRename(pi) { renaming = pi; render(); }
+
+  // Exécute une action du menu contextuel sur la page d'index pi.
+  function runMenu(id, pi) {
+    const total = () => model.state.pages.length;
+    if (id === 'rename')    return beginRename(pi);
+    if (id === 'duplicate') { let ni = -1; model.commit(s => { ni = duplicatePage(s, pi); });
+      if (ni >= 0) { setPage(ni); setSelection({ kind: 'page', page: ni }); } return; }
+    if (id === 'delete')    { if (total() <= 1) return; model.commit(s => removePage(s, pi));
+      setPage(Math.min(pi, model.state.pages.length - 1)); return; }
+    if (id === 'moveUp')    { if (pi <= 0) return; model.commit(s => reorderPages(s, pi, pi - 1));
+      setPage(pi - 1); setSelection({ kind: 'page', page: pi - 1 }); return; }
+    if (id === 'moveDown')  { if (pi >= total() - 1) return; model.commit(s => reorderPages(s, pi, pi + 1));
+      setPage(pi + 1); setSelection({ kind: 'page', page: pi + 1 }); return; }
   }
 
   function render() {
