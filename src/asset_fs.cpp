@@ -20,7 +20,7 @@ fs::FS& asset_fs_target() {
 }
 
 String asset_resolve(const char* logical) {
-    char out[ASSET_PATH_MAX];
+    char out[ASSET_PATH_MAX] = {0};   // init : asset_resolve_path n'écrit pas si logical == NULL
     asset_resolve_path(out, sizeof(out), logical, s_sd_active);
     return String(out);
 }
