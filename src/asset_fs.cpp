@@ -12,6 +12,9 @@ static bool s_sd_active = false;
 
 bool asset_fs_sd_active() { return s_sd_active; }
 
+uint32_t asset_fs_card_size_mb() { return s_sd_active ? (uint32_t)(SD_MMC.cardSize() >> 20) : 0; }
+uint32_t asset_fs_card_used_mb() { return s_sd_active ? (uint32_t)(SD_MMC.usedBytes() >> 20) : 0; }
+
 fs::FS& asset_fs_target() {
     return s_sd_active ? (fs::FS&)SD_MMC : (fs::FS&)LittleFS;
 }
