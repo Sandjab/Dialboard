@@ -37,9 +37,6 @@ export function treeModel(state) {
   return { title: state?.title ?? '', pages };
 }
 
-// contextMenuItems déplacé dans contextmenu.js (partagé avec le carousel). Ré-exporté pour compat.
-export { contextMenuItems } from './contextmenu.js';
-
 // Drop d'un composant (drag&drop arbre) → index cible dans place[]. L'arbre affiche place[] INVERSÉ
 // (dessus = fin de place[]). `before` = curseur dans la moitié HAUTE de la ligne cible. Pur (testé node) :
 // c'est le calcul délicat (inversion + compensation du splice), donc isolé du DOM.

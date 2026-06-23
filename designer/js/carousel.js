@@ -7,6 +7,7 @@ import { placeAt, SCREEN } from './geometry.js';
 import { getMock } from './mocks.js';
 import { addPage, uniquePageName, reorderPages, duplicatePage, removePage, renamePage, pageNameTaken } from './mutations.js';
 import { contextMenuItems, openContextMenu } from './contextmenu.js';
+import { showToast } from './toast.js';
 
 // Miroir de src/config.h:3 (#define MAX_PAGES 8) et de designer/js/validate.js:27 (LIM.pages).
 export const MAX_PAGES = 8;
@@ -69,11 +70,11 @@ export function buildPageStatic(page, comps) {
 }
 
 const THUMB = 72;   // diamètre d'une vignette (px)
-let dragFrom = null; // index source d'un glisser-déposer en cours (null = pas de drag)
-let renaming = null; // index de la page en cours de renommage inline, ou null
 
 // host : élément #carousel ; deps : sélection partagée + accès page active (comme l'arbre).
 export function createCarousel({ host }, model, { selection, setSelection, getActivePage, setPage }) {
+  let dragFrom = null; // index source d'un glisser-déposer en cours (null = pas de drag)
+  let renaming = null; // index de la page en cours de renommage inline, ou null
   // Supprime les marqueurs de dépôt sur toutes les vignettes.
   function clearDropMarks() {
     host.querySelectorAll('.caro-drop').forEach(n => n.classList.remove('caro-drop'));
@@ -93,16 +94,20 @@ export function createCarousel({ host }, model, { selection, setSelection, getAc
     cell.appendChild(disk);
     if (renaming === i) {
       const inp = document.createElement('input'); inp.className = 'caro-rename'; inp.value = page.name || '';
-      const commit = () => {
-        const v = inp.value.trim(); renaming = null;
-        if (v && v !== page.name && !pageNameTaken(model.state, v, i)) model.commit(s => renamePage(s, i, v));
-        else render();
+      const tryCommit = () => {
+        const v = inp.value.trim() || uniquePageName(model.state);
+        if (v === page.name) { renaming = null; render(); return true; }
+        if (pageNameTaken(model.state, v, i)) { showToast(`« ${v} » est déjà utilisé`); return false; }
+        renaming = null;
+        model.commit(s => renamePage(s, i, v));
+        return true;
       };
-      inp.addEventListener('change', commit);
       inp.addEventListener('keydown', e => {
-        if (e.key === 'Enter') inp.blur();
-        if (e.key === 'Escape') { renaming = null; render(); }
+        if (e.key === 'Enter') { e.preventDefault(); tryCommit(); }
+        else if (e.key === 'Escape') { e.preventDefault(); renaming = null; render(); }
       });
+      // Clic ailleurs : valide si possible, sinon annule (revert — jamais de doublon persistant).
+      inp.addEventListener('blur', () => { if (renaming === i && !tryCommit()) { renaming = null; render(); } });
       cell.appendChild(inp); queueMicrotask(() => inp.focus());
     } else {
       const cap = document.createElement('div'); cap.className = 'caro-cap';
