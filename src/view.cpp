@@ -9,6 +9,7 @@
 #include <LittleFS.h>
 #include "esp_heap_caps.h"
 #include "config.h"
+#include "asset_fs.h"
 
 static lv_obj_t* s_page_cont[MAX_PAGES];
 static lv_obj_t* s_widget[MAX_PAGES][MAX_PLACEMENTS_PER_PAGE];
@@ -690,7 +691,7 @@ static bool bg_load_page(Dashboard* d, int p) {
     if (!key[0]) return false;
     char path[40];
     snprintf(path, sizeof(path), "%s/%s.565", BG_DIR, key);
-    File f = LittleFS.open(path, "r");
+    File f = asset_open_read(path);
     if (!f) return false;
     if (f.size() != BG_IMG_BYTES) { f.close(); return false; }
     uint8_t* buf = (uint8_t*)heap_caps_malloc(BG_IMG_BYTES, MALLOC_CAP_SPIRAM);
@@ -722,7 +723,7 @@ static bool img_load_component(Dashboard* d, int idx) {
     if (need == 0 || need > (size_t)IMG_MAX_BYTES) return false;
     char path[40];
     snprintf(path, sizeof(path), "%s/%s.565a", IMG_DIR, c.image_src);
-    File f = LittleFS.open(path, "r");
+    File f = asset_open_read(path);
     if (!f) return false;
     if ((size_t)f.size() != need) { f.close(); return false; }
     uint8_t* buf = (uint8_t*)heap_caps_malloc(need, MALLOC_CAP_SPIRAM);
@@ -756,7 +757,7 @@ static bool aimg_load_component(Dashboard* d, int idx) {
     if (need == 0 || need > (size_t)AIMG_MAX_BYTES) return false;
     char path[40];
     snprintf(path, sizeof(path), "%s/%s.565p", AIMG_DIR, c.image_src);
-    File f = LittleFS.open(path, "r");
+    File f = asset_open_read(path);
     if (!f) return false;
     if ((size_t)f.size() != need) { f.close(); return false; }
     uint8_t* buf = (uint8_t*)heap_caps_malloc(need, MALLOC_CAP_SPIRAM);
