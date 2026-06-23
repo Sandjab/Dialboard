@@ -60,3 +60,47 @@ export function buildPageStatic(page, comps) {
   }
   return mini;
 }
+
+const THUMB = 72;   // diamètre d'une vignette (px)
+
+// host : élément #carousel ; deps : sélection partagée + accès page active (comme l'arbre).
+export function createCarousel({ host }, model, { selection, setSelection, getActivePage, setPage }) {
+  // Construit une vignette (disque) pour la page d'index i.
+  function thumb(page, i, active) {
+    const cell = document.createElement('div');
+    cell.className = 'caro-thumb' + (active ? ' active' : '');
+    cell.title = page.name || `Page ${i + 1}`;
+    const disk = document.createElement('div');
+    disk.className = 'caro-disk';
+    const mini = buildPageStatic(page, model.state.components || {});
+    disk.appendChild(mini);                       // attaché : buildPageStatic a déjà mesuré/positionné
+    mini.style.transformOrigin = 'top left';
+    mini.style.transform = `scale(${THUMB / 360})`;
+    cell.appendChild(disk);
+    const cap = document.createElement('div');
+    cap.className = 'caro-cap';
+    cap.textContent = page.name || `Page ${i + 1}`;
+    cell.appendChild(cap);
+    cell.addEventListener('click', () => {
+      setPage(i);                                 // active la page (re-render canvas) + vide la sélection
+      setSelection({ kind: 'page', page: i });    // puis sélectionne la page (cohérent avec l'arbre)
+    });
+    return cell;
+  }
+
+  function render() {
+    host.replaceChildren();
+    const pages = model.state.pages || [];
+    const act = getActivePage();
+    const track = document.createElement('div');
+    track.className = 'caro-track';
+    pages.forEach((p, i) => track.appendChild(thumb(p, i, i === act)));
+    host.appendChild(track);
+  }
+
+  model.subscribe(render);        // mutations : structure des pages + édition des composants (miniatures)
+  selection.subscribe(render);    // changement de page active / sélection → surlignage
+  render();
+  if (document.fonts?.ready) document.fonts.ready.then(render);   // fidélité Montserrat (cf. canvas.js)
+  return { render };
+}
