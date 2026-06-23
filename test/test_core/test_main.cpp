@@ -5,6 +5,7 @@
 #include "nav_logic.h"
 #include "dashboard.h"
 #include "context.h"
+#include "asset_path.h"
 #include <ArduinoJson.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,6 +27,32 @@ void test_value_no_unit(void) { format_value(42, "",   buf, sizeof(buf)); TEST_A
 void test_hex_parse(void)     { TEST_ASSERT_EQUAL_HEX32(0x38BDF8, parse_hex_color("#38BDF8", 0)); }
 void test_hex_no_hash(void)   { TEST_ASSERT_EQUAL_HEX32(0xA1B2C3, parse_hex_color("A1B2C3", 0)); }
 void test_hex_fallback(void)  { TEST_ASSERT_EQUAL_HEX32(0x123456, parse_hex_color("nope", 0x123456)); }
+
+void test_asset_read_sd_when_active_and_present(void) {
+    TEST_ASSERT_EQUAL_INT(ASSET_SD, asset_source_for_read(true, true));
+}
+void test_asset_read_fallback_when_absent_on_sd(void) {
+    TEST_ASSERT_EQUAL_INT(ASSET_LITTLEFS, asset_source_for_read(true, false));
+}
+void test_asset_read_littlefs_when_no_card(void) {
+    TEST_ASSERT_EQUAL_INT(ASSET_LITTLEFS, asset_source_for_read(false, false));
+    TEST_ASSERT_EQUAL_INT(ASSET_LITTLEFS, asset_source_for_read(false, true));
+}
+void test_asset_resolve_prefixes_on_sd(void) {
+    char out[80];
+    asset_resolve_path(out, sizeof(out), "/img/ab12.565a", true);
+    TEST_ASSERT_EQUAL_STRING("/dialboard/img/ab12.565a", out);
+}
+void test_asset_resolve_bare_on_littlefs(void) {
+    char out[80];
+    asset_resolve_path(out, sizeof(out), "/bg/ab12.565", false);
+    TEST_ASSERT_EQUAL_STRING("/bg/ab12.565", out);
+}
+void test_asset_resolve_truncates_gracefully(void) {
+    char out[5];
+    asset_resolve_path(out, sizeof(out), "/img/ab12.565a", true);
+    TEST_ASSERT_EQUAL_INT('\0', out[4]);
+}
 
 void test_threshold_below(void) {
     Threshold t[3] = {{70,0x22C55E},{90,0xF59E0B},{100,0xEF4444}};
@@ -1048,5 +1075,11 @@ int main(int, char**) {
     RUN_TEST(test_prev_clamp);
     RUN_TEST(test_single_page);
     RUN_TEST(test_empty);
+    RUN_TEST(test_asset_read_sd_when_active_and_present);
+    RUN_TEST(test_asset_read_fallback_when_absent_on_sd);
+    RUN_TEST(test_asset_read_littlefs_when_no_card);
+    RUN_TEST(test_asset_resolve_prefixes_on_sd);
+    RUN_TEST(test_asset_resolve_bare_on_littlefs);
+    RUN_TEST(test_asset_resolve_truncates_gracefully);
     return UNITY_END();
 }
