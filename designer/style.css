@@ -18,6 +18,10 @@
      la police de l'aperçu. Aucun asset réseau (le designer est servi hors-ligne depuis le device). */
   --font-ui: 'Montserrat', system-ui, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  /* Largeurs des docks latéraux (Arrangement A) : gauche = palette empilée sur calques, droite = inspecteur.
+     Élargies pour que les tuiles de palette respirent et que l'inspecteur tienne label+champ sur une ligne. */
+  --dock-w: 250px;
+  --insp-w: 270px;
 }
 * { box-sizing: border-box; }
 body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: var(--bg); color: var(--ink); }
@@ -37,7 +41,7 @@ button.primary { background: var(--accent-strong); border-color: var(--accent-st
 button.primary:hover:not(:disabled) { background: var(--accent); border-color: var(--accent); color: #160a2e; }
 button.accent { border-color: var(--accent); color: var(--ink); }
 input, select { background: var(--panel-2); border: 1px solid var(--line); color: var(--ink); border-radius: 5px; padding: 3px 6px; font: inherit; }
-main { display: grid; grid-template-columns: 170px 1fr 200px; gap: 10px; padding: 10px; min-height: 50vh; }
+main { display: grid; grid-template-columns: var(--dock-w) 1fr var(--insp-w); gap: 10px; padding: 10px; min-height: 50vh; }
 .col { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
 .col h2 { font-family: var(--font-ui); font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
 .todo { color: #55525e; font-style: italic; }
@@ -257,7 +261,7 @@ main { display: grid; grid-template-columns: 170px 1fr 200px; gap: 10px; padding
 .insp-eye, .insp-iconbtn { background: none; border: 0; padding: 2px; line-height: 0; cursor: pointer; border-radius: 4px; opacity: .85; }
 .insp-eye:hover, .insp-iconbtn:hover { opacity: 1; background: #16161c; }
 .insp-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 12.5px; }
-.insp-label { flex: 0 0 78px; color: #9aa0aa; }
+.insp-label { flex: 0 0 96px; color: #9aa0aa; }
 .insp-row input[type="text"], .insp-row input[type="number"], .insp-row select { flex: 1; min-width: 0; background: var(--panel-2); border: 1px solid var(--line); color: var(--ink); border-radius: 4px; padding: 2px 5px; }
 .insp-row input[type="color"] { width: 36px; height: 22px; padding: 0; border: 1px solid var(--line); background: none; }
 .insp-row.disabled { opacity: .45; }
