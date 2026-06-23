@@ -13,6 +13,7 @@
 #include "touch_cst816.h"
 #include "persist.h"
 #include "secret_store.h"
+#include "asset_fs.h"
 #include "net_pull.h"
 #include "freertos/semphr.h"
 
@@ -55,6 +56,7 @@ void setup() {
     char err[80];
     persist_begin();
     secret_store_begin();   // LittleFS déjà monté par persist_begin()
+    asset_fs_init();        // monte la SD (si présente) + crée /dialboard/{bg,img,aimg}
     if (!persist_load(g_layout_json) ||
         !dash_set_layout(&g_dash, g_layout_json.c_str(), err, sizeof(err))) {
         g_layout_json = view_default_layout();          // fallback compile
