@@ -9,6 +9,10 @@ void    asset_fs_init();
 // La SD est-elle montée et utilisable comme stockage primaire d'assets ?
 bool    asset_fs_sd_active();
 
+// Taille / utilisation de la carte en Mo (0 si pas de carte active). Encapsule SD_MMC.
+uint32_t asset_fs_card_size_mb();
+uint32_t asset_fs_card_used_mb();
+
 // Chemin physique pour le FS cible : "/dialboard"+logical sur SD, logical nu sinon.
 String  asset_resolve(const char* logical);
 

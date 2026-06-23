@@ -54,6 +54,13 @@ static void h_status() {
     doc["page"]       = D->active_page;
     doc["pages"]      = D->page_count;
     doc["components"] = D->comp_count;
+    JsonObject sd = doc["sd"].to<JsonObject>();
+    bool sd_mounted = asset_fs_sd_active();
+    sd["mounted"] = sd_mounted;
+    if (sd_mounted) {
+        sd["size_mb"] = asset_fs_card_size_mb();
+        sd["used_mb"] = asset_fs_card_used_mb();
+    }
     if (g_ctx_mutex) xSemaphoreTake(g_ctx_mutex, portMAX_DELAY);
     JsonArray arr = doc["sources"].to<JsonArray>();
     for (int i = 0; i < D->source_count; i++) {
