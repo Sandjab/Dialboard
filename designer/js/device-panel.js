@@ -47,6 +47,8 @@ export function createDevicePanel(root, model, { onPreview } = {}) {
 
   function render() {
     // Garde-focus : ne sauter le re-render QUE pendant l'édition d'un CHAMP (input/select/textarea).
+    // Un bouton focalisé (Ajouter/Supprimer) ne doit PAS bloquer : Chrome focalise le bouton au clic,
+    // sinon l'ajout/suppression de led_ring/sound ne se reflète pas immédiatement.
     const ae = document.activeElement;
     if (ae && root.contains(ae) && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)) return;
     stopPreview();                         // une animation en cours pointerait un nœud bientôt détaché
@@ -85,24 +87,27 @@ export function createDevicePanel(root, model, { onPreview } = {}) {
       card.addEventListener('change', syncEnabled);   // changer le mode réévalue la période
 
       // --- led_ring : valeur d'aperçu (mock) + mini-aperçu animable ---
-      for (const [key, label] of (def.mockFields || [])) {
+      if (def.mockFields?.length) {
         const m = getMock(id, c.type);
-        card.appendChild(labelled(label, fieldInput('num', m[key], v => {
-          setMock(id, { [key]: v === '' ? 0 : v });
-          render();          // re-peint le mini-aperçu (frame statique)
-          onPreview?.();     // re-peint le liseré du canvas
-        })));
+        for (const [key, label] of def.mockFields) {
+          card.appendChild(labelled(label, fieldInput('num', m[key], v => {
+            setMock(id, { [key]: v === '' ? 0 : v });
+            render();          // re-peint le mini-aperçu (frame statique)
+            onPreview?.();     // re-peint le liseré du canvas
+          })));
+        }
       }
       if (c.type === 'led_ring') {
+        const liveComp = () => model.state.components[id] || c;   // état vivant : reflète un changement de mode même si le garde-focus bloque un rebuild
         const mini = document.createElement('div'); mini.className = 'led-ring-mini';
         paintRing(mini, ledFrame(c, getMock(id, 'led_ring')));
         card.appendChild(mini);
 
-        const play = document.createElement('button'); play.className = 'src-add'; play.textContent = '▶ Aperçu';
+        const play = document.createElement('button'); play.className = 'src-add'; play.textContent = '▶ Aperçu';   // réutilise le style src-add (bouton plein)
         play.addEventListener('click', () => {
-          if (previewRaf) { stopPreview(); play.textContent = '▶ Aperçu'; paintRing(mini, ledFrame(c, getMock(id, 'led_ring'))); return; }
+          if (previewRaf) { stopPreview(); play.textContent = '▶ Aperçu'; paintRing(mini, ledFrame(liveComp(), getMock(id, 'led_ring'))); return; }
           play.textContent = '⏸ Aperçu';
-          const loop = () => { paintRing(mini, ledFrameAt(c, getMock(id, 'led_ring'), performance.now())); previewRaf = requestAnimationFrame(loop); };
+          const loop = () => { paintRing(mini, ledFrameAt(liveComp(), getMock(id, 'led_ring'), performance.now())); previewRaf = requestAnimationFrame(loop); };
           loop();
         });
         card.appendChild(play);
