@@ -200,6 +200,13 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
                 c.icon_state_count++;
             }
         }
+        if (c.type == COMP_LED_RING) {                    // config -> état initial du driver (boot vivant)
+            c.led_color      = c.color;                   // (sinon le driver retombe sur blanc tant qu'aucun /update)
+            c.led_brightness = c.led_brightness_cfg;
+            c.led_mode       = parse_led_mode(o["mode"], LED_OFF);
+            c.led_period_ms  = o["period_ms"] | 1000;
+            c.led_value      = 0;                         // progress part de 0 jusqu'au 1er /update
+        }
         t.comp_count++;
     }
 

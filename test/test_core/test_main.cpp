@@ -350,6 +350,30 @@ void test_update_led_ring_mode_color_value(void) {
     TEST_ASSERT_EQUAL_UINT8(42, d.components[i].led_value);
     TEST_ASSERT_EQUAL_UINT16(500, d.components[i].led_period_ms);
 }
+void test_led_ring_config_drives_boot(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"components\":{\"r\":{\"type\":\"led_ring\",\"color\":\"#FF9F40\","
+                    "\"brightness\":120,\"mode\":\"breathe\",\"period_ms\":2500}},\"pages\":[]}";
+    TEST_ASSERT_TRUE(dash_set_layout(&d, L, err, sizeof(err)));
+    int i = dash_find(&d, "r");
+    TEST_ASSERT_EQUAL_INT(LED_BREATHE, d.components[i].led_mode);
+    TEST_ASSERT_EQUAL_HEX32(0xFF9F40, d.components[i].led_color);
+    TEST_ASSERT_EQUAL_UINT8(120, d.components[i].led_brightness);
+    TEST_ASSERT_EQUAL_UINT16(2500, d.components[i].led_period_ms);
+    TEST_ASSERT_EQUAL_UINT8(0, d.components[i].led_value);
+}
+
+void test_led_ring_config_defaults_off(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"components\":{\"r\":{\"type\":\"led_ring\"}},\"pages\":[]}";
+    TEST_ASSERT_TRUE(dash_set_layout(&d, L, err, sizeof(err)));
+    int i = dash_find(&d, "r");
+    TEST_ASSERT_EQUAL_INT(LED_OFF, d.components[i].led_mode);     // défaut : éteint au boot
+    TEST_ASSERT_EQUAL_UINT16(1000, d.components[i].led_period_ms);
+    TEST_ASSERT_EQUAL_HEX32(0xFFFFFF, d.components[i].led_color);
+    TEST_ASSERT_EQUAL_UINT8(64, d.components[i].led_brightness);
+}
+
 void test_update_sound_sets_pending(void) {
     Dashboard d{}; char err[80], unk[UNKNOWN_CSV_LEN];
     const char* L = "{\"components\":{\"buzz\":{\"type\":\"sound\"}},\"pages\":[]}";
@@ -980,6 +1004,8 @@ int main(int, char**) {
     RUN_TEST(test_update_ring_object);
     RUN_TEST(test_update_unknown_reported_not_applied);
     RUN_TEST(test_update_led_ring_mode_color_value);
+    RUN_TEST(test_led_ring_config_drives_boot);
+    RUN_TEST(test_led_ring_config_defaults_off);
     RUN_TEST(test_update_sound_sets_pending);
     RUN_TEST(test_chart_ring_keeps_last_n);
     RUN_TEST(test_chart_points_parsed_and_clamped);
