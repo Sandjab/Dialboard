@@ -36,6 +36,7 @@ const IMAGE_URI  = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'
 // Glisser-horizontal sur un champ numerique = +/-valeur (facon Blender). Sous 3px = clic (edition texte).
 // Pendant le glisse : onChange a chaque pas (commits coalescees via {coalesce:'num'} cote appelant) ;
 // au relache : breakCoalesce() pour clore la session d'undo (parite avec le focusout des champs num).
+let numDragBreak = () => {};   // clot la session d'undo en fin de drag ; cable par createInspector (ou model est en portee)
 function attachNumDrag(el, onChange) {
   el.addEventListener('pointerdown', e => {
     if (e.button !== 0) return;
@@ -54,7 +55,7 @@ function attachNumDrag(el, onChange) {
     const up = () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
-      if (moved) model.breakCoalesce();
+      if (moved) numDragBreak();
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
@@ -116,6 +117,7 @@ function fieldRow(label, input, { ascii } = {}) {
 }
 
 export function createInspector(root, model, { selection, rerenderCanvas, clearSelection, getActivePage = () => 0, previewProp, clearPreview, pushVisible, openDrawer } = {}) {
+  numDragBreak = () => model.breakCoalesce();
   let sel = null; // { placeIndex, page, ref } ou null — RECALCULÉ depuis le store à chaque render()
   let placementInputs = {}; // { anchor, dx, dy } → <input>/<select> de la rubrique Placement, pour la MAJ live au drag
 
