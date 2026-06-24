@@ -28,7 +28,8 @@ export function ledFrameAt(comp, mock, nowMs) {
   const N = LED_RING_COUNT;
   const period = Math.max(1, comp?.period_ms ?? 1000);
   if (f.mode === 'spinner') {
-    const head = Math.floor(nowMs / (period / N)) % N;
+    const slotMs = Math.trunc(period / N) || 1;   // division entière, comme le firmware (guard period<N)
+    const head = Math.floor(nowMs / slotMs) % N;
     f.on = f.on.map((_, i) => i === head);
   } else if (f.mode === 'blink') {
     const onNow = (nowMs % period) < period / 2;

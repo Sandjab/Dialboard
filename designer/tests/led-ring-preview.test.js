@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ledFrame, ledFrameAt, LED_RING_COUNT } from '../js/led-ring-preview.js';
+import { ledFrame, ledFrameAt, findLedRing, LED_RING_COUNT } from '../js/led-ring-preview.js';
 
 const lit = f => f.on.filter(Boolean).length;
 
@@ -44,4 +44,23 @@ test('ledFrameAt : breathe à mi-période ~ pleine intensité', () => {
   const c = { mode: 'breathe', period_ms: 1000, brightness: 255 };
   const a = ledFrameAt(c, {}, 500).alpha;   // 0.5*(1-cos(pi)) = 1
   assert.ok(a > 0.99, `alpha ${a}`);
+});
+test('ledFrameAt : spinner — slot en division ENTIÈRE (parité firmware)', () => {
+  const c = { mode: 'spinner', period_ms: 1000 };   // slot = trunc(1000/13) = 76 ms
+  assert.equal(ledFrameAt(c, {}, 75).on.findIndex(Boolean), 0);   // 75/76 = 0
+  assert.equal(ledFrameAt(c, {}, 76).on.findIndex(Boolean), 1);   // 76/76 = 1 (float donnerait 0 → bug)
+});
+test('ledFrameAt : breathe — alpha ~0 en début de période', () => {
+  const c = { mode: 'breathe', period_ms: 1000, brightness: 255 };
+  assert.ok(ledFrameAt(c, {}, 0).alpha < 0.01, `alpha ${ledFrameAt(c, {}, 0).alpha}`);
+});
+test('ledFrame : progress — frontière d arrondi 3→0, 4→1', () => {
+  const lit = f => f.on.filter(Boolean).length;
+  assert.equal(lit(ledFrame({ mode: 'progress' }, { value: 3 })), 0);   // round(0.39)=0
+  assert.equal(lit(ledFrame({ mode: 'progress' }, { value: 4 })), 1);   // round(0.52)=1
+});
+test('findLedRing : trouve le singleton, sinon null', () => {
+  assert.deepEqual(findLedRing({ components: { r: { type: 'led_ring' } } }), { id: 'r', comp: { type: 'led_ring' } });
+  assert.equal(findLedRing({ components: {} }), null);
+  assert.equal(findLedRing({}), null);
 });
