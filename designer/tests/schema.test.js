@@ -247,3 +247,28 @@ test('schema : visible interdit sur led_ring (non visuel)', () => {
   l.components.lr.visible = false;
   assert.equal(validate(l).valid, false);
 });
+
+test('schema : led_ring accepte mode + period_ms', () => {
+  const l = base();
+  l.components.r = { type: 'led_ring', color: '#FF9F40', brightness: 120, mode: 'breathe', period_ms: 2500 };
+  const r = validate(l);
+  assert.equal(r.valid, true, JSON.stringify(r.errors));
+});
+
+test('schema : led_ring rejette un mode inconnu', () => {
+  const l = base();
+  l.components.r = { type: 'led_ring', mode: 'rainbow' };
+  assert.equal(validate(l).valid, false);
+});
+
+test('schema : led_ring rejette value (mock, hors layout)', () => {
+  const l = base();
+  l.components.r = { type: 'led_ring', value: 50 };
+  assert.equal(validate(l).valid, false);
+});
+
+test('schema : led_ring rejette period_ms hors bornes', () => {
+  const l = base();
+  l.components.r = { type: 'led_ring', period_ms: 50 };
+  assert.equal(validate(l).valid, false);
+});

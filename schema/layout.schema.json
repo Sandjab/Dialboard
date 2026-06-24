@@ -177,7 +177,9 @@
       "properties": {
         "type": { "const": "led_ring" },
         "color": { "$ref": "#/$defs/hexColor", "description": "Couleur par defaut." },
-        "brightness": { "type": "integer", "minimum": 0, "maximum": 255, "description": "Luminosite par defaut (defaut 64). Anneau physique 13x WS2812. Mode/valeur pousses via /update : off|solid|progress|spinner|blink|breathe." }
+        "brightness": { "type": "integer", "minimum": 0, "maximum": 255, "description": "Luminosite par defaut (defaut 64). Anneau physique 13x WS2812." },
+        "mode": { "enum": ["off", "solid", "progress", "spinner", "blink", "breathe"], "description": "Mode de boot (defaut off). Surchargeable a chaud via /update." },
+        "period_ms": { "type": "integer", "minimum": 100, "maximum": 10000, "description": "Periode d'animation (spinner/blink/breathe), ms. Defaut 1000." }
       }
     },
     "comp_sound": {
