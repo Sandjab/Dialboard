@@ -9,3 +9,5 @@ playgrounds/*
 .DS_Store
 # Identifiants WiFi — local uniquement, jamais committé (cf. src/secrets.h.example)
 src/secrets.h
+# Maquettes du compagnon visuel de brainstorm (scratch, non trackées)
+.superpowers/
