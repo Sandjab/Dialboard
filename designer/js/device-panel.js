@@ -29,8 +29,11 @@ function labelled(text, input) {
 
 export function createDevicePanel(root, model) {
   function render() {
-    // Garde-focus : ne pas reconstruire pendant l'édition d'un champ du panneau.
-    if (root.contains(document.activeElement) && document.activeElement !== document.body) return;
+    // Garde-focus : ne sauter le re-render QUE pendant l'édition d'un CHAMP (input/select/textarea).
+    // Un bouton focalisé (Ajouter/Supprimer) ne doit PAS bloquer : Chrome focalise le bouton au clic,
+    // sinon l'ajout/suppression de led_ring/sound ne se reflète pas immédiatement.
+    const ae = document.activeElement;
+    if (root.contains(ae) && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)) return;
     root.replaceChildren();
     const comps = model.state.components || {};
 
