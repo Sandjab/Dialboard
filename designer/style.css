@@ -324,6 +324,13 @@ main > .col:last-child { border-right: 0; }
 .insp-del { margin-top: 10px; width: 100%; border-color: var(--err); color: var(--err); }
 .insp-devvis { margin-top: 8px; width: 100%; padding: 6px; background: #16161c; color: #E5E7EB; border: 1px solid #2a2a33; border-radius: 6px; cursor: pointer; }
 .insp-sub { font-size: 11px; color: var(--muted); margin: 10px 0 4px; text-transform: uppercase; }
+.section { border-bottom: 1px solid var(--line); }
+.section-h { display: flex; align-items: center; height: 24px; padding: 0 8px 0 6px; cursor: pointer;
+  font-family: var(--font-mono); font-size: 10px; color: var(--text-label, var(--muted)); letter-spacing: .14em; text-transform: uppercase; }
+.section-h .caret { width: 10px; color: var(--muted); font-size: 8px; transition: transform .15s; }
+.section.collapsed .caret { transform: rotate(-90deg); }
+.section.collapsed .section-b { display: none; }
+.section-b { padding: 6px 0; }
 .insp-note { font-size: 11px; color: var(--muted); font-style: italic; margin: 2px 0 6px; }
 .insp-th-rm { flex: 0 0 auto; padding: 0 8px; border-color: var(--line); color: var(--muted); }
 .insp-th-add { width: 100%; margin-top: 2px; }
