@@ -6,6 +6,12 @@
 import { snapPlacement } from './geometry.js';
 import { buildLabel, buildReadout, buildBar, buildRing, buildChart, buildMeter, buildImage, buildImageAnim, buildLed, buildRect, buildCircle, buildLine, buildIcon } from './render.js';
 
+// Modes de l'anneau LED physique (value firmware → libellé FR). Partagé designer/firmware via le schéma.
+export const LED_MODES = [
+  ['off', 'Éteint'], ['solid', 'Plein'], ['progress', 'Progression'],
+  ['spinner', 'Rotation'], ['blink', 'Clignotant'], ['breathe', 'Respiration'],
+];
+
 // Placement initial d'un widget d'écran : ancrage + offset déduits du point de dépôt (boîte ~0).
 const screenPlacement = (id, x, y) => {
   const { anchor, dx, dy } = snapPlacement(x, y, 0, 0, 16);
@@ -169,13 +175,18 @@ export const COMPONENTS = {
   },
   led_ring: {
     label: 'LED ring',
-    defaults: () => ({ type: 'led_ring', color: '#FFFFFF', brightness: 64 }),
+    defaults: () => ({ type: 'led_ring', color: '#FFFFFF', brightness: 64, mode: 'off' }),
     makePlacement: (id) => ({ ref: id }),
     centered: false, physical: true, singleton: true,
-    compFields: [['color', 'Couleur', 'color'], ['brightness', 'Luminosité (0-255)', 'num']],
+    compFields: [
+      ['color', 'Couleur', 'color'],
+      ['brightness', 'Luminosité (0-255)', 'num'],
+      ['mode', 'Mode', 'ledmode'],
+      ['period_ms', 'Période (ms)', 'num', c => ['spinner', 'blink', 'breathe'].includes(c.mode)],
+    ],
     placeFields: [],
-    mockFields: [],
-    build: null,   // physique : édité dans le panneau « Device », non rendu sur le canvas
+    mockFields: [['value', 'Valeur % (aperçu)']],
+    build: null,   // physique : édité dans le panneau « Device », l'aperçu passe par led-ring-preview.js
   },
   sound: {
     label: 'Son',
