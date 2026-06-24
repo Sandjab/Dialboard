@@ -193,15 +193,24 @@ main > .col:last-child { border-right: 0; }
   width: calc(360px * var(--zoom, 1));
   height: calc(360px * var(--zoom, 1));
 }
-/* Anneau décoratif (segmenté ambre/vert) — derrière le disque, pointer-events:none pour ne pas
-   capturer les clics (invariant anneau w-ring). Mask radial : seule la bande de bord est peinte. */
-.stage-wrap::before {
-  content: ""; position: absolute; inset: -10px; border-radius: 50%; pointer-events: none; z-index: 0;
-  background: conic-gradient(from 220deg, var(--accent) 0 40deg, var(--line) 40deg 150deg,
-              var(--ok) 150deg 175deg, var(--line) 175deg 330deg, var(--accent) 330deg 360deg);
-  -webkit-mask: radial-gradient(circle, transparent calc(50% - 4px), #000 calc(50% - 4px));
-          mask: radial-gradient(circle, transparent calc(50% - 4px), #000 calc(50% - 4px));
-  opacity: .8;
+/* Aperçu live de l'anneau LED (13 pastilles) — derrière le disque, pointer-events:none pour préserver
+   l'invariant « clic dans le vide (fond ou liseré) → désélection » (app.js pointerdown). */
+.led-ring-canvas {
+  position: absolute; inset: -10px; border-radius: 50%;
+  pointer-events: none; z-index: 0;
+}
+.led-ring-canvas .led-dot {
+  position: absolute; width: calc(11px * var(--zoom, 1)); height: calc(11px * var(--zoom, 1));
+  border-radius: 50%; transform: translate(-50%, -50%); background: #23232b;
+}
+/* Mini-aperçu du panneau Device (taille fixe). */
+.led-ring-mini {
+  position: relative; width: 132px; height: 132px; margin: 10px auto 4px;
+  border-radius: 50%; background: #000; box-shadow: 0 0 0 1px #2a2a33 inset;
+}
+.led-ring-mini .led-dot {
+  position: absolute; width: 10px; height: 10px;
+  border-radius: 50%; transform: translate(-50%, -50%); background: #23232b;
 }
 .stage {
   position: relative;

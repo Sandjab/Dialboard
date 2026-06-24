@@ -9,6 +9,7 @@ import { referencedImageKeys, cacheBytes as imageCacheBytes, previewUrl as image
 import { referencedAimgKeys, packBytes as aimgPackBytes, previewUrl as aimgPreviewUrl, rehydrate as rehydrateAimg } from './image-anim-asset.js';
 import { getMock } from './mocks.js';
 import { createCanvas } from './canvas.js';
+import { createLedRingPreview } from './led-ring-preview.js';
 import { createPalette } from './palette.js';
 import { createInspector } from './inspector.js';
 import { createTree } from './tree.js';
@@ -26,7 +27,8 @@ const $ = id => document.getElementById(id);
 
 // Construit un payload POST /update depuis les valeurs d'aperçu (mocks) des composants data.
 // Format par type (cf. README §/update) : scalaire pour readout/bar/meter/led, {pct,reset_in_s} pour ring,
-// dernier point d'historique pour chart. label/led_ring/sound : pas de valeur de test pertinente.
+// dernier point d'historique pour chart, {mode,color,brightness,period_ms,value} pour led_ring.
+// label/sound : pas de valeur de test pertinente.
 function buildUpdatePayload(state) {
   const out = {};
   for (const [id, c] of Object.entries(state.components || {})) {
@@ -34,6 +36,7 @@ function buildUpdatePayload(state) {
     if (c.type === 'readout' || c.type === 'bar' || c.type === 'meter' || c.type === 'led') out[id] = m.value ?? 0;
     else if (c.type === 'ring') { out[id] = { pct: m.value ?? 0 }; if (c.countdown && m.reset_in_s != null) out[id].reset_in_s = m.reset_in_s; }
     else if (c.type === 'chart') { const h = m.hist || []; if (h.length) out[id] = h[h.length - 1]; }
+    else if (c.type === 'led_ring') out[id] = { mode: c.mode || 'off', color: c.color || '#FFFFFF', brightness: c.brightness ?? 64, period_ms: c.period_ms ?? 1000, value: m.value ?? 0 };
   }
   return out;
 }
@@ -176,7 +179,10 @@ async function main() {
   // Panneau Sources (pull réseau) : édition des sources top-level. Indépendant du canvas/pages.
   createSources($('sources'), model);
   // Panneau Device : composants physiques (led_ring/sound) édités hors pages (sorties globales).
-  createDevicePanel($('device'), model);
+  // Aperçu live de l'anneau LED dans le liseré du canvas (frame statique ; animation à la demande
+  // via le ▶ Aperçu du panneau Device). Le panneau Device le rafraîchit sur édition de la valeur mock.
+  const ledRingPreview = createLedRingPreview({ host: $('led-ring') }, model);
+  createDevicePanel($('device'), model, { onPreview: ledRingPreview.render });
   const drawer = createDrawer($('drawer'), { toggleBtn: $('drawer-toggle') });
 
   const dconsole = createConsole($('console'), model, { validate });
