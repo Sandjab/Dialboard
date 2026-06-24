@@ -532,8 +532,10 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
   // Contenu inchangé (extrait de l'ancien render()) ; F5 (ref figée au rendu) et coalesce num préservés.
   function renderComp(body, c) {
     const head = document.createElement('div'); head.className = 'insp-head';
-    const title = document.createElement('span'); title.textContent = `${c.type} · ${sel.ref}`;
-    head.appendChild(title);
+    const kindSpan = document.createElement('span'); kindSpan.className = 'insp-head-kind'; kindSpan.textContent = c.type;
+    head.appendChild(kindSpan);
+    const nameSpan = document.createElement('span'); nameSpan.className = 'insp-head-name'; nameSpan.textContent = sel.ref;
+    head.appendChild(nameSpan);
     if (!COMPONENTS[c.type].physical) {                 // led_ring/sound : pas de visuel à cacher
       const visible = c.visible !== false;
       const eye = document.createElement('button');
@@ -573,7 +575,9 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
       };
       const input = makeInput(kind, c[key], commit);
       if (kind === 'color') input.addEventListener('input', () => previewProp?.(ref, { [key]: input.value.toUpperCase() }));
-      const row = fieldRow(label, input, { ascii: kind === 'asciitext' });
+      const displayLabel = key === 'bind' ? '⛓ Variable (pull)' : label;
+      const row = fieldRow(displayLabel, input, { ascii: kind === 'asciitext' });
+      if (key === 'bind') row.classList.add('insp-source');
       rows[key] = { input, row, enableWhen };
       body.appendChild(row);
     }
