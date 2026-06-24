@@ -122,6 +122,13 @@ main { display: grid; grid-template-columns: var(--dock-w) 1fr var(--insp-w); ga
   font-weight: 500;
   font-display: swap;
 }
+/* Inter et JetBrains Mono sont des polices variables : un seul fichier sert tous les poids. */
+@font-face { font-family: 'Space Grotesk'; src: url('vendor/fonts/space-grotesk-500.woff2') format('woff2'); font-weight: 500; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('vendor/fonts/inter.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('vendor/fonts/inter.woff2') format('woff2'); font-weight: 500; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('vendor/fonts/inter.woff2') format('woff2'); font-weight: 600; font-display: swap; }
+@font-face { font-family: 'JetBrains Mono'; src: url('vendor/fonts/jetbrains-mono.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'JetBrains Mono'; src: url('vendor/fonts/jetbrains-mono.woff2') format('woff2'); font-weight: 500; font-display: swap; }
 
 /* Halo violet derrière l'écran rond : la marge généreuse devient atmosphère plutôt que vide résiduel. */
 #canvas-col { display: flex; flex-direction: column; align-items: center; overflow: auto;
