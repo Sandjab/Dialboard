@@ -10,12 +10,6 @@ import { SCREEN } from './geometry.js';
 export function createPalette(root, model, { stage, getActivePage, onCreated } = {}) {
   const page = () => (getActivePage ? getActivePage() : 0);
 
-  // Indice : le geste central (glisser-déposer sur l'écran) n'est pas évident sans mode d'emploi.
-  const hint = document.createElement('div');
-  hint.className = 'palette-hint';
-  hint.textContent = 'Glisse un élément sur l’écran pour créer un composant.';
-  root.appendChild(hint);
-
   // --- Section créateurs de type (statique) ---
   const list = document.createElement('div');
   list.className = 'palette-list';
@@ -25,9 +19,8 @@ export function createPalette(root, model, { stage, getActivePage, onCreated } =
     item.className = 'palette-item';
     item.draggable = true;
     item.dataset.type = type;
-    const ic = iconFor(type); if (ic) item.appendChild(ic);   // icône de type (décorative)
-    const lbl = document.createElement('span'); lbl.textContent = def.label;
-    item.appendChild(lbl);
+    item.title = def.label;                                   // tooltip natif : libellé au survol
+    const ic = iconFor(type); if (ic) item.appendChild(ic);  // icône de type (décorative)
     item.addEventListener('dragstart', e => e.dataTransfer.setData('text/rt-type', type));
     list.appendChild(item);
   }

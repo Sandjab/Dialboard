@@ -283,20 +283,20 @@ main > .col:last-child { border-right: 0; }
 .handle-e  { right: -6px; top: 50%; transform: translateY(-50%); cursor: ew-resize; }   /* bar : largeur seule */
 .handle-s  { bottom: -6px; left: 50%; transform: translateX(-50%); cursor: ns-resize; } /* bar : hauteur seule */
 
-/* --- Plan C1 : palette --- */
-.palette-hint { font-size: 11px; color: var(--muted); line-height: 1.45; margin: 0 0 8px; }
-/* Tuiles en grille 2 colonnes : icône (agrandie) au-dessus du nom. Plus dense que la colonne
-   unique quand la palette grossit, sans sacrifier le label (cf. comparatif des layouts). */
-.palette-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+/* --- Plan C1 : palette (bande d'icônes 44px) --- */
+.palette-hint { display: none; }
+.palette-list { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0; }
 .palette-item {
-  display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
-  padding: 10px 6px; border: 1px solid var(--line); border-radius: 6px;
-  background: var(--panel-2); cursor: grab; user-select: none; font-size: 12px;
+  width: 36px; height: 36px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid transparent; border-radius: var(--radius, 2px);
+  background: transparent; cursor: grab; color: var(--text-dim); user-select: none;
 }
-.palette-icon { width: 22px; height: 22px; flex: none; color: var(--muted); }   /* monochrome : suit currentColor */
+.palette-item span { display: none; }                         /* précaution : pas de libellé visible */
+.palette-icon { width: 18px; height: 18px; flex: none; }     /* monochrome : suit currentColor */
 .palette-item:active { cursor: grabbing; }
-.palette-item:hover { border-color: var(--accent); }
-.palette-item:hover .palette-icon { color: var(--accent); }   /* touche de couleur au survol */
+.palette-item:hover { background: var(--panel-2); border-color: var(--border-2); color: var(--ink); }
+.palette-item:hover .palette-icon { color: var(--accent); }  /* touche de couleur au survol */
 
 /* --- Plan C1 : inspecteur --- */
 .insp-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
