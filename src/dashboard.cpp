@@ -67,6 +67,16 @@ static LineDash parse_line_dash(const char* s) {
     if (s && !strcmp(s, "dotted")) return LINE_DOTTED;
     return LINE_SOLID;
 }
+static LedMode parse_led_mode(const char* s, LedMode def) {
+    if (!s)                       return def;
+    if (!strcmp(s, "off"))        return LED_OFF;
+    if (!strcmp(s, "solid"))      return LED_SOLID;
+    if (!strcmp(s, "progress"))   return LED_PROGRESS;
+    if (!strcmp(s, "spinner"))    return LED_SPINNER;
+    if (!strcmp(s, "blink"))      return LED_BLINK;
+    if (!strcmp(s, "breathe"))    return LED_BREATHE;
+    return def;
+}
 
 // Set curaté de symboles. ORDRE == ICON_GLYPHS (view.cpp) ; les deux indexent par la meme valeur.
 static const char* const ICON_SYMBOL_NAMES[ICON_SYMBOL_COUNT] = {
@@ -304,13 +314,7 @@ static void apply_ring(Component& c, JsonVariantConst v) {
     }
 }
 static void apply_led_ring(Component& c, JsonVariantConst v) {
-    const char* m = v["mode"] | "";
-    if      (!strcmp(m,"off"))      c.led_mode = LED_OFF;
-    else if (!strcmp(m,"solid"))    c.led_mode = LED_SOLID;
-    else if (!strcmp(m,"progress")) c.led_mode = LED_PROGRESS;
-    else if (!strcmp(m,"spinner"))  c.led_mode = LED_SPINNER;
-    else if (!strcmp(m,"blink"))    c.led_mode = LED_BLINK;
-    else if (!strcmp(m,"breathe"))  c.led_mode = LED_BREATHE;
+    if (v["mode"].is<const char*>())  c.led_mode  = parse_led_mode(v["mode"], c.led_mode);
     if (v["color"].is<const char*>()) c.led_color = parse_hex_color(v["color"], c.led_color);
     c.led_value      = v["value"]      | c.led_value;
     c.led_brightness = v["brightness"] | c.led_brightness_cfg;
