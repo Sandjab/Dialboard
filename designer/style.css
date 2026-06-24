@@ -1,27 +1,39 @@
 :root {
-  /* Palette empruntée au device qu'on édite (cf. default-layout) : near-black chaud #0B0B0F +
-     violet de l'anneau #A78BFA en accent primaire ; le cyan #38BDF8 (lecture/barre du device)
-     reste en info secondaire. Pas de bleu-nuit Tailwind dans le chrome. */
-  --bg: #0c0c10;
-  --panel: #131319;
-  --panel-2: #0f0f14;
-  --line: #26262f;
-  --ink: #ecebf2;
-  --muted: #8b8794;
-  --accent: #a78bfa;          /* primaire (anneau device) : action primaire + sélection */
-  --accent-strong: #8b5cf6;   /* fond du bouton primaire */
-  --info: #38bdf8;            /* device / info */
-  --ok: #22c55e;
-  --warn: #fbbf24;
-  --err: #f87171;
-  /* Montserrat (déjà embarquée, @font-face plus bas) pour titre+sections : le chrome fait écho à
-     la police de l'aperçu. Aucun asset réseau (le designer est servi hors-ligne depuis le device). */
-  --font-ui: 'Montserrat', system-ui, sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-  /* Largeurs des docks latéraux (Arrangement A) : gauche = palette empilée sur calques, droite = inspecteur.
-     Élargies pour que les tuiles de palette respirent et que l'inspecteur tienne label+champ sur une ligne. */
-  --dock-w: 250px;
-  --insp-w: 270px;
+  /* Palette « noir chaud + ambre » — reprise verbatim de la maquette (designer-redesign.html).
+     Les noms historiques (--bg/--panel/--line/--ink/--muted/--accent/--info/--ok/--warn/--err)
+     sont conservés : ils pilotent aussi les affordances d'édition du canvas (sélection/poignées/
+     guides), qui passent donc en ambre. Le rendu des composants reste en couleurs de parité (en dur). */
+  --bg: #0E0E0E;
+  --panel: #161616;
+  --panel-2: #1F1F1F;
+  --panel-3: #252525;
+  --input: #0A0A0A;
+  --canvas: #131313;
+  --line: #2A2A2A;            /* ex --line (bordures) */
+  --border-2: #3A3A3A;
+  --ink: #F4F1E8;             /* texte principal (off-white) */
+  --muted: #6B6864;           /* texte atténué */
+  --text-dim: #A8A29E;
+  --text-label: #BFBAB0;
+  --accent: #FF9F40;          /* primaire + sélection (ambre) */
+  --accent-strong: #FF9F40;   /* fond bouton primaire */
+  --accent-hover: #FFB84D;
+  --accent-dim: rgba(255,159,64,.10);
+  --accent-soft: rgba(255,159,64,.18);
+  --info: #38bdf8;            /* info device (inchangé) */
+  --ok: #6FCF97;
+  --warn: #E6B450;
+  --err: #E06C5A;
+
+  --font-ui: 'Inter', system-ui, sans-serif;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --scale: 1.15;             /* échelle de densité du chrome (figée, pas de réglage runtime) */
+
+  --pal-w: 44px;             /* colonne palette icône */
+  --layers-w: 220px;         /* colonne calques */
+  --insp-w: 300px;           /* colonne inspecteur */
 }
 * { box-sizing: border-box; }
 body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: var(--bg); color: var(--ink); }
