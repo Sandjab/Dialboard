@@ -299,14 +299,20 @@ main > .col:last-child { border-right: 0; }
 .palette-item:hover .palette-icon { color: var(--accent); }  /* touche de couleur au survol */
 
 /* --- Plan C1 : inspecteur --- */
-.insp-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+.insp-head { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
 .insp-eye, .insp-iconbtn { background: none; border: 0; padding: 2px; line-height: 0; cursor: pointer; border-radius: 4px; opacity: .85; }
 .insp-eye:hover, .insp-iconbtn:hover { opacity: 1; background: #16161c; }
+.insp-head-kind { font-family: var(--font-mono); font-size: 10px; color: var(--accent); letter-spacing: .12em; }
+.insp-head-name { font-family: var(--font-display); font-weight: 500; font-size: 13px; color: var(--ink); text-transform: none; letter-spacing: 0; }
+.insp-eye { margin-left: auto; }
 .insp-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 12.5px; }
 .insp-label { flex: 0 0 96px; color: #9aa0aa; }
 .insp-row input[type="text"], .insp-row input[type="number"], .insp-row select { flex: 1; min-width: 0; background: var(--panel-2); border: 1px solid var(--line); color: var(--ink); border-radius: 4px; padding: 2px 5px; }
 .insp-row input[type="color"] { width: 36px; height: 22px; padding: 0; border: 1px solid var(--line); background: none; }
 .insp-row.disabled { opacity: .45; }
+/* Affordance "Source" : la ligne bind (donnée poussée/tirée) ressort. */
+.insp-source .insp-label { color: var(--accent); }
+.insp-source input { border-left: 3px solid var(--accent-soft); }
 .insp-row--fallback { opacity: .6; }                                          /* fond couleur de page : repli quand une image de fond prime */
 .insp-warn { color: var(--err); font-size: 11px; }
 .insp-bg-hint { color: var(--muted); font-size: 11px; align-self: center; }   /* fond de page hérité du global */
