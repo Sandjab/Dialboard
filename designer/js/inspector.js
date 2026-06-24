@@ -148,26 +148,38 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
   function sub(body, text) { const h = document.createElement('div'); h.className = 'insp-sub'; h.textContent = text; body.appendChild(h); }
   function note(body, text) { const n = document.createElement('div'); n.className = 'insp-note'; n.textContent = text; body.appendChild(n); }
 
+  function section(title, collapsed = false) {
+    const sec = document.createElement('div'); sec.className = 'section' + (collapsed ? ' collapsed' : '');
+    const h = document.createElement('div'); h.className = 'section-h';
+    const car = document.createElement('span'); car.className = 'caret'; car.textContent = '▾';
+    h.appendChild(car); h.appendChild(document.createTextNode(' ' + title));
+    const bdy = document.createElement('div'); bdy.className = 'section-b';
+    h.addEventListener('click', () => sec.classList.toggle('collapsed'));
+    sec.appendChild(h); sec.appendChild(bdy);
+    return { sec, body: bdy };
+  }
+
   function renderExtras(body, c) {
     const p = place();
     // --- Géométrie du placement ---
     const gf = COMPONENTS[c.type].placeFields;
     if (gf.length) {
-      sub(body, 'Placement');
-      if (c.type === 'ring') note(body, 'Anneau centré : ancrage/dx/dy ignorés par le firmware.');
+      const { sec: plSec, body: plBody } = section('Placement');
+      if (c.type === 'ring') note(plBody, 'Anneau centré : ancrage/dx/dy ignorés par le firmware.');
       for (const [key, label, kind, ph] of gf) {
         const opts = kind === 'num' ? { coalesce: 'num' } : undefined;   // F2 : flèches/spinner d'un champ num = 1 entrée d'undo
         const input = makeInput(kind, p[key], v => model.commit(s => setPlacementProp(s, getActivePage(), sel.placeIndex, key, v), opts), ph);
         placementInputs[key] = input;   // réf. pour setLivePlacement (drag)
-        body.appendChild(fieldRow(label, input));
+        plBody.appendChild(fieldRow(label, input));
       }
+      body.appendChild(plSec);
     }
 
     // --- Seuils ring/meter (liste éditable de [limite, #couleur]) ---
     // ring : couleur si valeur < limite ; meter : zone d'arc (limite précédente → limite).
     if (c.type === 'ring' || c.type === 'meter' || c.type === 'bar') {
-      sub(body, c.type === 'meter' ? 'Zones (couleur de la limite précédente à la limite)'
-                                   : 'Seuils (couleur si valeur < limite)');
+      const { sec: thSec, body: thBody } = section(c.type === 'meter' ? 'Zones (couleur de la limite précédente à la limite)'
+                                                                       : 'Seuils (couleur si valeur < limite)');
       const ref = sel.ref;   // figée au rendu (cf. compField : 'change' tardif du picker couleur)
       const ths = (c.thresholds || []).map(t => [t[0], t[1]]); // copie locale éditable
       const commitThs = (opts) => model.commit(s => setThresholds(s, ref, ths.filter(t => t[1])), opts);
@@ -182,17 +194,18 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
         const rm = document.createElement('button'); rm.className = 'insp-th-rm'; rm.textContent = '×';
         rm.addEventListener('click', () => { ths.splice(idx, 1); commitThs(); });
         row.appendChild(lim); row.appendChild(col); row.appendChild(rm);
-        body.appendChild(row);
+        thBody.appendChild(row);
       });
       const add = document.createElement('button'); add.className = 'insp-th-add'; add.textContent = '+ seuil';
       add.addEventListener('click', () => { ths.push([0, '#FF0000']); commitThs(); });
-      body.appendChild(add);
+      thBody.appendChild(add);
+      body.appendChild(thSec);
     }
 
     // --- États icon (table {at, symbol?, color?} ; 1re bande où valeur < at gagne ; omis = base) ---
     if (c.type === 'icon') {
-      sub(body, 'États (glyphe/couleur si valeur < seuil)');
-      note(body, 'Vide = icône statique. « (base) » / couleur décochée = retombe sur le symbole/la couleur de base.');
+      const { sec: stSec, body: stBody } = section('États (glyphe/couleur si valeur < seuil)');
+      note(stBody, 'Vide = icône statique. « (base) » / couleur décochée = retombe sur le symbole/la couleur de base.');
       const ref = sel.ref;                                   // figée au rendu (cf. invariant inspecteur)
       const names = Object.keys(ICON_SVG);
       const st = (c.states || []).map(s => ({ ...s }));       // copie locale éditable
@@ -224,25 +237,27 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
         const rm = document.createElement('button'); rm.className = 'insp-th-rm'; rm.textContent = '×';
         rm.addEventListener('click', () => { st.splice(idx, 1); commit(); });
         row.append(at, symSel, colOn, col, rm);
-        body.appendChild(row);
+        stBody.appendChild(row);
       });
       const add = document.createElement('button'); add.className = 'insp-th-add'; add.textContent = '+ état';
       add.addEventListener('click', () => { st.push({ at: 0, symbol: names[0] }); commit(); });
-      body.appendChild(add);
+      stBody.appendChild(add);
+      body.appendChild(stSec);
     }
 
     // --- Valeur d'aperçu (mock) : hors layout, re-rend le canvas sans toucher au modèle/undo ---
     const mf = COMPONENTS[c.type].mockFields;
     if (mf.length) {
-      sub(body, 'Aperçu (mock, non poussé au device)');
+      const { sec: mockSec, body: mockBody } = section('Aperçu (mock, non poussé au device)', true);
       const m = getMock(sel.ref, c.type);
       for (const [key, label] of mf) {
         const input = makeInput('num', m[key], v => {
           setMock(sel.ref, { [key]: v === '' ? 0 : v });
           rerenderCanvas && rerenderCanvas();
         });
-        body.appendChild(fieldRow(label, input));
+        mockBody.appendChild(fieldRow(label, input));
       }
+      body.appendChild(mockSec);
     }
   }
 
@@ -555,11 +570,12 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     }
     body.appendChild(head);
 
+    const { sec: propSec, body: propBody } = section('Propriétés');
     const rows = {};
     for (const [key, label, kind, enableWhen] of COMPONENTS[c.type].compFields) {
-      if (kind === 'image') { body.appendChild(imageField(label, c)); continue; }   // picker bespoke
-      if (kind === 'image_anim') { body.appendChild(imageAnimField(label, c)); continue; }   // editeur bespoke
-      if (kind === 'fill') { body.appendChild(fillField(label, c)); continue; }   // forme : fond optionnel (bespoke : enableWhen non supporté, comme image/image_anim)
+      if (kind === 'image') { propBody.appendChild(imageField(label, c)); continue; }   // picker bespoke
+      if (kind === 'image_anim') { propBody.appendChild(imageAnimField(label, c)); continue; }   // editeur bespoke
+      if (kind === 'fill') { propBody.appendChild(fillField(label, c)); continue; }   // forme : fond optionnel (bespoke : enableWhen non supporté, comme image/image_anim)
       // Color picker : aperçu live sur 'input' (canvas seul, hors modèle → pas de flood undo) ; commit
       // unique sur 'change' (makeInput), précédé d'un clearPreview pour que le commit re-rende l'état réel.
       // ref figée au rendu : le color picker émet son 'change' en DIFFÉRÉ (après qu'un clic ailleurs a
@@ -579,8 +595,9 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
       const row = fieldRow(displayLabel, input, { ascii: kind === 'asciitext' });
       if (key === 'bind') row.classList.add('insp-source');
       rows[key] = { input, row, enableWhen };
-      body.appendChild(row);
+      propBody.appendChild(row);
     }
+    body.appendChild(propSec);
     // Grise les champs non pertinents dans l'état courant (ex : couleur/police du centre si center_pct off).
     // En direct, sans rebuild : le garde-focus de render() bloquerait une reconstruction juste après le clic.
     const syncEnabled = () => {
