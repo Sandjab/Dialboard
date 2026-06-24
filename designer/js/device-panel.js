@@ -33,7 +33,7 @@ export function createDevicePanel(root, model) {
     // Un bouton focalisé (Ajouter/Supprimer) ne doit PAS bloquer : Chrome focalise le bouton au clic,
     // sinon l'ajout/suppression de led_ring/sound ne se reflète pas immédiatement.
     const ae = document.activeElement;
-    if (root.contains(ae) && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)) return;
+    if (ae && root.contains(ae) && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)) return;
     root.replaceChildren();
     const comps = model.state.components || {};
 
