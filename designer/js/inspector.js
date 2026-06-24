@@ -10,6 +10,7 @@ import { COMPONENTS } from './registry.js';
 import { ICON_SVG } from './render.js';
 import { ANCHORS, ANCHORS_OUT } from './geometry.js';
 import { getMock, setMock } from './mocks.js';
+import { numDragValue } from './numdrag.js';
 
 const FONTS = [14, 20, 28, 36, 48];
 // Selects à options fixes (value firmware → libellé FR). Étend le motif anchor/anchorOut.
@@ -32,7 +33,35 @@ const FOLDER_URI = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'
 const TRASH_URI  = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23EF4444' stroke-width='2'%3E%3Cpolyline points='3 6 5 6 21 6'/%3E%3Cpath d='M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2'/%3E%3Cline x1='10' y1='11' x2='10' y2='17'/%3E%3Cline x1='14' y1='11' x2='14' y2='17'/%3E%3C/svg%3E";
 const IMAGE_URI  = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239AA0AA' stroke-width='2'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' ry='2'/%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'/%3E%3Cpolyline points='21 15 16 10 5 21'/%3E%3C/svg%3E";
 
-// Construit un <input>/<select> selon kind. onChange reçoit la valeur typée. Les éditeurs textuels
+// Glisser-horizontal sur un champ numerique = +/-valeur (facon Blender). Sous 3px = clic (edition texte).
+// Pendant le glisse : onChange a chaque pas (commits coalescees via {coalesce:'num'} cote appelant) ;
+// au relache : breakCoalesce() pour clore la session d'undo (parite avec le focusout des champs num).
+function attachNumDrag(el, onChange) {
+  el.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    const startX = e.clientX;
+    const startVal = Number(el.value) || 0;
+    let moved = false;
+    const move = ev => {
+      const dx = ev.clientX - startX;
+      if (!moved && Math.abs(dx) < 3) return;
+      moved = true;
+      ev.preventDefault();
+      const v = numDragValue(startVal, dx, ev.shiftKey);
+      el.value = String(v);
+      onChange(v);
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      if (moved) model.breakCoalesce();
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  });
+}
+
+// Construit un <input>/<select> selon kind. onChange recoit la valeur typee. Les editeurs textuels
 // committent sur 'change' (pas 'input') pour ne pas inonder l'undo.
 function makeInput(kind, value, onChange, placeholder) {
   let el;
@@ -56,8 +85,9 @@ function makeInput(kind, value, onChange, placeholder) {
     el.addEventListener('change', () => onChange(el.value));
   } else if (kind === 'num') {
     el = document.createElement('input'); el.type = 'number'; el.value = value ?? '';
-    if (placeholder != null) el.placeholder = String(placeholder);   // défaut firmware affiché en grisé quand la clé est absente
+    if (placeholder != null) el.placeholder = String(placeholder);   // defaut firmware affiche en grise quand la cle est absente
     el.addEventListener('change', () => onChange(el.value === '' ? '' : Number(el.value)));
+    attachNumDrag(el, v => onChange(v));
   } else if (SELECTS[kind]) {
     el = document.createElement('select');
     const opts = SELECTS[kind];

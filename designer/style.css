@@ -431,3 +431,7 @@ main > .col:last-child { border-right: 0; }
 .caro-thumb[draggable="true"] { cursor: grab; }
 .caro-thumb.caro-drop .caro-disk { box-shadow: inset 0 0 0 2px var(--accent); }
 .caro-rename { width: 84px; font-size: 11.5px; }
+
+/* Champs numeriques : affordance "drag" (barre ambre a gauche + curseur ew-resize). */
+.insp-row input[type="number"] { cursor: ew-resize; border-left: 3px solid var(--accent); }
+.insp-row input[type="number"]:focus { cursor: text; }
