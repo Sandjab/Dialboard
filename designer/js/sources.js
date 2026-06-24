@@ -43,8 +43,11 @@ function labelled(text, input) {
 
 export function createSources(root, model) {
   function render() {
-    // Garde-focus : ne pas reconstruire si un champ du panneau est en cours d'edition.
-    if (root.contains(document.activeElement) && document.activeElement !== document.body) return;
+    // Garde-focus : ne sauter le re-render QUE pendant l'édition d'un CHAMP (input/select/textarea).
+    // Un bouton focalisé (Supprimer / + source) ne doit PAS bloquer : Chrome focalise le bouton au clic,
+    // sinon l'ajout/suppression de source ne se reflète pas immédiatement.
+    const ae = document.activeElement;
+    if (root.contains(ae) && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)) return;
     root.replaceChildren();
     const sources = model.state.sources || [];
 
