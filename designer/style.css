@@ -37,13 +37,33 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: var(--bg); color: var(--ink); }
-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
-header h1 { font-family: var(--font-ui); font-size: 16px; font-weight: 500; letter-spacing: .04em; margin: 0; color: var(--ink); }
+header { display: flex; align-items: center; gap: 0; padding: 0 10px; height: 42px; border-bottom: 1px solid var(--line); background: var(--panel); }
 header .grow { flex: 1; }
-/* Familles d'actions séparées visuellement : historique · device · fichier. */
-.hgroup { display: flex; align-items: center; gap: 6px; }
-.hgroup + .hgroup { padding-left: 10px; border-left: 1px solid var(--line); }
-.hgroup label { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12.5px; }
+/* --- Top bar : brand --- */
+.tb-brand { display: flex; align-items: center; gap: 8px; padding-right: 14px; margin-right: 8px; border-right: 1px solid var(--line); height: 100%; }
+.tb-brand-mark { width: 18px; height: 18px; }
+.tb-brand-name { font-family: var(--font-mono); font-weight: 500; font-size: calc(12px * var(--scale)); letter-spacing: .18em; text-transform: uppercase; }
+/* --- Groupes de boutons --- */
+.tb-group { display: flex; gap: 1px; padding: 0 6px; height: 100%; align-items: center; }
+.tb-group + .tb-group { border-left: 1px solid var(--line); }
+/* --- Bouton icône toolbar --- */
+.tb-btn { background: transparent; border: 1px solid transparent; border-radius: 2px; height: 28px; min-width: 28px; padding: 0 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: var(--text-dim); position: relative; }
+.tb-btn:hover:not(:disabled) { background: var(--panel-2); border-color: var(--border-2); color: var(--ink); }
+.tb-btn:active:not(:disabled) { background: var(--accent-soft); color: var(--accent); }
+.tb-btn:disabled { opacity: .4; cursor: default; }
+.tb-btn svg { width: 14px; height: 14px; }
+/* Tooltip */
+.tb-btn[data-tip]:hover::after { content: attr(data-tip); position: absolute; top: 100%; left: 50%; transform: translateX(-50%) translateY(4px); background: #000; color: var(--ink); font-family: var(--font-mono); font-size: 10px; letter-spacing: .05em; padding: 4px 8px; border: 1px solid var(--border-2); white-space: nowrap; z-index: 100; pointer-events: none; }
+/* Bouton primaire (Pousser) */
+.tb-btn.primary { background: var(--accent-strong); border-color: var(--accent-strong); color: #0e0e0e; font-weight: 600; }
+.tb-btn.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); color: #0e0e0e; }
+/* Bouton accent (Charger) */
+.tb-btn.accent { border-color: var(--accent); color: var(--ink); }
+/* URL device (remplace breadcrumb LVGL) */
+.tb-url { display: flex; align-items: center; gap: 6px; padding: 0 10px; }
+.tb-url label { font-family: var(--font-mono); font-size: 10px; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; }
+.tb-url input { background: var(--input); border: 1px solid var(--line); border-radius: 2px; height: 24px; padding: 0 8px; color: var(--ink); font-family: var(--font-mono); font-size: 11px; width: 180px; outline: none; }
+.tb-url input:focus { border-color: var(--accent); }
 
 /* Boutons : ghost par défaut (calme) ; .primary = action engageante (Pousser) ; .accent = lecture device courante. */
 button { background: transparent; border: 1px solid var(--line); color: var(--muted); border-radius: 6px; padding: 4px 10px; cursor: pointer; font: inherit; transition: border-color .12s, color .12s, background .12s; }
