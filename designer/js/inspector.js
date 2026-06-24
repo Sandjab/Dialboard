@@ -35,8 +35,11 @@ const IMAGE_URI  = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'
 
 // Glisser-horizontal sur un champ numerique = +/-valeur (facon Blender). Sous 3px = clic (edition texte).
 // Pendant le glisse : onChange a chaque pas (commits coalescees via {coalesce:'num'} cote appelant) ;
-// au relache : breakCoalesce() pour clore la session d'undo (parite avec le focusout des champs num).
-let numDragBreak = () => {};   // clot la session d'undo en fin de drag ; cable par createInspector (ou model est en portee)
+// au relache : breakCoalesce() pour clore la session d'undo (parite avec le focusout des champs num),
+// via ce callback (cable par createInspector ou model est en portee). PAS un CustomEvent dispatche sur
+// `el` (suggere en revue PR #7) : l'inspecteur se re-render a CHAQUE commit du drag, donc `el` est DETACHE
+// du DOM au pointerup -> un event partant de `el` ne bubble plus jusqu'a #inspector (verifie au navigateur).
+let numDragBreak = () => {};
 function attachNumDrag(el, onChange) {
   el.addEventListener('pointerdown', e => {
     if (e.button !== 0) return;

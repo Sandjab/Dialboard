@@ -47,7 +47,7 @@ export function createSources(root, model) {
     // Un bouton focalisé (Supprimer / + source) ne doit PAS bloquer : Chrome focalise le bouton au clic,
     // sinon l'ajout/suppression de source ne se reflète pas immédiatement.
     const ae = document.activeElement;
-    if (root.contains(ae) && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)) return;
+    if (ae && root.contains(ae) && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)) return;
     root.replaceChildren();
     const sources = model.state.sources || [];
 
