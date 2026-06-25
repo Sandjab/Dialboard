@@ -22,6 +22,8 @@ import { showToast, makeToast } from './toast.js';
 import { resolveShortcut, isEditableTarget } from './shortcuts.js';
 import { placeComponentCopy, duplicateComponent, removePlacementAndOrphan } from './mutations.js';
 import { createSelection, sameSelection, isSelectionValid } from './selection.js';
+import { loadSettings, saveSettings, normalizeSettings, applyVisualSettings, createSettings } from './settings.js';
+import { DEFAULT_LAYOUT } from './default-layout.js';
 
 const $ = id => document.getElementById(id);
 
@@ -62,6 +64,16 @@ async function main() {
   const model = createModel(saved);
   model.subscribe(() => { try { localStorage.setItem(SAVE_KEY, model.toJSON()); } catch (e) {} });
 
+  // Réglages d'édition (persistés). settingsState est lu par le canvas (snap) et le tiroir.
+  let settingsState = loadSettings();
+  applyVisualSettings(settingsState);
+  const getSettings = () => settingsState;
+  const setSettings = (partial) => {
+    settingsState = normalizeSettings({ ...settingsState, ...partial });
+    saveSettings(settingsState);
+    applyVisualSettings(settingsState);
+  };
+
   // Sélection partagée (canvas ↔ inspecteur ↔ futur arbre). Coordinateur = garde F1 centralisé :
   // avant tout changement RÉEL de sélection, si un champ de l'inspecteur a le focus, le blur. Cela
   // (a) committe l'édition en attente sur l'ANCIENNE sélection (closure à ref figée — F5) et (b) lève
@@ -88,7 +100,8 @@ async function main() {
   // Canvas WYSIWYG (page active). Lit/écrit la sélection partagée.
   const canvas = createCanvas({ stage: $('stage') }, model, {
     selection, setSelection,
-    onLiveMove: p => inspector.setLivePlacement(p)   // MAJ live des champs Placement pendant le drag
+    onLiveMove: p => inspector.setLivePlacement(p),   // MAJ live des champs Placement pendant le drag
+    getGridSnap: () => ({ snap: settingsState.gridSnap, step: settingsState.gridStep })
   });
   inspector = createInspector($('inspector'), model, {
     selection,
@@ -183,7 +196,16 @@ async function main() {
   // via le ▶ Aperçu du panneau Device). Le panneau Device le rafraîchit sur édition de la valeur mock.
   const ledRingPreview = createLedRingPreview({ host: $('led-ring') }, model);
   createDevicePanel($('device'), model, { onPreview: ledRingPreview.render });
-  const drawer = createDrawer($('drawer'), { toggleBtn: $('drawer-toggle') });
+  const drawer = createDrawer($('drawer'), { toggleBtn: $('drawer-toggle'), onOpen: () => settings.close() });  // settings déclaré juste après — closure, pas de TDZ
+  const settings = createSettings($('settings-drawer'), {
+    toggleBtn: $('settings-toggle'),
+    onOpen: () => drawer.close(),                 // un seul tiroir ouvert à la fois
+    getSettings, setSettings,
+    onNewLayout: () => {                           // layout vierge (undoable : loadJSON snapshot)
+      model.loadJSON(JSON.stringify(DEFAULT_LAYOUT));
+      canvas.setPage(0); tree.render(); setSelection(null);
+    },
+  });
 
   const dconsole = createConsole($('console'), model, { validate });
   createStatusbar($('statusbar'), model, { selection, validate, onValidClick: () => dconsole.open('problems') });

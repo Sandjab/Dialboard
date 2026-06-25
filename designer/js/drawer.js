@@ -2,7 +2,7 @@
 // Héberge les panneaux existants (#device via device-panel.js, #sources via sources.js — montés par app.js,
 // inchangés). Géré ici : ouverture/fermeture (bouton ⚙ toolbar, ✕, Échap, clic backdrop) + bascule d'onglet.
 // Câblage DOM, vérifié navigateur (aucune logique pure → pas de test node, cf. convention projet).
-export function createDrawer(root, { toggleBtn }) {
+export function createDrawer(root, { toggleBtn, onOpen }) {
   const backdrop = root.querySelector('.drawer-backdrop');
   const closeBtn = root.querySelector('.drawer-close');
   const tabs = [...root.querySelectorAll('.drawer-tab')];   // dataset.tab = 'device' | 'sources'
@@ -12,9 +12,9 @@ export function createDrawer(root, { toggleBtn }) {
     tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === name));
     for (const [k, el] of Object.entries(panes)) el.hidden = k !== name;
   };
-  const open = () => { root.hidden = false; };
+  const open = () => { onOpen && onOpen(); root.hidden = false; };
   const close = () => { root.hidden = true; };
-  const toggle = () => { root.hidden = !root.hidden; };
+  const toggle = () => { root.hidden ? open() : close(); };
 
   toggleBtn.onclick = toggle;
   closeBtn.onclick = close;

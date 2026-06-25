@@ -20,6 +20,7 @@
   --accent-hover: #FFB84D;
   --accent-dim: rgba(255,159,64,.10);
   --accent-soft: rgba(255,159,64,.18);
+  --ghost-opacity: .38;       /* opacité d'aperçu des composants visible:false (réglable via Settings) */
   --info: #38bdf8;            /* info device (inchangé) */
   --ok: #6FCF97;
   --warn: #E6B450;
@@ -247,7 +248,7 @@ main > .col:last-child { border-right: 0; }
 .w.outside { outline: 1px dashed var(--err); }  /* coin hors zone ronde */
 
 /* visible:false (config) — composant grisé mais toujours sélectionnable/déplaçable, + badge œil-barré. */
-.w.hidden { opacity: .38; }
+.w.hidden { opacity: var(--ghost-opacity); }
 .w.hidden::after {
   content: ''; position: absolute; top: -7px; right: -7px;
   width: 18px; height: 18px; border-radius: 50%; pointer-events: none;
@@ -410,6 +411,28 @@ main > .col:last-child { border-right: 0; }
 .drawer-tab { font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; padding: 4px 10px; border-color: transparent; }
 .drawer-tab.active { color: var(--ink); border-bottom: 2px solid var(--accent); border-color: transparent; border-bottom-color: var(--accent); }
 .drawer-pane[hidden] { display: none; }
+
+/* Grille d'alignement (overlay dans #stage, scalée avec le zoom ; clip au disque). */
+#stage-grid {
+  position: absolute; inset: 0; border-radius: 50%; pointer-events: none; display: none;
+  background-image:
+    linear-gradient(to right, var(--accent-soft) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--accent-soft) 1px, transparent 1px);
+  background-size: var(--grid-step, 10px) var(--grid-step, 10px);
+}
+.grid-on #stage-grid { display: block; }
+
+/* Panneau Settings (dans le tiroir, réutilise .drawer*). */
+.settings-panel { display: flex; flex-direction: column; gap: 14px; }
+.set-row { display: flex; flex-direction: column; gap: 4px; }
+.set-row > label { font-size: 11px; color: var(--text-label); }
+.set-line { display: flex; align-items: center; gap: 8px; }
+.set-line input[type=range] { flex: 1; accent-color: var(--accent); }
+.set-val { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); min-width: 30px; text-align: right; }
+.set-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; border-top: 1px solid var(--line); padding-top: 12px; }
+.set-btn { background: var(--panel-2); border: 1px solid var(--line); color: var(--ink); border-radius: 4px; padding: 7px 10px; cursor: pointer; font-size: 12px; text-align: left; }
+.set-btn:hover { border-color: var(--border-2); }
+.set-btn.confirm { border-color: var(--warn); color: var(--warn); }
 
 /* --- Overlay de capture d'écran (endpoint /screenshot) --- */
 .shot-overlay {

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { offsetFor, nearestAnchor, snapPlacement, placeAt, anchorGuide } from '../js/geometry.js';
+import { offsetFor, nearestAnchor, snapPlacement, placeAt, anchorGuide, snapToStep } from '../js/geometry.js';
 
 const W = 120, H = 34;
 
@@ -104,4 +104,23 @@ test('cornersOutsideCircle : boîte centrée → dedans', () => {
 
 test('cornersOutsideCircle : coin TOP_LEFT → dehors (écran rond)', () => {
   assert.equal(cornersOutsideCircle(0, 0, 40, 20), true);
+});
+
+test('snapToStep désactivé → identité', () => {
+  assert.equal(snapToStep(13, 8, false), 13);
+});
+
+test('snapToStep step<=0 → identité (garde-fou)', () => {
+  assert.equal(snapToStep(13, 0, true), 13);
+  assert.equal(snapToStep(13, -8, true), 13);
+});
+
+test('snapToStep arrondit au pas le plus proche', () => {
+  assert.equal(snapToStep(11, 8, true), 8);    // 1.375 → 1 → 8
+  assert.equal(snapToStep(12, 8, true), 16);   // 1.5 → 2 → 16
+  assert.equal(snapToStep(13, 8, true), 16);   // 1.625 → 2 → 16
+});
+
+test('snapToStep gère les négatifs', () => {
+  assert.equal(snapToStep(-5, 4, true), -4);   // round(-1.25) = -1 → -4
 });

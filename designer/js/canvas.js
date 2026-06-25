@@ -2,7 +2,7 @@
 // drag + snap (commit-on-drop) et poignées de redimensionnement. Vérifié au navigateur.
 import {
   snapPlacement, placeAt, resizeBox, anchorGuide, parentPoint, ANCHORS,
-  ringRadiusAt, ringThicknessAt, gapDegAt, cornersOutsideCircle, SCREEN
+  ringRadiusAt, ringThicknessAt, gapDegAt, cornersOutsideCircle, SCREEN, snapToStep
 } from './geometry.js';
 import {
   ringPaths, pickThresholdColor, capArcPath
@@ -54,7 +54,7 @@ function createGuide() {
   };
 }
 
-export function createCanvas({ stage }, model, { selection, setSelection, onLiveMove } = {}) {
+export function createCanvas({ stage }, model, { selection, setSelection, onLiveMove, getGridSnap = () => ({ snap: false, step: 10 }) } = {}) {
   let activePage = 0;     // page affichée par le canvas (source de vérité de l'éditeur, hors layout)
   const selectedIndex = () => placementSelection(selection.get(), activePage);   // index à surligner (store)
   let preview = null;     // aperçu transitoire {ref, patch} d'une prop (color picker live) — JAMAIS dans le modèle (undo intact)
@@ -164,6 +164,11 @@ export function createCanvas({ stage }, model, { selection, setSelection, onLive
       const x = (ev.clientX - sr.left) / s - grabX;
       const y = (ev.clientY - sr.top)  / s - grabY;
       live = snapPlacement(x, y, w, h, 16);
+      const gs = getGridSnap();
+      if (gs.snap && !live.snapped) {            // pas déjà collé à une ancre
+        live.dx = snapToStep(live.dx, gs.step, true);
+        live.dy = snapToStep(live.dy, gs.step, true);
+      }
       const p = placeAt(live.anchor, live.dx, live.dy, w, h);
       node.style.left = p.x + 'px'; node.style.top = p.y + 'px';
       node.classList.toggle('snapped', live.snapped);
@@ -211,6 +216,13 @@ export function createCanvas({ stage }, model, { selection, setSelection, onLive
           const dx = axis === 'y' ? 0 : (ev.clientX - sx) / s;   // poignée Sud : largeur figée
           const dy = axis === 'x' ? 0 : (ev.clientY - sy) / s;   // poignée Est : hauteur figée
           dim = resizeBox(startW, startH, dx, dy, 8);
+          const gs = getGridSnap();
+          if (gs.snap) {
+            dim = {
+              width: Math.max(8, snapToStep(dim.width, gs.step, true)),
+              height: Math.max(8, snapToStep(dim.height, gs.step, true)),
+            };
+          }
           adapter.preview(dim);
         };
         const up = () => {
