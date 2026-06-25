@@ -42,6 +42,13 @@ export function snapPlacement(x, y, w, h, snap = 16) {
   return { anchor, dx, dy, snapped };
 }
 
+// Snap au PAS de grille — distinct de snapPlacement (qui snappe aux 9 ANCRES).
+// enabled=false ou step<=0 → identité ; sinon arrondi au multiple de step le plus proche.
+export function snapToStep(v, step, enabled = false) {
+  if (!enabled || !(step > 0)) return v;
+  return Math.round(v / step) * step;
+}
+
 export function placeAt(anchor, dx, dy, w, h) {
   const px = P[anchor][0] + dx, py = P[anchor][1] + dy;
   const x = px - (anchor.includes('LEFT') ? 0 : anchor.includes('RIGHT') ? w : w / 2);
