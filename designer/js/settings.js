@@ -28,3 +28,13 @@ export function loadSettings() {
 export function saveSettings(s) {
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
 }
+
+// Applique les réglages VISUELS au DOM : variable d'opacité (racine) + classe/pas de grille (stage).
+export function applyVisualSettings(s) {
+  document.documentElement.style.setProperty('--ghost-opacity', String(s.ghostOpacity));
+  const wrap = document.getElementById('stage-wrap');
+  if (wrap) {
+    wrap.classList.toggle('grid-on', s.gridShow);
+    wrap.style.setProperty('--grid-step', s.gridStep + 'px');
+  }
+}
