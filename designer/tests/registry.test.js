@@ -108,3 +108,23 @@ test('conformité : enum symbolName du schéma == clés de ICON_SVG (render.js)'
   const svgNames = Object.keys(ICON_SVG).sort();
   assert.deepEqual(svgNames, schemaNames);
 });
+
+test('registre : led_ring expose mode/period_ms + value (mock), défaut mode off', () => {
+  const cf = COMPONENTS.led_ring.compFields;
+  const keys = cf.map(f => f[0]);
+  for (const k of ['color', 'brightness', 'mode', 'period_ms']) {
+    assert.ok(keys.includes(k), `led_ring : ${k} manquant`);
+  }
+  const period = cf.find(f => f[0] === 'period_ms');
+  assert.equal(typeof period[3], 'function', 'period_ms doit porter un enableWhen (4e élément)');
+  assert.equal(period[3]({ mode: 'spinner' }), true);
+  assert.equal(period[3]({ mode: 'solid' }), false);
+  assert.equal(period[3]({ mode: 'blink' }),    true,  'blink active period_ms');
+  assert.equal(period[3]({ mode: 'breathe' }),  true,  'breathe active period_ms');
+  assert.equal(period[3]({ mode: 'progress' }), false, 'progress : piloté par la valeur, period_ms grisé');
+  assert.equal(period[3]({ mode: 'off' }),      false, 'off : period_ms grisé');
+  assert.equal(COMPONENTS.led_ring.physical, true);
+  assert.equal(COMPONENTS.led_ring.singleton, true);
+  assert.deepEqual(COMPONENTS.led_ring.mockFields, [['value', 'Valeur % (aperçu)']]);
+  assert.equal(COMPONENTS.led_ring.defaults().mode, 'off');
+});

@@ -67,6 +67,16 @@ static LineDash parse_line_dash(const char* s) {
     if (s && !strcmp(s, "dotted")) return LINE_DOTTED;
     return LINE_SOLID;
 }
+static LedMode parse_led_mode(const char* s, LedMode def) {
+    if (!s)                       return def;
+    if (!strcmp(s, "off"))        return LED_OFF;
+    if (!strcmp(s, "solid"))      return LED_SOLID;
+    if (!strcmp(s, "progress"))   return LED_PROGRESS;
+    if (!strcmp(s, "spinner"))    return LED_SPINNER;
+    if (!strcmp(s, "blink"))      return LED_BLINK;
+    if (!strcmp(s, "breathe"))    return LED_BREATHE;
+    return def;
+}
 
 // Set curaté de symboles. ORDRE == ICON_GLYPHS (view.cpp) ; les deux indexent par la meme valeur.
 static const char* const ICON_SYMBOL_NAMES[ICON_SYMBOL_COUNT] = {
@@ -190,6 +200,13 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
                 c.icon_state_count++;
             }
         }
+        if (c.type == COMP_LED_RING) {                    // config -> état initial du driver (boot vivant)
+            c.led_color      = c.color;                   // (sinon le driver retombe sur blanc tant qu'aucun /update)
+            c.led_brightness = c.led_brightness_cfg;
+            c.led_mode       = parse_led_mode(o["mode"], LED_OFF);
+            c.led_period_ms  = o["period_ms"] | 1000;
+            c.led_value      = 0;                         // progress part de 0 jusqu'au 1er /update
+        }
         t.comp_count++;
     }
 
@@ -304,13 +321,7 @@ static void apply_ring(Component& c, JsonVariantConst v) {
     }
 }
 static void apply_led_ring(Component& c, JsonVariantConst v) {
-    const char* m = v["mode"] | "";
-    if      (!strcmp(m,"off"))      c.led_mode = LED_OFF;
-    else if (!strcmp(m,"solid"))    c.led_mode = LED_SOLID;
-    else if (!strcmp(m,"progress")) c.led_mode = LED_PROGRESS;
-    else if (!strcmp(m,"spinner"))  c.led_mode = LED_SPINNER;
-    else if (!strcmp(m,"blink"))    c.led_mode = LED_BLINK;
-    else if (!strcmp(m,"breathe"))  c.led_mode = LED_BREATHE;
+    if (v["mode"].is<const char*>())  c.led_mode  = parse_led_mode(v["mode"], c.led_mode);
     if (v["color"].is<const char*>()) c.led_color = parse_hex_color(v["color"], c.led_color);
     c.led_value      = v["value"]      | c.led_value;
     c.led_brightness = v["brightness"] | c.led_brightness_cfg;

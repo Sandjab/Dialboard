@@ -13,6 +13,7 @@ export const MOCKS = {
   chart:   { hist: [20, 35, 30, 50, 45, 60, 55, 70, 65, 80, 60, 75, 50, 65, 55, 72] },  // serie demo (forme indicative)
   meter:   { value: 60 },
   led:     { value: 1 },
+  led_ring:{ value: 50 },
   icon:    { value: 0 }
 };
 
