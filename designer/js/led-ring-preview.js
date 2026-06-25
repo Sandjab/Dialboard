@@ -15,7 +15,7 @@ export function ledFrame(comp, mock = {}) {
   const on = new Array(N).fill(false);
   if (mode === 'solid' || mode === 'blink' || mode === 'breathe') on.fill(true);
   else if (mode === 'progress') {
-    const lit = Math.round(clamp(mock.value ?? 0, 0, 100) / 100 * N);
+    const lit = Math.round(clamp(Number(mock.value ?? 0), 0, 100) / 100 * N);   // cast défensif (parité firmware)
     for (let i = 0; i < lit; i++) on[i] = true;
   } else if (mode === 'spinner') on[0] = true;
   // off → tout éteint

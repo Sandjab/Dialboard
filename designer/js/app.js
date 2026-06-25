@@ -36,7 +36,7 @@ function buildUpdatePayload(state) {
     if (c.type === 'readout' || c.type === 'bar' || c.type === 'meter' || c.type === 'led') out[id] = m.value ?? 0;
     else if (c.type === 'ring') { out[id] = { pct: m.value ?? 0 }; if (c.countdown && m.reset_in_s != null) out[id].reset_in_s = m.reset_in_s; }
     else if (c.type === 'chart') { const h = m.hist || []; if (h.length) out[id] = h[h.length - 1]; }
-    else if (c.type === 'led_ring') out[id] = { mode: c.mode || 'off', color: c.color || '#FFFFFF', brightness: c.brightness ?? 64, period_ms: c.period_ms ?? 1000, value: m.value ?? 0 };
+    else if (c.type === 'led_ring') out[id] = { mode: c.mode || 'off', color: c.color || '#FFFFFF', brightness: c.brightness ?? 64, period_ms: c.period_ms ?? 1000, value: Number(m.value ?? 0) };
   }
   return out;
 }

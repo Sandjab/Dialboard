@@ -58,6 +58,7 @@ export function createDevicePanel(root, model, { onPreview } = {}) {
     for (const id of physicalComponentIds(model.state)) {
       const c = comps[id];
       const def = COMPONENTS[c.type];
+      const liveComp = () => model.state.components[id] || c;   // état vivant : reflète une édition même si le garde-focus bloque un rebuild
       const card = document.createElement('div'); card.className = 'src-card';
 
       const head = document.createElement('div'); head.className = 'src-head';
@@ -75,7 +76,7 @@ export function createDevicePanel(root, model, { onPreview } = {}) {
         card.appendChild(row);
       }
       const syncEnabled = () => {
-        const cc = model.state.components[id]; if (!cc) return;
+        const cc = liveComp();
         for (const { row, enableWhen } of rows) {
           if (!enableWhen) continue;
           const ok = enableWhen(cc);
@@ -83,8 +84,15 @@ export function createDevicePanel(root, model, { onPreview } = {}) {
           const f = row.querySelector('input, select'); if (f) f.disabled = !ok;
         }
       };
+      // Repeint le mini-aperçu (frame statique) SANS rebuild → reste à jour même quand le garde-focus
+      // bloque render() (un champ a le focus, ex. le select de mode). No-op pendant l'animation ▶ (previewRaf actif).
+      const updateMini = () => {
+        if (previewRaf) return;
+        const miniEl = card.querySelector('.led-ring-mini');
+        if (miniEl) paintRing(miniEl, ledFrame(liveComp(), getMock(id, c.type)));
+      };
       syncEnabled();
-      card.addEventListener('change', syncEnabled);   // changer le mode réévalue la période
+      card.addEventListener('change', () => { syncEnabled(); updateMini(); });   // mode/couleur/luminosité/valeur → période + mini réactifs
 
       // --- led_ring : valeur d'aperçu (mock) + mini-aperçu animable ---
       if (def.mockFields?.length) {
@@ -92,15 +100,13 @@ export function createDevicePanel(root, model, { onPreview } = {}) {
         for (const [key, label] of def.mockFields) {
           card.appendChild(labelled(label, fieldInput('num', m[key], v => {
             setMock(id, { [key]: v === '' ? 0 : v });
-            render();          // re-peint le mini-aperçu (frame statique)
-            onPreview?.();     // re-peint le liseré du canvas
+            onPreview?.();     // re-peint le liseré du canvas (le mini est géré par le listener 'change' de la carte)
           })));
         }
       }
       if (c.type === 'led_ring') {
-        const liveComp = () => model.state.components[id] || c;   // état vivant : reflète un changement de mode même si le garde-focus bloque un rebuild
         const mini = document.createElement('div'); mini.className = 'led-ring-mini';
-        paintRing(mini, ledFrame(c, getMock(id, 'led_ring')));
+        paintRing(mini, ledFrame(liveComp(), getMock(id, 'led_ring')));
         card.appendChild(mini);
 
         const play = document.createElement('button'); play.className = 'src-add'; play.textContent = '▶ Aperçu';   // réutilise le style src-add (bouton plein)
