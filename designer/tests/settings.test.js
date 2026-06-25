@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { defaultSettings, normalizeSettings } from '../js/settings.js';
 
 test('defaultSettings: valeurs de référence', () => {
-  assert.deepEqual(defaultSettings(), { ghostOpacity: 0.38, gridShow: false, gridSnap: false, gridStep: 8 });
+  assert.deepEqual(defaultSettings(), { ghostOpacity: 0.38, gridShow: false, gridSnap: false, gridStep: 10 });
 });
 
 test('normalizeSettings: entrée vide/nulle → défauts', () => {
@@ -18,14 +18,15 @@ test('normalizeSettings: clamp opacité hors bornes', () => {
   assert.equal(normalizeSettings({ ghostOpacity: 'x' }).ghostOpacity, 0.38);
 });
 
-test('normalizeSettings: gridStep contraint à {4,8,16}', () => {
-  assert.equal(normalizeSettings({ gridStep: 5 }).gridStep, 8);
-  assert.equal(normalizeSettings({ gridStep: 16 }).gridStep, 16);
+test('normalizeSettings: gridStep contraint à {5,10,20}', () => {
+  assert.equal(normalizeSettings({ gridStep: 5 }).gridStep, 5);    // valide
+  assert.equal(normalizeSettings({ gridStep: 20 }).gridStep, 20);  // valide
+  assert.equal(normalizeSettings({ gridStep: 8 }).gridStep, 10);   // 8 n'est plus valide → défaut
 });
 
 test('normalizeSettings: champ partiel mergé sur les défauts', () => {
   const r = normalizeSettings({ gridShow: true });
   assert.equal(r.gridShow, true);
   assert.equal(r.gridSnap, false);
-  assert.equal(r.gridStep, 8);
+  assert.equal(r.gridStep, 10);
 });

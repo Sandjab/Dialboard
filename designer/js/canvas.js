@@ -54,7 +54,7 @@ function createGuide() {
   };
 }
 
-export function createCanvas({ stage }, model, { selection, setSelection, onLiveMove, getGridSnap = () => ({ snap: false, step: 8 }) } = {}) {
+export function createCanvas({ stage }, model, { selection, setSelection, onLiveMove, getGridSnap = () => ({ snap: false, step: 10 }) } = {}) {
   let activePage = 0;     // page affichée par le canvas (source de vérité de l'éditeur, hors layout)
   const selectedIndex = () => placementSelection(selection.get(), activePage);   // index à surligner (store)
   let preview = null;     // aperçu transitoire {ref, patch} d'une prop (color picker live) — JAMAIS dans le modèle (undo intact)

@@ -418,7 +418,7 @@ main > .col:last-child { border-right: 0; }
   background-image:
     linear-gradient(to right, var(--accent-soft) 1px, transparent 1px),
     linear-gradient(to bottom, var(--accent-soft) 1px, transparent 1px);
-  background-size: var(--grid-step, 8px) var(--grid-step, 8px);
+  background-size: var(--grid-step, 10px) var(--grid-step, 10px);
 }
 .grid-on #stage-grid { display: block; }
 

@@ -2,10 +2,10 @@
 // localStorage, application des variables CSS. Le DOM du tiroir est ajouté en bas (createSettings).
 // Pur testé node ; load/save/apply touchent localStorage/DOM (non testés node, cf. convention).
 const KEY = 'rt-designer-settings';
-const STEPS = [4, 8, 16];
+const STEPS = [5, 10, 20];
 
 export function defaultSettings() {
-  return { ghostOpacity: 0.38, gridShow: false, gridSnap: false, gridStep: 8 };
+  return { ghostOpacity: 0.38, gridShow: false, gridSnap: false, gridStep: 10 };
 }
 
 export function normalizeSettings(raw) {
@@ -104,7 +104,7 @@ export function createSettings(root, { toggleBtn, onOpen, getSettings, setSettin
     // Pas de la grille
     const stepRow = settingRow('Pas de la grille');
     const step = document.createElement('select');
-    for (const v of [4, 8, 16]) {
+    for (const v of [5, 10, 20]) {
       const o = document.createElement('option'); o.value = String(v); o.textContent = v + ' px';
       if (v === s.gridStep) o.selected = true; step.appendChild(o);
     }
