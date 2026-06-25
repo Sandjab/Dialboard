@@ -87,7 +87,8 @@ export function createSettings(root, { toggleBtn, onOpen, getSettings, setSettin
     const op = document.createElement('input');
     op.type = 'range'; op.min = '0'; op.max = '1'; op.step = '0.02'; op.value = String(s.ghostOpacity);
     const opVal = document.createElement('span'); opVal.className = 'set-val'; opVal.textContent = s.ghostOpacity.toFixed(2);
-    op.oninput = () => { opVal.textContent = Number(op.value).toFixed(2); setSettings({ ghostOpacity: Number(op.value) }); };
+    op.oninput = () => { const v = Number(op.value); opVal.textContent = v.toFixed(2); document.documentElement.style.setProperty('--ghost-opacity', String(v)); };  // aperçu live (var CSS), hors persistance
+    op.onchange = () => setSettings({ ghostOpacity: Number(op.value) });                                                                                       // commit sur change (cf. invariant input/change)
     opRow.querySelector('.set-line').append(op, opVal);
     pane.appendChild(opRow);
 
@@ -104,7 +105,7 @@ export function createSettings(root, { toggleBtn, onOpen, getSettings, setSettin
     // Pas de la grille
     const stepRow = settingRow('Pas de la grille');
     const step = document.createElement('select');
-    for (const v of [5, 10, 20]) {
+    for (const v of STEPS) {
       const o = document.createElement('option'); o.value = String(v); o.textContent = v + ' px';
       if (v === s.gridStep) o.selected = true; step.appendChild(o);
     }
