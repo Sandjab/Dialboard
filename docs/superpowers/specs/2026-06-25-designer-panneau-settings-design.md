@@ -70,8 +70,11 @@ les **persiste** entre sessions, et ajoute le snap-grille comme aide d'alignemen
 ### Défauts retenus (réglages)
 - **Transparence invisibles** : curseur 0–1, **défaut `.38`** (valeur actuelle → zéro changement
   visuel au boot).
-- **Grille** : toggle affichage **OFF** par défaut ; pas ∈ {4, 8, 16} px (coords device),
-  **défaut 8**.
+- **Grille** : toggle affichage **OFF** par défaut ; pas ∈ {5, 10, 20} px (coords device),
+  **défaut 10**. Les pas sont des **diviseurs de 180** (les ancres parent sont en {0, 180, 360}) →
+  un composant snappé tombe **sur les lignes de grille pour toutes les ancres** (sinon, avec 8/16,
+  décalage de ~4 px pour les ancres CENTER/MID, car 180 n'est pas multiple de 8/16). Ajustement
+  post-implémentation (cf. commit « pas de grille = diviseurs de 180 »).
 - **Snap** : toggle **OFF** par défaut (aucune surprise de placement) ; partage le pas de la
   grille ; arrondit même si la grille est masquée.
 - **Nouveau / Réinitialiser layout** : **confirmation inline** (le bouton devient « Confirmer ? »
@@ -81,9 +84,9 @@ les **persiste** entre sessions, et ajoute le snap-grille comme aide d'alignemen
 
 ### `js/settings.js` (neuf)
 Partie **pure (testée node)** :
-- `defaultSettings()` → `{ ghostOpacity: 0.38, gridShow: false, gridSnap: false, gridStep: 8 }`.
+- `defaultSettings()` → `{ ghostOpacity: 0.38, gridShow: false, gridSnap: false, gridStep: 10 }`.
 - `normalizeSettings(raw)` : merge sur les défauts + **clamp** (opacité bornée 0–1 ; `gridStep`
-  contraint à {4,8,16}, sinon défaut ; toggles coercés en booléens). Tolère un objet partiel ou
+  contraint à {5,10,20}, sinon défaut ; toggles coercés en booléens). Tolère un objet partiel ou
   invalide.
 - `loadSettings()` / `saveSettings(s)` : localStorage `rt-designer-settings`, JSON corrompu →
   `defaultSettings()` (jamais de throw qui casse le boot).

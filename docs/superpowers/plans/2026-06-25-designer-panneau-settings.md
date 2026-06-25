@@ -627,3 +627,15 @@ Claude-Session: https://claude.ai/code/session_01J38sSW7eNcaq4tNnpZhYCV"
 **Cohérence des types/noms** : `snapToStep(v, step, enabled)` (T1, T5) ; store `{ ghostOpacity, gridShow, gridSnap, gridStep }` partout (T2, T4, T6) ; `getGridSnap() → { snap, step }` (T5 défaut, T6 fourniture) ; `createSettings(root, { toggleBtn, onOpen, getSettings, setSettings, onNewLayout })` (T4 def, T6 appel) ; `createDrawer(root, { toggleBtn, onOpen })` (T4 mod, T6 appel). Cohérent.
 
 **Hors-scope (rappel)** : densité/échelle UI, thèmes multiples, garde-fous destructifs (Pousser/Pull/suppression page), smart guides. Limite v1 : circle-diamètre / line-longueur non snappés.
+
+---
+
+## Ajustement post-implémentation (Task 7)
+
+Après vérif navigateur, les pas `{4, 8, 16}` (défaut 8) des snippets ci-dessus ont été remplacés par
+`{5, 10, 20}` (défaut 10). Raison : le snap arrondit l'offset *relatif à l'ancre* ; les ancres parent
+sont en `{0, 180, 360}`. Si le pas ne **divise pas 180** (cas de 8 et 16), un composant snappé contre
+une ancre CENTER/MID tombe ~4 px à côté des lignes de grille affichées. Les diviseurs de 180
+(`5/10/20`) rendent snap et grille cohérents **pour toutes les ancres**, sans toucher la logique de
+snap et **en préservant le centrage** (180 est sur la grille). Touche `settings.js` (`STEPS`, défaut,
+`<select>`), `settings.test.js` (3 tests), et les replis inertes `canvas.js`/`style.css` (8 → 10).
