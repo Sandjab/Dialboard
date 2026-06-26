@@ -49,6 +49,15 @@ export function reorderTargetIndex(place, fromReal, toReal, before) {
   return Math.max(0, Math.min(n - 1, realTo));
 }
 
+// Drop d'un composant venu d'UNE AUTRE PAGE → index d'INSERTION dans place[] de la page cible. Comme
+// reorderTargetIndex l'affichage est inversé (dessus = fin de place[]) et `before` = moitié HAUTE de la
+// ligne cible — mais SANS la compensation de splice (la source n'est pas retirée de cette page, donc place
+// gagne un élément). L'index peut valoir n (insertion en fin = au sommet du z-order). Pur (testé node).
+export function insertTargetIndex(place, toReal, before) {
+  const n = place.length;
+  return Math.max(0, Math.min(n, toReal + (before ? 1 : 0)));
+}
+
 // Rendu DOM de l'arbre + pilotage de la sélection partagée. Deps : getActivePage/setPage (la page
 // active vit dans canvas.js) PLUS le store de sélection (selection/setSelection). Pilote pages + comps.
 export function createTree(root, model, { selection, setSelection, getActivePage = () => 0, setPage, compActions = {}, getClipboard = () => null } = {}) {
@@ -117,17 +126,19 @@ export function createTree(root, model, { selection, setSelection, getActivePage
       render();
     });
     row.draggable = true;
+    // Drag HTML5 natif : NE PAS re-render dans dragstart. render() retire du DOM la ligne source du
+    // drag → Chromium annule aussitôt l'opération (symptôme « impossible à saisir », alors que les
+    // pages — dont le dragstart ne re-render pas — se glissent bien). On ne pose donc que dragSrc +
+    // dataTransfer, comme le dragstart des pages plus bas ; la sélection définitive est posée au drop.
     row.addEventListener('dragstart', e => {
-      if (pageIndex !== getActivePage()) goPage(pageIndex);
-      setSelection({ kind: 'comp', page: pageIndex, index: c.index });
       dragSrc = { page: pageIndex, index: c.index };
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', c.ref);
-      render();
+      e.stopPropagation();
     });
     row.addEventListener('dragend', () => { dragSrc = null; clearDropMarks(); render(); });
     row.addEventListener('dragover', e => {
-      if (!dragSrc || dragSrc.page !== pageIndex) return;   // reorder seulement dans la même page
+      if (!dragSrc) return;   // intra-page (reorder) OU inter-page (insertion positionnée) : même repère
       e.preventDefault();
       const r = row.getBoundingClientRect();
       const before = (e.clientY - r.top) < r.height / 2;
@@ -135,20 +146,29 @@ export function createTree(root, model, { selection, setSelection, getActivePage
       row.classList.add(before ? 'drop-before' : 'drop-after');
     });
     row.addEventListener('drop', e => {
-      if (!dragSrc || dragSrc.page !== pageIndex) return;
+      if (!dragSrc) return;
       e.preventDefault();
       const r = row.getBoundingClientRect();
       const before = (e.clientY - r.top) < r.height / 2;
-      const from = dragSrc.index;
-      const place = model.state.pages?.[pageIndex]?.place;
-      if (!place) { clearDropMarks(); return; }   // page disparue (undo concurrent) : pas de TypeError, on nettoie
-      const to = reorderTargetIndex(place, from, c.index, before);
       clearDropMarks();
-      if (to !== from) {
-        model.commit(s => reorderPlacement(s, pageIndex, from, to));
-        setSelection({ kind: 'comp', page: pageIndex, index: to });   // la sélection suit
-      }
+      const src = dragSrc;
       dragSrc = null;
+      const place = model.state.pages?.[pageIndex]?.place;
+      if (!place) return;   // page disparue (undo concurrent) : pas de TypeError, on nettoie
+      if (src.page === pageIndex) {
+        // intra-page : réordonner (z-order)
+        const to = reorderTargetIndex(place, src.index, c.index, before);
+        if (to !== src.index) {
+          model.commit(s => reorderPlacement(s, pageIndex, src.index, to));
+          setSelection({ kind: 'comp', page: pageIndex, index: to });   // la sélection suit
+        }
+      } else {
+        // inter-page : insérer à la position visée (≠ toujours en fin) dans CETTE page, comme l'intra-page
+        const to = insertTargetIndex(place, c.index, before);
+        model.commit(s => movePlacementToPage(s, src.page, src.index, pageIndex, to));
+        goPage(pageIndex);
+        setSelection({ kind: 'comp', page: pageIndex, index: to });   // suit le composant migré
+      }
     });
     row.addEventListener('contextmenu', e => {
       e.preventDefault();

@@ -465,6 +465,37 @@ test('movePlacementToPage : page cible sans tableau place → crée place[]', ()
   assert.deepEqual(s.pages[1].place?.map(p => p.ref), ['a']);
 });
 
+test('movePlacementToPage : toIndex insère à la position donnée dans la cible', () => {
+  const s = {
+    components: {},
+    pages: [
+      { name: 'P1', place: [{ ref: 'a' }] },
+      { name: 'P2', place: [{ ref: 'x' }, { ref: 'y' }] },
+    ],
+  };
+  movePlacementToPage(s, 0, 0, 1, 1);
+  assert.deepEqual(s.pages[1].place.map(p => p.ref), ['x', 'a', 'y']);
+  assert.deepEqual(s.pages[0].place.map(p => p.ref), []);
+});
+
+test('movePlacementToPage : toIndex=0 insère en tête de la cible', () => {
+  const s = { components: {}, pages: [
+    { name: 'P1', place: [{ ref: 'a' }] },
+    { name: 'P2', place: [{ ref: 'x' }] },
+  ] };
+  movePlacementToPage(s, 0, 0, 1, 0);
+  assert.deepEqual(s.pages[1].place.map(p => p.ref), ['a', 'x']);
+});
+
+test('movePlacementToPage : toIndex hors borne → ajoute en fin (pas de trou)', () => {
+  const s = { components: {}, pages: [
+    { name: 'P1', place: [{ ref: 'a' }] },
+    { name: 'P2', place: [{ ref: 'x' }] },
+  ] };
+  movePlacementToPage(s, 0, 0, 1, 99);
+  assert.deepEqual(s.pages[1].place.map(p => p.ref), ['x', 'a']);
+});
+
 test('renameComponent : renomme la clé map ET tous les place[].ref (multi-pages)', () => {
   const s = {
     components: { old: { type: 'ring', color: '#fff' } },
