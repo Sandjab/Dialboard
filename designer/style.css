@@ -41,7 +41,9 @@ body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: var(--bg); c
 header { display: flex; align-items: center; gap: 0; padding: 0 10px; height: 42px; border-bottom: 1px solid var(--line); background: var(--panel); }
 header .grow { flex: 1; }
 /* --- Top bar : brand --- */
-.tb-brand { display: flex; align-items: center; gap: 8px; padding-right: 14px; margin-right: 8px; border-right: 1px solid var(--line); height: 100%; }
+/* Lockup de marque en ambre (titre + icône) : seule exception « décorative » à l'accent, qui reste
+   ailleurs réservé aux états actifs/sélectionnés. color cascade sur .tb-brand-name + le currentColor du mark. */
+.tb-brand { display: flex; align-items: center; gap: 8px; padding-right: 14px; margin-right: 8px; border-right: 1px solid var(--line); height: 100%; color: var(--accent); }
 .tb-brand-mark { width: 18px; height: 18px; }
 .tb-brand-name { font-family: var(--font-mono); font-weight: 500; font-size: calc(12px * var(--scale)); letter-spacing: .18em; text-transform: uppercase; }
 /* --- Groupes de boutons --- */
@@ -355,7 +357,7 @@ main > .col:last-child { border-right: 0; }
 .insp-sub { font-size: 11px; color: var(--muted); margin: 10px 0 4px; text-transform: uppercase; }
 .section { border-bottom: 1px solid var(--line); }
 .section-h { display: flex; align-items: center; height: 24px; padding: 0 8px 0 6px; cursor: pointer;
-  font-family: var(--font-mono); font-size: 10px; color: var(--text-label, var(--muted)); letter-spacing: .14em; text-transform: uppercase; }
+  font-family: var(--font-mono); font-size: 10px; color: var(--ink); letter-spacing: .14em; text-transform: uppercase; }
 .section-h .caret { width: 10px; color: var(--muted); font-size: 8px; transition: transform .15s; }
 .section.collapsed .caret { transform: rotate(-90deg); }
 .section.collapsed .section-b { display: none; }
