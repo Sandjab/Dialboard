@@ -1,29 +1,45 @@
 // Pont REST avec le device. CORS résolu côté firmware (header + OPTIONS).
+import { logs } from './logs.js';
 function clean(base) { return base.replace(/\/+$/, ''); }
 
+// fetch instrumenté : journalise méthode/chemin/code HTTP/durée vers le journal réseau (device seul).
+// Un rejet réseau (TypeError) est loggé status 0 puis relancé — le transport reste inchangé pour l'appelant.
+async function devFetch(base, path, init) {
+  const method = (init && init.method) || 'GET';
+  const t0 = performance.now();
+  try {
+    const r = await fetch(clean(base) + path, init);
+    logs.logNet({ method, path, status: r.status, ms: Math.round(performance.now() - t0), ok: r.ok });
+    return r;
+  } catch (e) {
+    logs.logNet({ method, path, status: 0, ms: Math.round(performance.now() - t0), ok: false });
+    throw e;
+  }
+}
+
 export async function loadLayout(base) {
-  const r = await fetch(clean(base) + '/layout');
+  const r = await devFetch(base, '/layout');
   if (!r.ok) throw new Error('HTTP ' + r.status);
   return r.json();
 }
 
 // Renvoie une blob URL (image/bmp) ; l'appelant doit la revoquer (URL.revokeObjectURL) apres usage.
 export async function captureScreenshot(base) {
-  const r = await fetch(clean(base) + '/screenshot');
+  const r = await devFetch(base, '/screenshot');
   if (!r.ok) throw new Error('HTTP ' + r.status);
   return URL.createObjectURL(await r.blob());
 }
 
 // GET /status : santé du device (ip, page, pages, uptime, composants, état des sources pull).
 export async function getStatus(base) {
-  const r = await fetch(clean(base) + '/status');
+  const r = await devFetch(base, '/status');
   if (!r.ok) throw new Error('HTTP ' + r.status);
   return r.json();
 }
 
 // POST /page : navigue la page affichée SUR LE DEVICE. body = {dir:'next'|'prev'} | {index:N} | {name:'…'}.
 export async function setDevicePage(base, body) {
-  const r = await fetch(clean(base) + '/page', {
+  const r = await devFetch(base, '/page', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
   });
   if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -32,7 +48,7 @@ export async function setDevicePage(base, body) {
 
 // POST /update : pousse des valeurs (live preview). payload = {id: valeur, …} (cf. format par type).
 export async function pushValues(base, payload) {
-  const r = await fetch(clean(base) + '/update', {
+  const r = await devFetch(base, '/update', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
   });
   const body = await r.json().catch(() => ({}));
@@ -41,7 +57,7 @@ export async function pushValues(base, payload) {
 }
 
 export async function pushLayout(base, layoutText) {
-  const r = await fetch(clean(base) + '/layout', {
+  const r = await devFetch(base, '/layout', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: layoutText
@@ -55,14 +71,14 @@ export async function pushLayout(base, layoutText) {
 export async function uploadBgImage(base, key, bytes) {
   const fd = new FormData();
   fd.append('img', new Blob([bytes], { type: 'application/octet-stream' }), key + '.565');
-  const r = await fetch(clean(base) + '/bgimage?key=' + encodeURIComponent(key), { method: 'POST', body: fd });
+  const r = await devFetch(base, '/bgimage?key=' + encodeURIComponent(key), { method: 'POST', body: fd });
   if (!r.ok) throw new Error('HTTP ' + r.status);
   return r.json().catch(() => ({}));
 }
 
 // GET /bgimage?key=<hex> : recupere les octets RGB565 (Uint8Array), ou null si 404.
 export async function fetchBgImage(base, key) {
-  const r = await fetch(clean(base) + '/bgimage?key=' + encodeURIComponent(key));
+  const r = await devFetch(base, '/bgimage?key=' + encodeURIComponent(key));
   if (r.status === 404) return null;
   if (!r.ok) throw new Error('HTTP ' + r.status);
   return new Uint8Array(await r.arrayBuffer());
@@ -72,14 +88,14 @@ export async function fetchBgImage(base, key) {
 export async function uploadImage(base, key, bytes) {
   const fd = new FormData();
   fd.append('img', new Blob([bytes], { type: 'application/octet-stream' }), key + '.565a');
-  const r = await fetch(clean(base) + '/image?key=' + encodeURIComponent(key), { method: 'POST', body: fd });
+  const r = await devFetch(base, '/image?key=' + encodeURIComponent(key), { method: 'POST', body: fd });
   if (!r.ok) throw new Error('HTTP ' + r.status);
   return r.json().catch(() => ({}));
 }
 
 // GET /image?key=<hex> : recupere les octets RGB565A8 (Uint8Array), ou null si 404.
 export async function fetchImage(base, key) {
-  const r = await fetch(clean(base) + '/image?key=' + encodeURIComponent(key));
+  const r = await devFetch(base, '/image?key=' + encodeURIComponent(key));
   if (r.status === 404) return null;
   if (!r.ok) throw new Error('HTTP ' + r.status);
   return new Uint8Array(await r.arrayBuffer());
@@ -89,14 +105,14 @@ export async function fetchImage(base, key) {
 export async function uploadAimg(base, key, bytes) {
   const fd = new FormData();
   fd.append('img', new Blob([bytes], { type: 'application/octet-stream' }), key + '.565p');
-  const r = await fetch(clean(base) + '/aimg?key=' + encodeURIComponent(key), { method: 'POST', body: fd });
+  const r = await devFetch(base, '/aimg?key=' + encodeURIComponent(key), { method: 'POST', body: fd });
   if (!r.ok) throw new Error('HTTP ' + r.status);
   return r.json().catch(() => ({}));
 }
 
 // GET /aimg?key=<hex> : recupere les octets du pack (Uint8Array), ou null si 404.
 export async function fetchAimg(base, key) {
-  const r = await fetch(clean(base) + '/aimg?key=' + encodeURIComponent(key));
+  const r = await devFetch(base, '/aimg?key=' + encodeURIComponent(key));
   if (r.status === 404) return null;
   if (!r.ok) throw new Error('HTTP ' + r.status);
   return new Uint8Array(await r.arrayBuffer());

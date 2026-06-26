@@ -6,7 +6,8 @@ const KEY = 'rt-designer-settings';
 const STEPS = [5, 10, 20];
 
 export function defaultSettings() {
-  return { ghostOpacity: 0.38, gridShow: false, gridSnap: false, gridStep: 10 };
+  return { ghostOpacity: 0.38, gridShow: false, gridSnap: false, gridStep: 10,
+           logActivity: true, logJs: false, logNet: false };
 }
 
 export function normalizeSettings(raw) {
@@ -18,6 +19,9 @@ export function normalizeSettings(raw) {
     gridShow: typeof r.gridShow === 'boolean' ? r.gridShow : d.gridShow,
     gridSnap: typeof r.gridSnap === 'boolean' ? r.gridSnap : d.gridSnap,
     gridStep: STEPS.includes(r.gridStep) ? r.gridStep : d.gridStep,
+    logActivity: typeof r.logActivity === 'boolean' ? r.logActivity : d.logActivity,
+    logJs: typeof r.logJs === 'boolean' ? r.logJs : d.logJs,
+    logNet: typeof r.logNet === 'boolean' ? r.logNet : d.logNet,
   };
 }
 
@@ -100,6 +104,17 @@ export function createSettings(root, { toggleBtn, onOpen, getSettings, setSettin
     step.onchange = () => setSettings({ gridStep: Number(step.value) });
     stepRow.querySelector('.set-line').appendChild(step);
     pane.appendChild(stepRow);
+
+    // Journaux de la console (chaque case montre/masque l'onglet correspondant)
+    const actRow = settingRow('Journal d’activité');
+    actRow.querySelector('.set-line').appendChild(checkbox(s.logActivity, v => setSettings({ logActivity: v })));
+    pane.appendChild(actRow);
+    const jsRow = settingRow('Journal JS (console navigateur)');
+    jsRow.querySelector('.set-line').appendChild(checkbox(s.logJs, v => setSettings({ logJs: v })));
+    pane.appendChild(jsRow);
+    const netRow = settingRow('Journal réseau (device)');
+    netRow.querySelector('.set-line').appendChild(checkbox(s.logNet, v => setSettings({ logNet: v })));
+    pane.appendChild(netRow);
 
     // Actions
     const actions = document.createElement('div'); actions.className = 'set-actions';

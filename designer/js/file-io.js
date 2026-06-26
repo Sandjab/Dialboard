@@ -3,6 +3,7 @@
 // la validité de forme est signalée par le panneau JSON. onLoad permet de réinitialiser la vue
 // (page active, sélection) après un import. Vérifié au navigateur.
 import { showToast } from './toast.js';
+import { logs } from './logs.js';
 
 export function bindFileIO(model, { exportBtn, importBtn, importInput, onLoad } = {}) {
   exportBtn.addEventListener('click', () => {
@@ -13,6 +14,7 @@ export function bindFileIO(model, { exportBtn, importBtn, importInput, onLoad } 
     a.download = 'layout.json';
     a.click();
     URL.revokeObjectURL(url);
+    logs.logActivity('Layout exporté (fichier)');
   });
 
   importBtn.addEventListener('click', () => importInput.click());
@@ -24,6 +26,7 @@ export function bindFileIO(model, { exportBtn, importBtn, importInput, onLoad } 
       const text = await file.text();
       model.loadJSON(text);            // throw si JSON illisible ; la forme est validée par le panneau
       onLoad && onLoad();
+      logs.logActivity('Layout importé (fichier)');
     } catch (e) {
       showToast('Import échoué : ' + e.message, { kind: 'err' });
     } finally {

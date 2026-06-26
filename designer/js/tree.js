@@ -4,6 +4,7 @@
 import { COMPONENTS } from './registry.js';
 import { iconFor } from './icons.js';
 import { setComponentProp, addPage, removePage, renamePage, reorderPages, uniquePageName, pageNameTaken, renameComponent, duplicatePage, reorderPlacement, movePlacementToPage } from './mutations.js';
+import { logs } from './logs.js';
 import { showToast } from './toast.js';
 import { contextMenuItems, openContextMenu, closeContextMenu } from './contextmenu.js';
 import { withConfirm } from './confirm.js';
@@ -212,6 +213,7 @@ export function createTree(root, model, { selection, setSelection, getActivePage
         if (pageNameTaken(model.state, name, p.index)) { showToast(`« ${name} » est déjà utilisé`); return false; }
         renaming = null;
         model.commit(s => renamePage(s, p.index, name));                    // → subscribe → render()
+        logs.logActivity('Page renommée : ' + name);
         return true;
       };
       inp.addEventListener('input', () => {
@@ -323,6 +325,7 @@ export function createTree(root, model, { selection, setSelection, getActivePage
       let ni = -1;
       model.commit(s => { ni = duplicatePage(s, p.index); });
       if (ni >= 0) { goPage(ni); setSelection({ kind: 'page', page: ni }); }
+      logs.logActivity('Page dupliquée');
       render();
     });
     mkAct('↑', 'Monter', () => {
@@ -337,6 +340,7 @@ export function createTree(root, model, { selection, setSelection, getActivePage
     const doDelete = () => {
       model.commit(s => removePage(s, p.index));
       goPage(Math.min(p.index, model.state.pages.length - 1));
+      logs.logActivity('Page supprimée');
       render();
     };
     del.addEventListener('click', e => e.stopPropagation());   // ne pas (re)sélectionner la ligne
@@ -389,6 +393,7 @@ export function createTree(root, model, { selection, setSelection, getActivePage
       const last = model.state.pages.length - 1;
       goPage(last);
       setSelection({ kind: 'page', page: last });
+      logs.logActivity('Page ajoutée');
       render();
     });
     head.appendChild(addBtn);
@@ -463,9 +468,9 @@ export function createTree(root, model, { selection, setSelection, getActivePage
       const pi = sel.page, total = () => model.state.pages.length;
       if (id === 'rename')    return beginRename();
       if (id === 'duplicate') { let ni = -1; model.commit(s => { ni = duplicatePage(s, pi); });
-        if (ni >= 0) { goPage(ni); setSelection({ kind: 'page', page: ni }); } return; }
+        if (ni >= 0) { goPage(ni); setSelection({ kind: 'page', page: ni }); } logs.logActivity('Page dupliquée'); return; }
       if (id === 'delete')    { if (total() <= 1) return; model.commit(s => removePage(s, pi));
-        goPage(Math.min(pi, model.state.pages.length - 1)); render(); return; }
+        goPage(Math.min(pi, model.state.pages.length - 1)); logs.logActivity('Page supprimée'); render(); return; }
       if (id === 'moveUp')    { if (pi <= 0) return; model.commit(s => reorderPages(s, pi, pi - 1));
         goPage(pi - 1); setSelection({ kind: 'page', page: pi - 1 }); return; }
       if (id === 'moveDown')  { if (pi >= total() - 1) return; model.commit(s => reorderPages(s, pi, pi + 1));

@@ -175,6 +175,15 @@ main > .col:last-child { border-right: 0; }
 .console-json { margin: 0; background: var(--input); color: var(--ink); border: 1px solid var(--line);
   border-radius: 6px; font: 12.5px/1.5 var(--font-mono); padding: 10px; white-space: pre-wrap; word-break: break-all; }
 
+/* Journaux (Activité | Log JS | Log réseau) : liste horodatée + bouton « Vider » (.console-copy) */
+.console-logwrap { position: relative; }
+.console-log { display: flex; flex-direction: column; gap: 2px; font: 12px/1.4 var(--font-mono); padding-top: 4px; }
+.console-logline { display: flex; gap: 8px; white-space: pre-wrap; word-break: break-word; }
+.console-logtime { color: var(--muted); flex: 0 0 auto; }
+.console-log-error, .console-log-err { color: var(--err); }
+.console-log-warn { color: var(--warn); }
+.console-log-info, .console-log-log, .console-log-ok { color: var(--ink); }
+
 /* --- Plan B : webfont + canvas --- */
 @font-face {
   font-family: 'Montserrat';

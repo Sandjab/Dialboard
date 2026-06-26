@@ -23,6 +23,7 @@ import { resolveShortcut, isEditableTarget } from './shortcuts.js';
 import { placeComponentCopy, duplicateComponent, removePlacementAndOrphan } from './mutations.js';
 import { createSelection, sameSelection, isSelectionValid } from './selection.js';
 import { loadSettings, saveSettings, normalizeSettings, applyVisualSettings, createSettings } from './settings.js';
+import { logs, installConsoleCapture } from './logs.js';
 import { DEFAULT_LAYOUT } from './default-layout.js';
 
 const $ = id => document.getElementById(id);
@@ -44,6 +45,7 @@ function buildUpdatePayload(state) {
 }
 
 async function main() {
+  installConsoleCapture();   // capture console.* vers le journal JS dès le boot (idempotent)
   // Le schema partage vit dans ../schema (hors du dossier designer) : servir depuis le parent.
   let schema;
   try {
@@ -72,6 +74,7 @@ async function main() {
     settingsState = normalizeSettings({ ...settingsState, ...partial });
     saveSettings(settingsState);
     applyVisualSettings(settingsState);
+    dconsole.refreshTabs();   // un réglage de journal peut masquer/montrer un onglet de console (closure : dconsole défini plus bas)
   };
 
   // Sélection partagée (canvas ↔ inspecteur ↔ futur arbre). Coordinateur = garde F1 centralisé :
@@ -148,20 +151,21 @@ async function main() {
       if (!clipboard) return;
       let ni = -1;
       model.commit(s => { ni = placeComponentCopy(s, canvas.getActivePage(), clipboard.compDef, clipboard.placement); });
-      if (ni >= 0) canvas.selectPlacement(ni);
+      if (ni >= 0) { canvas.selectPlacement(ni); logs.logActivity('Composant collé : ' + clipboard.compDef.type); }
     },
     duplicate() {
       const sel = canvas.getSelected();
       if (sel == null) return;
       let ni = -1;
       model.commit(s => { ni = duplicateComponent(s, canvas.getActivePage(), sel); });
-      if (ni >= 0) canvas.selectPlacement(ni);
+      if (ni >= 0) { canvas.selectPlacement(ni); logs.logActivity('Composant dupliqué'); }
     },
     remove() {
       const sel = canvas.getSelected();
       if (sel == null) return;
       canvas.selectPlacement(null);
       model.commit(s => removePlacementAndOrphan(s, canvas.getActivePage(), sel));
+      logs.logActivity('Composant supprimé');
     },
     cut() { compActions.copy(); compActions.remove(); },
   };
@@ -202,16 +206,20 @@ async function main() {
     onNewLayout: () => {                           // layout vierge (undoable : loadJSON snapshot)
       model.loadJSON(JSON.stringify(DEFAULT_LAYOUT));
       canvas.setPage(0); tree.render(); setSelection(null);
+      logs.logActivity('Nouveau layout');
     },
   });
 
-  const dconsole = createConsole($('console'), model, { validate });
+  const dconsole = createConsole($('console'), model, { validate, logs, getSettings });
   createStatusbar($('statusbar'), model, { selection, validate, onValidClick: () => dconsole.open('problems') });
 
   const syncUndo = () => { $('undo').disabled = !model.canUndo(); $('redo').disabled = !model.canRedo(); };
   model.subscribe(syncUndo); syncUndo();
-  $('undo').onclick = () => { model.undo(); };
-  $('redo').onclick = () => { model.redo(); };
+  // Annuler/Rétablir journalisés seulement s'ils ont un effet (pile non vide). Partagés boutons + raccourcis.
+  const doUndo = () => { if (model.canUndo()) { model.undo(); logs.logActivity('Annuler'); } };
+  const doRedo = () => { if (model.canRedo()) { model.redo(); logs.logActivity('Rétablir'); } };
+  $('undo').onclick = doUndo;
+  $('redo').onclick = doRedo;
 
   // Raccourcis clavier globaux : Cmd/Ctrl+Z = annuler, +Shift+Z = rétablir, Échap = désélectionner,
   // Cmd/Ctrl+D = dupliquer, +C = copier, +V = coller (copies indépendantes ; coller sur la page
@@ -222,8 +230,8 @@ async function main() {
       editable: isEditableTarget(e.target)
     });
     if (!action) return;
-    if (action === 'undo') { e.preventDefault(); if (model.canUndo()) model.undo(); return; }
-    if (action === 'redo') { e.preventDefault(); if (model.canRedo()) model.redo(); return; }
+    if (action === 'undo') { e.preventDefault(); doUndo(); return; }
+    if (action === 'redo') { e.preventDefault(); doRedo(); return; }
     if (action === 'rename') {
       const s = selection.get();
       if (!s || s.kind === 'doc') return;   // rien / Document : pas de renommage inline → laisser la touche
@@ -313,10 +321,12 @@ async function main() {
     try {
       const okMsg = await fn();
       t.morph(typeof okMsg === 'string' ? okMsg : 'Terminé', 'ok');
+      logs.logActivity(typeof okMsg === 'string' ? okMsg : 'Opération device');
       return okMsg;
     } catch (e) {
       const hint = e instanceof TypeError ? ' (réseau/CORS ? cf. README)' : '';
       t.morph('Échec : ' + e.message + hint, 'err');
+      logs.logActivity('Échec device : ' + e.message);
       return undefined;
     } finally {
       setDeviceBusy(false);

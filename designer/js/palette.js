@@ -6,6 +6,7 @@ import { uniqueId, addComponent, addPlacement } from './mutations.js';
 import { COMPONENTS } from './registry.js';
 import { iconFor } from './icons.js';
 import { SCREEN } from './geometry.js';
+import { logs } from './logs.js';
 
 export function createPalette(root, model, { stage, getActivePage, onCreated } = {}) {
   const page = () => (getActivePage ? getActivePage() : 0);
@@ -49,6 +50,6 @@ export function createPalette(root, model, { stage, getActivePage, onCreated } =
       addPlacement(s, pi, COMPONENTS[type].makePlacement(id, x, y));
       newIndex = s.pages[pi].place.length - 1;
     });
-    if (newIndex != null) onCreated && onCreated(newIndex);
+    if (newIndex != null) { onCreated && onCreated(newIndex); logs.logActivity('Composant ajouté : ' + type); }
   });
 }
