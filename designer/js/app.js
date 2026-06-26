@@ -18,6 +18,7 @@ import { createSources } from './sources.js';
 import { createDevicePanel } from './device-panel.js';
 import { stripPhysicalPlacements, ensurePhysicals } from './physical.js';
 import { showToast, makeToast } from './toast.js';
+import { withConfirm } from './confirm.js';
 import { resolveShortcut, isEditableTarget } from './shortcuts.js';
 import { placeComponentCopy, duplicateComponent, removePlacementAndOrphan } from './mutations.js';
 import { createSelection, sameSelection, isSelectionValid } from './selection.js';
@@ -321,9 +322,8 @@ async function main() {
       setDeviceBusy(false);
     }
   }
-  $('load').onclick = () => {
+  withConfirm($('load'), () => {
     const base = $('base').value;
-    if (!base) return void showToast('URL device ?');
     withBusy('Chargement…', async () => {
       const lay = await loadLayout(base);
       stripPhysicalPlacements(lay); ensurePhysicals(lay);   // migration avant chargement dans le modèle
@@ -343,11 +343,12 @@ async function main() {
       }
       return 'Chargé';
     });
-  };
-  $('push').onclick = () => {
+  }, { label: 'Confirmer le chargement ?', guard: () => {
+    if (!$('base').value) { showToast('URL device ?'); return false; }
+    return true;
+  } });
+  withConfirm($('push'), () => {
     const base = $('base').value;
-    if (!base) return void showToast('URL device ?');
-    if (!validate(model.state).valid) return void showToast('Layout invalide');
     withBusy('Envoi…', async () => {
       for (const k of referencedKeys(model.state)) {
         const bytes = cacheBytes(k);
@@ -364,7 +365,11 @@ async function main() {
       await pushLayout(base, model.toJSON());
       return 'Poussé et persisté';
     });
-  };
+  }, { label: 'Confirmer le push ?', guard: () => {
+    if (!$('base').value) { showToast('URL device ?'); return false; }
+    if (!validate(model.state).valid) { showToast('Layout invalide'); return false; }
+    return true;
+  } });
   // --- Boucle device : santé (/status), valeurs de test (/update), capture + navigation (/page + /screenshot) ---
   // Pastille device (toolbar) : état de connexion permanent (modèle A). Paresseuse — « ○ non vérifié »
   // au boot, renseignée à la 1re requête Statut (succès → ● ip + détail en infobulle ; échec → ○ injoignable).

@@ -1,6 +1,7 @@
 // Réglages d'édition du designer : store pur (défauts + normalisation/clamp), persistance
 // localStorage, application des variables CSS. Le DOM du tiroir est ajouté en bas (createSettings).
 // Pur testé node ; load/save/apply touchent localStorage/DOM (non testés node, cf. convention).
+import { withConfirm } from './confirm.js';
 const KEY = 'rt-designer-settings';
 const STEPS = [5, 10, 20];
 
@@ -52,19 +53,6 @@ function checkbox(checked, onChange) {
   c.onchange = () => onChange(c.checked);
   return c;
 }
-// Confirmation inline : 1er clic arme (« Confirmer ? » 3 s), 2e clic exécute. Pas de dialog natif.
-function withConfirm(btn, action) {
-  const orig = btn.textContent; let armed = false, t = null;
-  btn.onclick = () => {
-    if (!armed) {
-      armed = true; btn.textContent = 'Confirmer ?'; btn.classList.add('confirm');
-      t = setTimeout(() => { armed = false; btn.textContent = orig; btn.classList.remove('confirm'); }, 3000);
-      return;
-    }
-    clearTimeout(t); armed = false; btn.textContent = orig; btn.classList.remove('confirm'); action();
-  };
-}
-
 export function createSettings(root, { toggleBtn, onOpen, getSettings, setSettings, onNewLayout }) {
   const backdrop = root.querySelector('.drawer-backdrop');
   const closeBtn = root.querySelector('.drawer-close');

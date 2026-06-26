@@ -6,6 +6,7 @@ import { iconFor } from './icons.js';
 import { setComponentProp, addPage, removePage, renamePage, reorderPages, uniquePageName, pageNameTaken, renameComponent, duplicatePage, reorderPlacement, movePlacementToPage } from './mutations.js';
 import { showToast } from './toast.js';
 import { contextMenuItems, openContextMenu, closeContextMenu } from './contextmenu.js';
+import { withConfirm } from './confirm.js';
 
 // Œil de visibilité — mêmes icônes que l'en-tête inspecteur (brique commune, cf. spec §1).
 const EYE_OPEN_URI = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E5E7EB' stroke-width='2'%3E%3Cpath d='M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E";
@@ -330,11 +331,18 @@ export function createTree(root, model, { selection, setSelection, getActivePage
     mkAct('↓', 'Descendre', () => {
       model.commit(s => reorderPages(s, p.index, p.index + 1)); goPage(p.index + 1); render();
     }, p.index >= total - 1);
-    mkAct('✕', 'Supprimer la page', () => {
+    // ✕ Supprimer : page vide → suppression directe ; page AVEC composants → garde-fou double-clic (confirm.js).
+    const del = document.createElement('button');
+    del.textContent = '✕'; del.title = 'Supprimer la page'; del.disabled = total <= 1;
+    const doDelete = () => {
       model.commit(s => removePage(s, p.index));
       goPage(Math.min(p.index, model.state.pages.length - 1));
       render();
-    }, total <= 1);
+    };
+    del.addEventListener('click', e => e.stopPropagation());   // ne pas (re)sélectionner la ligne
+    if (p.components.length) withConfirm(del, doDelete);        // page non vide → confirmer
+    else del.addEventListener('click', doDelete);
+    actions.appendChild(del);
     row.appendChild(actions);
     return row;
   }
