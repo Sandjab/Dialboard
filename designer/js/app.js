@@ -9,7 +9,6 @@ import { referencedImageKeys, cacheBytes as imageCacheBytes, previewUrl as image
 import { referencedAimgKeys, packBytes as aimgPackBytes, previewUrl as aimgPreviewUrl, rehydrate as rehydrateAimg } from './image-anim-asset.js';
 import { getMock } from './mocks.js';
 import { createCanvas } from './canvas.js';
-import { createLedRingPreview } from './led-ring-preview.js';
 import { createPalette } from './palette.js';
 import { createInspector } from './inspector.js';
 import { createTree } from './tree.js';
@@ -192,10 +191,8 @@ async function main() {
   // Panneau Sources (pull réseau) : édition des sources top-level. Indépendant du canvas/pages.
   createSources($('sources'), model);
   // Panneau Device : composants physiques (led_ring/sound) édités hors pages (sorties globales).
-  // Aperçu live de l'anneau LED dans le liseré du canvas (frame statique ; animation à la demande
-  // via le ▶ Aperçu du panneau Device). Le panneau Device le rafraîchit sur édition de la valeur mock.
-  const ledRingPreview = createLedRingPreview({ host: $('led-ring') }, model);
-  createDevicePanel($('device'), model, { onPreview: ledRingPreview.render });
+  // L'aperçu de l'anneau LED vit dans le mini-aperçu du panneau Device (le liseré du canvas a été retiré).
+  createDevicePanel($('device'), model);
   const drawer = createDrawer($('drawer'), { toggleBtn: $('drawer-toggle'), onOpen: () => settings.close() });  // settings déclaré juste après — closure, pas de TDZ
   const settings = createSettings($('settings-drawer'), {
     toggleBtn: $('settings-toggle'),

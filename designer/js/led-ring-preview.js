@@ -1,7 +1,6 @@
 // Aperçu de l'anneau LED physique (13 WS2812). Fonctions PURES (ledFrame/ledFrameAt, testées node) +
-// peintre DOM (paintRing) + brancheur canvas (createLedRingPreview). Miroir de src/led_ring_comp.cpp :
+// peintre DOM (paintRing, utilisé par le mini-aperçu du panneau Device). Miroir de src/led_ring_comp.cpp :
 // progress = round(value%*13) ; spinner = tête now/(period/N)%N ; blink duty 50% ; breathe 0.5*(1-cos).
-import { getMock } from './mocks.js';
 
 export const LED_RING_COUNT = 13;
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -42,7 +41,7 @@ export function ledFrameAt(comp, mock, nowMs) {
 }
 
 // Peint 13 pastilles positionnées en cercle dans `container`. Idempotent (remplace le contenu).
-// Taille des pastilles : via CSS (selon le conteneur .led-ring-canvas / .led-ring-mini).
+// Taille des pastilles : via CSS (conteneur .led-ring-mini du panneau Device).
 export function paintRing(container, frame) {
   const { color, alpha, on } = frame;
   const N = LED_RING_COUNT, R = 49;   // rayon en % du conteneur
@@ -63,16 +62,4 @@ export function findLedRing(state) {
   const comps = state.components || {};
   const id = Object.keys(comps).find(k => comps[k].type === 'led_ring');
   return id ? { id, comp: comps[id] } : null;
-}
-
-// Brancheur du liseré du canvas : repeint (frame STATIQUE) à chaque changement du modèle. Exposé `render`
-// pour rafraîchir aussi sur une édition de mock (appelé par le panneau Device). Sans led_ring → anneau éteint.
-export function createLedRingPreview({ host }, model) {
-  function render() {
-    const r = findLedRing(model.state);
-    paintRing(host, r ? ledFrame(r.comp, getMock(r.id, 'led_ring')) : ledFrame({ mode: 'off' }));
-  }
-  model.subscribe(render);
-  render();
-  return { render };
 }

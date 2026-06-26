@@ -42,7 +42,7 @@ function labelled(text, input) {
   return l;
 }
 
-export function createDevicePanel(root, model, { onPreview } = {}) {
+export function createDevicePanel(root, model) {
   let previewRaf = null;
   let renamingId = null;   // id de la carte physique en renommage inline, ou null
 
@@ -133,8 +133,7 @@ export function createDevicePanel(root, model, { onPreview } = {}) {
         const m = getMock(id, c.type);
         for (const [key, label] of def.mockFields) {
           card.appendChild(labelled(label, fieldInput('num', m[key], v => {
-            setMock(id, { [key]: v === '' ? 0 : v });
-            onPreview?.();     // re-peint le liseré du canvas (le mini est géré par le listener 'change' de la carte)
+            setMock(id, { [key]: v === '' ? 0 : v });   // le mini se met à jour via le listener 'change' de la carte
           })));
         }
       }
