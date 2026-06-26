@@ -4,10 +4,11 @@
 // led_ring : select de mode, période grisée hors modes animés, valeur d'aperçu (mock, non persistée),
 // mini-aperçu des 13 LEDs + bouton ▶ Aperçu (animation à la demande — canvas calme par défaut).
 import { COMPONENTS, LED_MODES } from './registry.js';
-import { setComponentProp } from './mutations.js';
+import { setComponentProp, renameComponent } from './mutations.js';
 import { getMock, setMock } from './mocks.js';
-import { physicalTypes, physicalComponentIds, addPhysicalComponent, removeComponent, canAddType } from './physical.js';
+import { physicalComponentIds } from './physical.js';
 import { paintRing, ledFrame, ledFrameAt } from './led-ring-preview.js';
+import { showToast } from './toast.js';
 
 function fieldInput(kind, value, onChange) {
   if (kind === 'ledmode') {
@@ -43,12 +44,13 @@ function labelled(text, input) {
 
 export function createDevicePanel(root, model, { onPreview } = {}) {
   let previewRaf = null;
+  let renamingId = null;   // id de la carte physique en renommage inline, ou null
+
   const stopPreview = () => { if (previewRaf) { cancelAnimationFrame(previewRaf); previewRaf = null; } };
 
   function render() {
     // Garde-focus : ne sauter le re-render QUE pendant l'édition d'un CHAMP (input/select/textarea).
-    // Un bouton focalisé (Ajouter/Supprimer) ne doit PAS bloquer : Chrome focalise le bouton au clic,
-    // sinon l'ajout/suppression de led_ring/sound ne se reflète pas immédiatement.
+    // Un bouton focalisé (▶ Aperçu) ne doit PAS bloquer le rebuild.
     const ae = document.activeElement;
     if (ae && root.contains(ae) && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)) return;
     stopPreview();                         // une animation en cours pointerait un nœud bientôt détaché
@@ -62,12 +64,44 @@ export function createDevicePanel(root, model, { onPreview } = {}) {
       const card = document.createElement('div'); card.className = 'src-card';
 
       const head = document.createElement('div'); head.className = 'src-head';
-      const title = document.createElement('span'); title.className = 'src-title';
-      title.textContent = `${id} · ${def.label}`;
-      const del = document.createElement('button'); del.className = 'src-del'; del.textContent = 'Supprimer';
-      del.addEventListener('click', () => model.commit(s => removeComponent(s, id)));
-      head.appendChild(title); head.appendChild(del);
+      if (renamingId === id) {
+        // Renommage inline de l'id (sert au routage /update). Calqué sur tree.js, MAIS tout passe
+        // par le blur : à ce moment le focus a quitté l'input → le garde-focus de render() ne bloque plus.
+        const inp = document.createElement('input'); inp.className = 'tree-rename'; inp.value = id;
+        const orig = id;
+        let cancelled = false;
+        const finish = () => {
+          if (renamingId !== id) return;
+          const nid = inp.value.trim();
+          if (cancelled || !nid || nid === orig) { renamingId = null; render(); return; }        // vide/identique/Échap → annule
+          if (model.state.components?.[nid]) { showToast(`L'id « ${nid} » est déjà pris`); renamingId = null; render(); return; }
+          renamingId = null;
+          model.commit(s => renameComponent(s, orig, nid));   // → subscribe → render()
+        };
+        inp.addEventListener('input', () => {
+          const v = inp.value.trim();
+          inp.classList.toggle('invalid', !!v && v !== orig && !!model.state.components?.[v]);
+        });
+        inp.addEventListener('keydown', e => {
+          if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+          else if (e.key === 'Escape') { e.preventDefault(); cancelled = true; inp.blur(); }
+        });
+        inp.addEventListener('blur', finish);
+        head.appendChild(inp);
+        queueMicrotask(() => { inp.focus(); inp.select(); });
+      } else {
+        const title = document.createElement('span'); title.className = 'src-title';
+        title.textContent = `${id} · ${def.label}`;
+        title.title = "Double-cliquer pour renommer l'id";
+        title.addEventListener('dblclick', () => { renamingId = id; render(); });
+        head.appendChild(title);
+      }
       card.appendChild(head);
+      if (c.type === 'sound') {
+        const note = document.createElement('div'); note.className = 'src-note';
+        note.textContent = 'Déclenché via /update : {tone, ms} ou {name: ok|alert|error}';
+        card.appendChild(note);
+      }
 
       const rows = [];                       // pour le grisage enableWhen
       for (const [key, label, kind, enableWhen] of (def.compFields || [])) {
@@ -122,13 +156,6 @@ export function createDevicePanel(root, model, { onPreview } = {}) {
       root.appendChild(card);
     }
 
-    for (const type of physicalTypes()) {
-      const add = document.createElement('button'); add.className = 'src-add';
-      add.textContent = '+ ' + COMPONENTS[type].label;
-      add.disabled = !canAddType(model.state, type);
-      add.addEventListener('click', () => model.commit(s => addPhysicalComponent(s, type)));
-      root.appendChild(add);
-    }
   }
 
   model.subscribe(render);

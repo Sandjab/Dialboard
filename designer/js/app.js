@@ -17,7 +17,7 @@ import { createCarousel } from './carousel.js';
 import { bindFileIO } from './file-io.js';
 import { createSources } from './sources.js';
 import { createDevicePanel } from './device-panel.js';
-import { stripPhysicalPlacements } from './physical.js';
+import { stripPhysicalPlacements, ensurePhysicals } from './physical.js';
 import { showToast, makeToast } from './toast.js';
 import { resolveShortcut, isEditableTarget } from './shortcuts.js';
 import { placeComponentCopy, duplicateComponent, removePlacementAndOrphan } from './mutations.js';
@@ -60,7 +60,7 @@ async function main() {
   const SAVE_KEY = 'rt-designer-layout';
   let saved;
   try { const s = localStorage.getItem(SAVE_KEY); if (s) saved = JSON.parse(s); } catch (e) {}
-  if (saved) stripPhysicalPlacements(saved);   // migration : physiques jamais attachés à une page
+  if (saved) { stripPhysicalPlacements(saved); ensurePhysicals(saved); }   // migration : physiques jamais placés + toujours présents
   const model = createModel(saved);
   model.subscribe(() => { try { localStorage.setItem(SAVE_KEY, model.toJSON()); } catch (e) {} });
 
@@ -186,7 +186,7 @@ async function main() {
   // page 1 (l'ancienne page active peut ne plus exister) et on rafraîchit l'arbre.
   bindFileIO(model, {
     exportBtn: $('export'), importBtn: $('import'), importInput: $('import-file'),
-    onLoad: () => { model.commit(s => stripPhysicalPlacements(s)); canvas.setPage(0); tree.render(); }
+    onLoad: () => { model.commit(s => { stripPhysicalPlacements(s); ensurePhysicals(s); }); canvas.setPage(0); tree.render(); }
   });
 
   // Panneau Sources (pull réseau) : édition des sources top-level. Indépendant du canvas/pages.
@@ -329,7 +329,7 @@ async function main() {
     if (!base) return void showToast('URL device ?');
     withBusy('Chargement…', async () => {
       const lay = await loadLayout(base);
-      stripPhysicalPlacements(lay);            // migration avant chargement dans le modèle
+      stripPhysicalPlacements(lay); ensurePhysicals(lay);   // migration avant chargement dans le modèle
       model.loadJSON(JSON.stringify(lay));
       for (const k of referencedKeys(model.state)) {
         if (!previewUrl(k)) { const b = await fetchBgImage(base, k); if (b) cachePut(k, b); }

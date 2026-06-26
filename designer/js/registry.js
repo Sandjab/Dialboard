@@ -175,9 +175,10 @@ export const COMPONENTS = {
   },
   led_ring: {
     label: 'LED ring',
+    defaultId: 'led',
     defaults: () => ({ type: 'led_ring', color: '#FFFFFF', brightness: 64, mode: 'off' }),
     makePlacement: (id) => ({ ref: id }),
-    centered: false, physical: true, singleton: true,
+    centered: false, physical: true, singleton: true,   // singleton : invariant documentaire (plus lu — unicité assurée par ensurePhysicals + retrait de l'UI d'ajout)
     compFields: [
       ['color', 'Couleur', 'color'],
       ['brightness', 'Luminosité (0-255)', 'num'],
@@ -190,6 +191,7 @@ export const COMPONENTS = {
   },
   sound: {
     label: 'Son',
+    defaultId: 'buzz',
     defaults: () => ({ type: 'sound' }),
     makePlacement: (id) => ({ ref: id }),
     centered: false, physical: true,
