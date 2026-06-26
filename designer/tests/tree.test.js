@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { treeModel, reorderTargetIndex } from '../js/tree.js';
+import { treeModel, reorderTargetIndex, insertTargetIndex } from '../js/tree.js';
 import { contextMenuItems } from '../js/contextmenu.js';
 
 // État avec 2 pages ; page 0 a 3 placements dans l'ordre [ring, readout, image].
@@ -184,4 +184,31 @@ test('reorderTargetIndex : drag c au-dessus de b → c juste au-dessus de b', ()
   // Intention : 'c' (display top) déplacé au-dessus de 'b' (display pos 1) → affichage [c, b, a]
   // (c était déjà là — no-op effectif : target === from)
   assert.deepEqual(displayAfterDrop(['a','b','c'], 'c', 'b', true), ['c','b','a']);
+});
+
+// ── insertTargetIndex ───────────────────────────────────────────────────────
+// Insertion d'un composant VENU D'UNE AUTRE PAGE dans le tableau cible (pas de retrait préalable dans
+// cette page → pas la compensation de splice de reorderTargetIndex). Renvoie l'affichage (top-first).
+function displayAfterInsert(targetRefs, insertRef, toRef, before) {
+  const place = targetRefs.map(r => ({ ref: r }));
+  const to = place.findIndex(p => p.ref === toRef);
+  const target = insertTargetIndex(place, to, before);
+  place.splice(target, 0, { ref: insertRef });
+  return place.map(p => p.ref).reverse();
+}
+
+test('insertTargetIndex : X au-dessus de c (sommet display) → X tout en haut', () => {
+  assert.deepEqual(displayAfterInsert(['a','b','c'], 'X', 'c', true), ['X','c','b','a']);
+});
+test('insertTargetIndex : X au-dessus de b → X juste au-dessus de b', () => {
+  assert.deepEqual(displayAfterInsert(['a','b','c'], 'X', 'b', true), ['c','X','b','a']);
+});
+test('insertTargetIndex : X sous a (bas display, before=false) → X tout en bas', () => {
+  assert.deepEqual(displayAfterInsert(['a','b','c'], 'X', 'a', false), ['c','b','a','X']);
+});
+test('insertTargetIndex : X sous b (before=false) → X juste sous b', () => {
+  assert.deepEqual(displayAfterInsert(['a','b','c'], 'X', 'b', false), ['c','b','X','a']);
+});
+test('insertTargetIndex : page cible à un seul élément, X au-dessus → X en tête display', () => {
+  assert.deepEqual(displayAfterInsert(['a'], 'X', 'a', true), ['X','a']);
 });
