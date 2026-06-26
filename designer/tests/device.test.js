@@ -29,7 +29,7 @@ test(`formatDeviceStatus : aucune source → pas de segment « sources » dans l
   assert.doesNotMatch(tooltip, /sources/);
 });
 
-test('device-panel : createDevicePanel est une factory tolérant onPreview absent', () => {
+test('device-panel : createDevicePanel(root, model) — fabrique à 2 paramètres requis', () => {
   assert.equal(typeof createDevicePanel, 'function');
-  assert.equal(createDevicePanel.length, 2);   // root, model requis ; opts par défaut
+  assert.equal(createDevicePanel.length, 2);   // root, model (garde contre l'ajout d'un 3e param requis)
 });
