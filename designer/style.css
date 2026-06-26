@@ -62,6 +62,9 @@ header .grow { flex: 1; }
 .tb-btn.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); color: #0e0e0e; }
 /* Bouton accent (Charger) */
 .tb-btn.accent { border-color: var(--accent); color: var(--ink); }
+/* État « armé » du garde-fou double-clic (confirm.js) : signal warn. Fond plein pour les boutons device
+   (push/pull) ; la 2e règle garde le signal au survol (sinon .tb-btn.primary:hover reprendrait l'ambre). */
+.tb-btn.confirm, .tb-btn.confirm:hover:not(:disabled) { background: var(--warn); border-color: var(--warn); color: #0e0e0e; }
 /* URL device (remplace breadcrumb LVGL) */
 .tb-url { display: flex; align-items: center; gap: 6px; padding: 0 10px; }
 .tb-url label { font-family: var(--font-mono); font-size: 10px; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; }
@@ -123,6 +126,7 @@ main > .col:last-child { border-right: 0; }
 .tree-actions { display: none; gap: 2px; flex: none; }
 .tree-row:hover .tree-actions { display: flex; }
 .tree-actions button { padding: 1px 6px; font-size: 12px; line-height: 1.2; }
+.tree-actions button.confirm { border-color: var(--warn); color: var(--warn); }   /* ✕ armé (garde-fou suppression) */
 .tree-rename { width: 110px; }
 .tree-rename.invalid { border-color: var(--err); color: var(--err); }
 .tree-head { display: flex; justify-content: flex-end; margin-bottom: 6px; }
