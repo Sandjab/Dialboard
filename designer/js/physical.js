@@ -45,3 +45,17 @@ export function canAddType(state, type) {
   if (!COMPONENTS[type]?.singleton) return true;
   return !Object.values(state.components || {}).some(c => c.type === type);
 }
+
+// Migration : garantit la présence d'UN composant de chaque type physique (led_ring, sound).
+// Si aucun composant d'un type n'existe, en injecte un avec l'id par défaut du registre (led / buzz),
+// ou un id dé-dupliqué <type><n> si cet id est déjà pris par autre chose. Idempotent.
+// Legacy multi-sound : laissé tel quel (un sound existe déjà → no-op, pas de collapse).
+export function ensurePhysicals(state) {
+  state.components ||= {};
+  for (const type of physicalTypes()) {
+    if (Object.values(state.components).some(c => c.type === type)) continue;
+    let id = COMPONENTS[type].defaultId ?? uniqueId(state, type);   // pas de defaultId (futur type) → fallback <type><n> au lieu d'une clé "undefined"
+    if (state.components[id]) id = uniqueId(state, type);   // id par défaut pris par autre chose → fallback
+    addComponent(state, id, COMPONENTS[type].defaults());
+  }
+}

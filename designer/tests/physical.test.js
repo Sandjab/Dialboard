@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   isPhysicalType, physicalTypes, physicalComponentIds,
-  addPhysicalComponent, removeComponent, stripPhysicalPlacements, canAddType
+  addPhysicalComponent, removeComponent, stripPhysicalPlacements, canAddType, ensurePhysicals
 } from '../js/physical.js';
 
 const fresh = () => ({
@@ -87,4 +87,41 @@ test('canAddType : sound 0..N (toujours true)', () => {
   const s = fresh();
   addPhysicalComponent(s, 'sound');
   assert.equal(canAddType(s, 'sound'), true);
+});
+
+test('ensurePhysicals : injecte led_ring(off) et sound(buzz) si absents', () => {
+  const s = { components: {}, pages: [] };
+  ensurePhysicals(s);
+  assert.equal(s.components.led?.type, 'led_ring');
+  assert.equal(s.components.led?.mode, 'off');           // neutre par défaut
+  assert.equal(s.components.buzz?.type, 'sound');
+});
+
+test('ensurePhysicals : pas de doublon si le type est déjà présent', () => {
+  const s = { components: { myled: { type: 'led_ring', mode: 'solid' }, b: { type: 'sound' } }, pages: [] };
+  ensurePhysicals(s);
+  assert.equal(Object.values(s.components).filter(c => c.type === 'led_ring').length, 1);
+  assert.equal(Object.values(s.components).filter(c => c.type === 'sound').length, 1);
+});
+
+test('ensurePhysicals : préserve un led_ring déjà configuré (ne réinitialise pas)', () => {
+  const s = { components: { myled: { type: 'led_ring', mode: 'solid', color: '#FF0000' } }, pages: [] };
+  ensurePhysicals(s);
+  assert.equal(s.components.myled.mode, 'solid');
+  assert.equal(s.components.myled.color, '#FF0000');
+});
+
+test('ensurePhysicals : id par défaut déjà pris par autre chose → dé-dup', () => {
+  const s = { components: { led: { type: 'label', text: 'X' } }, pages: [] };   // 'led' occupé par un label
+  ensurePhysicals(s);
+  const ringId = Object.keys(s.components).find(k => s.components[k].type === 'led_ring');
+  assert.ok(ringId && ringId !== 'led', `id ring attendu != 'led', reçu ${ringId}`);
+  assert.equal(s.components.led.type, 'label');           // le label 'led' est intact
+});
+
+test('ensurePhysicals : idempotent', () => {
+  const s = { components: {}, pages: [] };
+  ensurePhysicals(s); ensurePhysicals(s);
+  assert.equal(Object.values(s.components).filter(c => c.type === 'led_ring').length, 1);
+  assert.equal(Object.values(s.components).filter(c => c.type === 'sound').length, 1);
 });
