@@ -339,6 +339,34 @@ export function createTree(root, model, { selection, setSelection, getActivePage
     return row;
   }
 
+  // Ligne placeholder d'une page vide DÉPLIÉE : grande cible de dépôt explicite (l'en-tête seul est trop
+  // petit à viser en drag, et on s'attend à lâcher « dans » la page). Reçoit un composant venu d'une AUTRE
+  // page → movePlacementToPage sans toIndex (= en fin = index 0 sur une page vide). Non draggable.
+  function emptyDropRow(pageIndex) {
+    const row = document.createElement('div');
+    row.className = 'tree-row tree-comp tree-empty';
+    const lbl = document.createElement('span'); lbl.className = 'tree-label';
+    lbl.textContent = '(vide — déposer ici)';
+    row.appendChild(lbl);
+    row.addEventListener('dragover', e => {
+      if (!dragSrc || dragSrc.page === pageIndex) return;   // un composant venu d'une AUTRE page
+      e.preventDefault();
+      clearDropMarks();
+      row.classList.add('drop-into');
+    });
+    row.addEventListener('drop', e => {
+      if (!dragSrc || dragSrc.page === pageIndex) return;
+      e.preventDefault();
+      clearDropMarks();
+      const src = dragSrc;
+      dragSrc = null;
+      model.commit(s => movePlacementToPage(s, src.page, src.index, pageIndex));
+      goPage(pageIndex);
+      setSelection({ kind: 'comp', page: pageIndex, index: 0 });
+    });
+    return row;
+  }
+
   function render() {
     clampActive();
     root.querySelectorAll('.tree, .tree-head').forEach(n => n.remove());
@@ -373,7 +401,10 @@ export function createTree(root, model, { selection, setSelection, getActivePage
     // Pages (+ composants des pages dépliées)
     t.pages.forEach(p => {
       tree.appendChild(pageRow(p, sel));
-      if (expanded.has(p.index)) p.components.forEach(c => tree.appendChild(compRow(c, p.index, sel)));
+      if (expanded.has(p.index)) {
+        if (p.components.length) p.components.forEach(c => tree.appendChild(compRow(c, p.index, sel)));
+        else tree.appendChild(emptyDropRow(p.index));   // page vide dépliée : cible de dépôt explicite
+      }
     });
 
     root.appendChild(tree);

@@ -114,6 +114,7 @@ main > .col:last-child { border-right: 0; }
 .tree-ref { color: var(--muted); font-family: var(--font-mono); font-size: 10px; letter-spacing: .04em; }
 .tree-row.selected .tree-ref { color: var(--accent); opacity: .7; }
 .tree-comp { padding-left: 22px; }          /* indentation sous la page */
+.tree-empty { color: var(--muted); font-style: italic; cursor: default; }   /* placeholder cible de dépôt d'une page vide */
 .tree-comp.hidden .tree-label,
 .tree-comp.hidden .tree-ref { opacity: .45; text-decoration: line-through; }
 .tree-spacer { flex: 1 1 auto; }            /* pousse l'œil/contrôles à droite */
