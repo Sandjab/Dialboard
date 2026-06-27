@@ -47,7 +47,7 @@ export function startMockDevice(port = 0) {
     return sendJson(404, { ok: false, error: 'not found' });
   });
   return new Promise((resolve) => {
-    server.listen(port, '127.0.0.1', () => {
+    server.listen(port, process.env.HOST || '127.0.0.1', () => {   // HOST=0.0.0.0 pour le test mDNS E2E
       const p = server.address().port;
       resolve({
         url: `http://127.0.0.1:${p}`,

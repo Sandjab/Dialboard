@@ -1,7 +1,7 @@
 // Process principal Electron du designer desktop (PoC socle).
 // - sert designer/ + schema/ via le protocole interne app:// (file:// casserait les modules ES) ;
 // - injecte les en-têtes CORS sur les réponses du device (approche A) → designer/ reste zéro-touch.
-const { app, BrowserWindow, protocol, session, net } = require('electron');
+const { app, BrowserWindow, protocol, session, net, ipcMain } = require('electron');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 
@@ -54,9 +54,35 @@ function serveApp() {
 }
 
 app.whenReady().then(() => {
+  // Découverte mDNS : browse _http._tcp pendant ~2,5 s, filtre « dialboard », renvoie [{name,ip,port,url}].
+  ipcMain.handle('discover-devices', async () => {
+    try {
+      const { Bonjour } = await import('bonjour-service');
+      const { parseService, isDialboardService } = await import('./discovery.mjs');
+      const bonjour = new Bonjour();
+      const browser = bonjour.find({ type: 'http' });
+      try {
+        await new Promise((r) => setTimeout(r, 2500));
+        const found = browser.services.filter(isDialboardService).map(parseService).filter(Boolean);
+        const byIp = new Map();
+        for (const d of found) if (!byIp.has(d.ip)) byIp.set(d.ip, d);
+        return [...byIp.values()];
+      } finally {
+        browser.stop();
+        bonjour.destroy();   // toujours fermer le socket multicast, même en cas d'erreur
+      }
+    } catch (e) {
+      console.error('[discover-devices]', e);   // best-effort UX, mais on trace (pas de panne muette)
+      return [];
+    }
+  });
+
   injectCors();
   serveApp();
-  const win = new BrowserWindow({ width: 1100, height: 800, webPreferences: { contextIsolation: true } });
+  const win = new BrowserWindow({
+    width: 1100, height: 800,
+    webPreferences: { contextIsolation: true, preload: path.join(__dirname, 'preload.js') },
+  });
   win.loadURL('app://app/designer/index.html');
 });
 

@@ -8,6 +8,7 @@
     "start": "electron ."
   },
   "devDependencies": {
+    "bonjour-service": "^1.4.2",
     "electron": "^42.5.0"
   }
 }
