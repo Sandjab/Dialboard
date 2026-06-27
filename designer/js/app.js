@@ -409,6 +409,14 @@ async function main() {
   const devHost = () => { const b = $('base').value; try { return new URL(b).host || b; } catch (e) { return b || 'device'; } };
   const markReachable = () => { if (!devPill.classList.contains('ok')) setDevicePill('ok', '● ' + devHost(), 'Device joignable — « Statut » pour le détail'); };
   const markUnreachable = (msg) => setDevicePill('err', '○ injoignable', msg);
+  // Check de connexion au 1er lancement, dès qu'une URL est connue (embarqué : location.origin ; dev local :
+  // dernière URL sauvegardée). Best-effort SILENCIEUX : hors withBusy → ni toast « Statut… » ni verrou busy.
+  (async () => {
+    const base = baseInput.value;
+    if (!base) return;
+    try { const f = formatDeviceStatus(await getStatus(base)); setDevicePill('ok', f.label, f.tooltip); }
+    catch (e) { if (e instanceof TypeError) markUnreachable(e.message); else markReachable(); }
+  })();
   $('statusbtn').onclick = () => {
     const base = $('base').value;
     if (!base) return void showToast('URL device ?');
