@@ -46,8 +46,10 @@
       "description": "ASCII uniquement : les polices Montserrat embarquees ne couvrent pas les accents/symboles non-ASCII."
     },
     "font": {
-      "enum": [14, 20, 28, 36, 48],
-      "description": "Taille de police LVGL embarquee. Defaut 20. Une valeur intermediaire est arrondie a la taille disponible inferieure (min 14)."
+      "type": "integer",
+      "minimum": 8,
+      "maximum": 120,
+      "description": "Taille de police en px. Rendu Tiny TTF (taille exacte, pas d'arrondi). Defaut 20."
     },
     "threshold": {
       "type": "array",

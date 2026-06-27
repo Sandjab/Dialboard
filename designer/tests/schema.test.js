@@ -95,9 +95,9 @@ test('schema : bar label_align = CENTER rejeté (8 positions extérieures seulem
   assert.equal(validate(l).valid, false);
 });
 
-test('schema : bar label_font hors enum rejeté', () => {
+test('schema : bar label_font hors domaine 8-120 rejeté', () => {
   const l = base();
-  l.components.b = { type: 'bar', label_font: 17 };
+  l.components.b = { type: 'bar', label_font: 200 };
   l.pages[0].place.push({ ref: 'b' });
   assert.equal(validate(l).valid, false);
 });
@@ -271,4 +271,17 @@ test('schema : led_ring rejette period_ms hors bornes', () => {
   const l = base();
   l.components.r = { type: 'led_ring', period_ms: 50 };
   assert.equal(validate(l).valid, false);
+});
+
+test('schema : font accepte une taille hors anciens paliers (Tiny TTF)', () => {
+  const l = base();
+  l.components.t = { type: 'readout', unit: 'C', font: 24 };
+  assert.equal(validate(l).valid, true, JSON.stringify(validate(l).errors));
+});
+
+test('schema : font hors domaine 8-120 rejeté', () => {
+  const lo = base(); lo.components.t = { type: 'readout', font: 5 };
+  assert.equal(validate(lo).valid, false);
+  const hi = base(); hi.components.t = { type: 'readout', font: 200 };
+  assert.equal(validate(hi).valid, false);
 });
