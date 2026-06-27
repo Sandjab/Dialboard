@@ -10,6 +10,7 @@
 #include "esp_heap_caps.h"
 #include "config.h"
 #include "asset_fs.h"
+#include "fonts.h"
 
 static lv_obj_t* s_page_cont[MAX_PAGES];
 static lv_obj_t* s_widget[MAX_PAGES][MAX_PLACEMENTS_PER_PAGE];
@@ -176,7 +177,7 @@ static void build_ring(lv_obj_t* parent, Component& c, Placement& q,
         }
         if (c.center_pct) {                           // lecture centrale (grand chiffre)
             lv_obj_t* ct = lv_label_create(grp);
-            lv_obj_set_style_text_font(ct, pick_font(c.font), 0);
+            lv_obj_set_style_text_font(ct, get_font(c.font_family, c.font, c.bold, c.italic), 0);
             lv_obj_set_style_text_color(ct, lv_color_hex(c.color), 0);
             lv_label_set_text(ct, "");
         }
@@ -190,7 +191,7 @@ static void build_ring(lv_obj_t* parent, Component& c, Placement& q,
 static void build_text(lv_obj_t* parent, Component& c, Placement& q,
                        lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
     lv_obj_t* l = lv_label_create(parent);
-    lv_obj_set_style_text_font(l, pick_font(c.font), 0);
+    lv_obj_set_style_text_font(l, get_font(c.font_family, c.font, c.bold, c.italic), 0);
     lv_obj_set_style_text_color(l, lv_color_hex(c.color), 0);
     lv_label_set_text(l, "");
     lv_obj_align(l, ALIGN_MAP[q.anchor], q.dx, q.dy);
@@ -209,7 +210,7 @@ static void build_bar(lv_obj_t* parent, Component& c, Placement& q,
     *main = b;
     if (c.label[0]) {
         lv_obj_t* bl = lv_label_create(parent);
-        lv_obj_set_style_text_font(bl, pick_font(c.label_font), 0);
+        lv_obj_set_style_text_font(bl, get_font(c.label_family, c.label_font, c.label_bold, c.label_italic), 0);
         lv_obj_set_style_text_color(bl, lv_color_hex(c.label_color), 0);
         lv_label_set_text(bl, c.label);
         int16_t gx = 0, gy = 0;
