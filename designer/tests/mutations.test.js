@@ -235,6 +235,32 @@ test('removePage retire la page par index', () => {
   assert.deepEqual(s.pages.map(p => p.name), ['P2']);
 });
 
+test('removePage retire aussi les composants orphelins de la page supprimée', () => {
+  const s = { components: { a: { type: 'label' }, b: { type: 'bar' } },
+              pages: [{ name: 'P1', place: [{ ref: 'a' }] },
+                      { name: 'P2', place: [{ ref: 'b' }] }] };
+  removePage(s, 0);
+  assert.deepEqual(s.pages.map(p => p.name), ['P2']);
+  assert.equal(s.components.a, undefined);   // composant de la page supprimée → retiré du JSON
+  assert.ok(s.components.b);                  // composant d'une page restante → conservé
+});
+
+test('removePage conserve un composant encore référencé par une autre page', () => {
+  const s = { components: { shared: { type: 'bar' } },
+              pages: [{ name: 'P1', place: [{ ref: 'shared' }] },
+                      { name: 'P2', place: [{ ref: 'shared' }] }] };
+  removePage(s, 0);
+  assert.ok(s.components.shared);             // P2 l'utilise encore → conservé (garde défensive ref partagé)
+});
+
+test('removePage ne supprime jamais un composant physique', () => {
+  const s = { components: { led_ring1: { type: 'led_ring' } },
+              pages: [{ name: 'P1', place: [{ ref: 'led_ring1' }] },   // cas théorique : un physique placé
+                      { name: 'P2', place: [] }] };
+  removePage(s, 0);
+  assert.ok(s.components.led_ring1);          // physique → jamais retiré
+});
+
 test('renamePage change le nom de la page', () => {
   const s = fresh();
   renamePage(s, 0, 'Accueil');

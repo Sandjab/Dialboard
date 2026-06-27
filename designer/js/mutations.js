@@ -149,9 +149,21 @@ export function addPage(state, name) {
   (state.pages ||= []).push({ name, place: [] });
 }
 
+// Retire une page ET nettoie les composants de ses placements devenus orphelins (modèle 1:1 : sinon les
+// définitions restent dans `components` du JSON). Même logique que removePlacementAndOrphan, batchée sur
+// tous les placements de la page : garde « encore référencé par une autre page » (ref partagé hérité) +
+// garde « physique » (led_ring/sound jamais retirés). Index hors bornes → no-op (garde `removed`).
 export function removePage(state, pageIndex) {
   if (!state.pages) return;
+  const removed = state.pages[pageIndex];
+  if (!removed) return;
+  const refs = (removed.place || []).map(pl => pl.ref);
   state.pages.splice(pageIndex, 1);
+  for (const ref of refs) {
+    if (state.pages.some(p => (p.place || []).some(pl => pl.ref === ref))) continue;
+    const comp = state.components?.[ref];
+    if (comp && !COMPONENTS[comp.type]?.physical) delete state.components[ref];
+  }
 }
 
 // Couleur de fond effective d'une page : override de la page, sinon fond global, sinon #000000.
