@@ -8,7 +8,10 @@ const fs = require('node:fs/promises');
 
 // Racine servie par app:// : contient designer/ ET schema/ côte à côte (= racine du repo en dev).
 // app://app/designer/index.html → ROOT/designer/index.html ; le fetch('../schema/…') de app.js → ROOT/schema/…
-const ROOT = path.resolve(__dirname, '..', '..');
+// En packagé, electron-builder a copié designer/ + schema/ sous resources/app-root (extraResources).
+const ROOT = app.isPackaged
+  ? path.join(process.resourcesPath, 'app-root')
+  : path.resolve(__dirname, '..', '..');
 
 // MIME explicite : net.fetch(file://) déduit le type de la base MIME de l'OS (peu fiable hors macOS).
 // Le designer vise Win/macOS/Linux ; les modules ES exigent un type JS, sinon le navigateur les refuse.
