@@ -308,9 +308,11 @@ async function main() {
   const BASE_KEY = 'rt-designer-base';
   const baseInput = $('base');
   let savedBase = ''; try { savedBase = localStorage.getItem(BASE_KEY) || ''; } catch (e) {}
-  const isLocalDev = location.protocol === 'file:' || /\/\/(localhost|127\.0\.0\.1)\b/.test(location.origin);
-  baseInput.value = savedBase || (isLocalDev ? '' : location.origin);
-  baseInput.addEventListener('change', () => { try { localStorage.setItem(BASE_KEY, baseInput.value); } catch (e) {} });
+  // L'origine n'est le device que si on est servi PAR lui : http(s) et pas localhost/127. En desktop
+  // (app://) ou en dev local, champ vide plutôt que pré-remplir une origine qui n'est pas un device.
+  const originIsDevice = /^https?:$/.test(location.protocol) && !/\/\/(localhost|127\.0\.0\.1)\b/.test(location.origin);
+  baseInput.value = savedBase || (originIsDevice ? location.origin : '');
+  baseInput.addEventListener('change', () => { try { localStorage.setItem(BASE_KEY, baseInput.value); } catch (e) {} probeConnection(); });
 
   // --- Notifications unifiées + verrou busy (modèle A, cf. spec §3) ---
   // Une seule I/O device en vol à la fois : `busy` bloque la ré-entrée (double-clic) ET désactive les
@@ -407,17 +409,19 @@ async function main() {
   // Joignabilité dérivée de TOUTE op device (via withBusy), pas seulement du bouton Statut. markReachable
   // n'écrase PAS un détail riche déjà posé par le Statut (label « ● ip » + infobulle page/uptime/sources).
   const devHost = () => { const b = $('base').value; try { return new URL(b).host || b; } catch (e) { return b || 'device'; } };
-  // Déclarations de fonction (hoisted) : référencées par withBusy défini plus haut, sans risque de TDZ.
+  // Déclarations de fonction (hoisted), référencées plus haut → pas de TDZ : withBusy pour markReachable/
+  // markUnreachable, le listener « change » (URL device) pour probeConnection.
   function markReachable() { if (!devPill.classList.contains('ok')) setDevicePill('ok', '● ' + devHost(), 'Device joignable — « Statut » pour le détail'); }
   function markUnreachable(msg) { setDevicePill('err', '○ injoignable', msg); }
-  // Check de connexion au 1er lancement, dès qu'une URL est connue (embarqué : location.origin ; dev local :
-  // dernière URL sauvegardée). Best-effort SILENCIEUX : hors withBusy → ni toast « Statut… » ni verrou busy.
-  (async () => {
+  // probeConnection : check de connexion silencieux (hors withBusy → ni toast « Statut… » ni verrou busy).
+  // Appelé au 1er lancement ET à chaque saisie d'URL (change). Embarqué : location.origin ; sinon URL saisie.
+  async function probeConnection() {
     const base = baseInput.value;
     if (!base) return;
     try { const f = formatDeviceStatus(await getStatus(base)); setDevicePill('ok', f.label, f.tooltip); }
     catch (e) { if (e instanceof TypeError) markUnreachable(e.message); else markReachable(); }
-  })();
+  }
+  probeConnection();   // 1er lancement
   $('statusbtn').onclick = () => {
     const base = $('base').value;
     if (!base) return void showToast('URL device ?');
