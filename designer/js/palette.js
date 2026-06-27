@@ -1,37 +1,22 @@
-// Palette : 6 créateurs de type — glisser un type sur le #stage crée un composant + un placement
-// au point de dépôt, sur la page ACTIVE, puis sélection du nouveau placement. Modèle 1:1 : un
-// composant = un placement ; pour réutiliser un widget, copier/coller (cross-page) ou dupliquer un
-// placement (cf. app.js/shortcuts.js). Drop = UN commit. (Pages = tree.js ; aperçu = mocks.js.)
+// Palette disposée en 4 zones autour de l'écran (rendu : canvas-zones.js). Ce module garde la logique de
+// DÉPÔT : glisser une icône de type sur le #stage crée un composant + un placement au point de dépôt, sur
+// la page active, puis sélection du nouveau placement. Drop = UN commit. (Pages = tree.js ; aperçu = mocks.js.)
 import { uniqueId, addComponent, addPlacement } from './mutations.js';
 import { COMPONENTS } from './registry.js';
-import { iconFor } from './icons.js';
 import { SCREEN } from './geometry.js';
 import { logs } from './logs.js';
+import { renderZones } from './canvas-zones.js';
 
-export function createPalette(root, model, { stage, getActivePage, onCreated } = {}) {
+export function createPalette(board, model, { stage, getActivePage, onCreated } = {}) {
   const page = () => (getActivePage ? getActivePage() : 0);
 
-  // --- Section créateurs de type (statique) ---
-  const list = document.createElement('div');
-  list.className = 'palette-list';
-  for (const [type, def] of Object.entries(COMPONENTS)) {
-    if (def.physical) continue;   // physiques : édités dans le panneau « Device », pas glissables sur une page
-    const item = document.createElement('div');
-    item.className = 'palette-item';
-    item.draggable = true;
-    item.dataset.type = type;
-    item.title = def.label;                                   // tooltip natif : libellé au survol
-    const ic = iconFor(type); if (ic) item.appendChild(ic);  // icône de type (décorative)
-    item.addEventListener('dragstart', e => e.dataTransfer.setData('text/rt-type', type));
-    list.appendChild(item);
-  }
-  root.appendChild(list);
+  renderZones(board);   // 4 zones d'icônes glissables autour de l'écran
 
-  // --- Cible de drop : crée un composant du type glissé, sur la page active ---
+  // Cible de drop : le #stage (l'écran rond). Le rect live (÷ SCREEN) donne le facteur d'échelle courant,
+  // donc le dépôt reste correct quelle que soit la mise à l'échelle responsive/zoom du board.
   stage.addEventListener('dragover', e => {
     if (e.dataTransfer.types.includes('text/rt-type')) { e.preventDefault(); stage.classList.add('drop-active'); }
   });
-  // relatedTarget hors du stage = on quitte vraiment la cible (pas un passage sur un enfant).
   stage.addEventListener('dragleave', e => { if (!stage.contains(e.relatedTarget)) stage.classList.remove('drop-active'); });
   stage.addEventListener('drop', e => {
     const type = e.dataTransfer.getData('text/rt-type');
@@ -40,8 +25,8 @@ export function createPalette(root, model, { stage, getActivePage, onCreated } =
     if (COMPONENTS[type]?.physical) return;               // type physique : pas de placement
     e.preventDefault();
     const r = stage.getBoundingClientRect();
-    const s = r.width / SCREEN;                            // zoom d'affichage : ramener le drop en unités écran
-    const x = (e.clientX - r.left) / s, y = (e.clientY - r.top) / s;
+    const sc = r.width / SCREEN;                           // facteur d'échelle d'affichage → coords écran
+    const x = (e.clientX - r.left) / sc, y = (e.clientY - r.top) / sc;
     const pi = page();
     let newIndex;
     model.commit(s => {

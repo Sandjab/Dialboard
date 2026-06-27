@@ -92,16 +92,13 @@ input[type="checkbox"]:checked::after {
   content: ""; position: absolute; left: 4px; top: 1px;
   width: 4px; height: 8px; border: solid var(--bg); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg);
 }
-main { display: grid; grid-template-columns: var(--pal-w) var(--layers-w) 1fr var(--insp-w); gap: 0; padding: 0; min-height: 0; }
+main { display: grid; grid-template-columns: var(--layers-w) 1fr var(--insp-w); gap: 0; padding: 0; min-height: 0; }
 main > .col { border-radius: 0; border: 0; border-right: 1px solid var(--line); overflow: auto; min-height: 0; }
 main > .col:last-child { border-right: 0; }
 .col { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
 .col h2 { font-family: var(--font-ui); font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
 .todo { color: #55525e; font-style: italic; }
 
-/* --- Colonne palette (icônes, 44px) --- */
-.col-palette { background: var(--bg); padding: 6px 0; overflow: hidden auto; }
-.col-palette h2 { display: none; }
 #layers { min-height: 0; }
 
 /* --- Arbre des calques --- */
@@ -204,12 +201,9 @@ main > .col:last-child { border-right: 0; }
   background: radial-gradient(circle at 50% 34%, rgba(255,159,64,.07), transparent 58%), var(--panel); }
 /* Boîte qui RÉSERVE la place du canvas zoomé : le transform du .stage ne crée pas de boîte de mise
    en page, donc le wrap porte la taille à l'échelle pour pousser le footer et garder le centrage. */
-.stage-wrap {
-  flex: none;
-  position: relative;
-  width: calc(360px * var(--zoom, 1));
-  height: calc(360px * var(--zoom, 1));
-}
+/* board-fit réserve la taille scalée (posée par app.js) → centrage + footer poussé ; board porte l'échelle. */
+.board-fit { flex: none; position: relative; }
+.board { position: absolute; top: 0; left: 0; transform-origin: top left; }   /* taille + transform: scale() posés par JS */
 /* Mini-aperçu du panneau Device (taille fixe). */
 .led-ring-mini {
   position: relative; width: 132px; height: 132px; margin: 10px auto 4px;
@@ -220,14 +214,9 @@ main > .col:last-child { border-right: 0; }
   border-radius: 50%; transform: translate(-50%, -50%); background: #23232b;
 }
 .stage {
-  position: relative;
+  position: absolute;              /* placé dans le board (left/top) par canvas-zones.js */
   z-index: 1;
-  width: 360px; height: 360px;     /* 1 px CSS = 1 unité écran à zoom 1 (échelle interne 1:1) */
-  /* Zoom d'affichage : on scale visuellement depuis le coin haut-gauche pour que l'unité écran (0,0)
-     reste l'origine. La math d'interaction (canvas.js, palette.js) divise les coords pointeur par ce
-     facteur (stage.rect.width / 360) → le layout reste en unités écran, le zoom n'est que visuel. */
-  transform: scale(var(--zoom, 1));
-  transform-origin: top left;
+  width: 360px; height: 360px;     /* coords internes 1:1 ; l'échelle d'affichage vient du board (transform) */
   border-radius: 50%;
   background: #000;
   transition: box-shadow .12s;
@@ -328,20 +317,24 @@ main > .col:last-child { border-right: 0; }
 .handle-e  { right: -6px; top: 50%; transform: translateY(-50%); cursor: ew-resize; }   /* bar : largeur seule */
 .handle-s  { bottom: -6px; left: 50%; transform: translateX(-50%); cursor: ns-resize; } /* bar : hauteur seule */
 
-/* --- Plan C1 : palette (bande d'icônes 44px) --- */
-.palette-hint { display: none; }
-.palette-list { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0; }
+/* --- Zones d'icônes autour de l'écran (canvas-zones.js) : fonds concaves SVG + grilles glissables --- */
+.zones-svg { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 0; }
+.zone-shape { fill: var(--panel); stroke: var(--border-2); stroke-width: 1.5; }
+.iconzone { position: absolute; display: grid; align-content: start; justify-content: start;
+  pointer-events: none; z-index: 2; }                          /* vide non interactif → laisse passer la désélection */
 .palette-item {
-  width: 36px; height: 36px; padding: 0;
-  display: flex; align-items: center; justify-content: center;
-  border: 1px solid transparent; border-radius: var(--radius, 2px);
-  background: transparent; cursor: grab; color: var(--text-dim); user-select: none;
+  display: flex; flex-direction: column; align-items: center; gap: 4px; direction: ltr;
+  cursor: grab; pointer-events: auto; user-select: none;
 }
-.palette-item span { display: none; }                         /* précaution : pas de libellé visible */
-.palette-icon { width: 18px; height: 18px; flex: none; }     /* monochrome : suit currentColor */
 .palette-item:active { cursor: grabbing; }
-.palette-item:hover { background: var(--panel-2); border-color: var(--border-2); color: var(--ink); }
-.palette-item:hover .palette-icon { color: var(--accent); }  /* touche de couleur au survol */
+.palette-chip {
+  display: flex; align-items: center; justify-content: center; border-radius: 50%;
+  background: var(--panel-2); border: 1px solid var(--line); color: var(--text-dim);
+}
+.palette-item:hover .palette-chip { border-color: var(--accent); color: var(--ink); }
+.palette-icon { width: 22px; height: 22px; flex: none; }       /* monochrome : suit currentColor */
+.palette-label { font-size: 9px; line-height: 1; color: var(--muted); text-align: center;
+  max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* --- Plan C1 : inspecteur --- */
 .insp-head { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }

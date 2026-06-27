@@ -10,6 +10,7 @@ import { referencedAimgKeys, packBytes as aimgPackBytes, previewUrl as aimgPrevi
 import { getMock } from './mocks.js';
 import { createCanvas } from './canvas.js';
 import { createPalette } from './palette.js';
+import { BOARD_W, BOARD_H } from './canvas-zones.js';
 import { createInspector } from './inspector.js';
 import { createTree } from './tree.js';
 import { createCarousel } from './carousel.js';
@@ -128,7 +129,7 @@ async function main() {
 
   // Palette : glisser un type depuis la palette sur le canvas pour créer un composant
   // sur la page active, puis sélection du nouveau placement.
-  createPalette($('palette'), model, {
+  createPalette($('board'), model, {
     stage: $('stage'),
     getActivePage: canvas.getActivePage,
     onCreated: i => canvas.selectPlacement(i)
@@ -279,16 +280,27 @@ async function main() {
     canvas.selectPlacement(null);
   });
 
-  // Zoom d'affichage du canvas (visuel uniquement — le layout reste en unités écran). Persisté comme
-  // l'autosave du layout : un reload ne réinitialise pas l'échelle de travail choisie.
+  // Échelle d'affichage du canvas = fit (board entier visible dans la colonne) × zoom utilisateur. Le board
+  // (écran + zones) est scalé d'un bloc → les zones épousent l'écran à toute échelle ; le rect live du #stage
+  // (÷360) reste la source du facteur pour le DnD et les interactions (palette/canvas). Zoom persisté.
   const ZOOM_KEY = 'rt-designer-zoom';
   const ZOOM_ALLOWED = ['1', '1.5', '2'];
-  const stageWrap = $('stage-wrap'), zoomSel = $('zoom');
-  const applyZoom = v => stageWrap.style.setProperty('--zoom', v);
-  let savedZoom = '1';
-  try { const z = localStorage.getItem(ZOOM_KEY); if (ZOOM_ALLOWED.includes(z)) savedZoom = z; } catch (e) {}
-  zoomSel.value = savedZoom; applyZoom(savedZoom);
-  zoomSel.onchange = () => { applyZoom(zoomSel.value); try { localStorage.setItem(ZOOM_KEY, zoomSel.value); } catch (e) {} };
+  const board = $('board'), boardFit = $('board-fit'), canvasCol = $('canvas-col'), zoomSel = $('zoom');
+  let userZoom = '1';
+  try { const z = localStorage.getItem(ZOOM_KEY); if (ZOOM_ALLOWED.includes(z)) userZoom = z; } catch (e) {}
+  zoomSel.value = userZoom;
+  const applyScale = () => {
+    const availW = Math.max(120, canvasCol.clientWidth - 24);
+    const availH = Math.max(120, canvasCol.clientHeight - 150);   // réserve pour le titre + le carousel
+    const fit = Math.min(availW / BOARD_W, availH / BOARD_H, 1.5);
+    const s = Math.max(0.2, fit) * Number(userZoom);
+    board.style.transform = `scale(${s})`;
+    boardFit.style.width = (BOARD_W * s) + 'px';
+    boardFit.style.height = (BOARD_H * s) + 'px';
+  };
+  zoomSel.onchange = () => { userZoom = zoomSel.value; applyScale(); try { localStorage.setItem(ZOOM_KEY, userZoom); } catch (e) {} };
+  new ResizeObserver(applyScale).observe(canvasCol);
+  applyScale();
 
   // URL du device : pré-remplie pour éviter le piège « URL device ? » dès la 1re action. Quand le designer
   // est servi PAR le device (embarqué : http://<ip>/designer/), location.origin EST le device. En dev local
