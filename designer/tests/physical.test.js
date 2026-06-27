@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   isPhysicalType, physicalTypes, physicalComponentIds,
-  stripPhysicalPlacements, ensurePhysicals
+  stripPhysicalPlacements, ensurePhysicals, pruneOrphans
 } from '../js/physical.js';
 
 test('isPhysicalType : led_ring/sound physiques, label/inconnu non', () => {
@@ -78,4 +78,32 @@ test('ensurePhysicals : idempotent', () => {
   ensurePhysicals(s); ensurePhysicals(s);
   assert.equal(Object.values(s.components).filter(c => c.type === 'led_ring').length, 1);
   assert.equal(Object.values(s.components).filter(c => c.type === 'sound').length, 1);
+});
+
+test('pruneOrphans : retire un composant non placé et non physique', () => {
+  const s = { components: { titre: { type: 'label' }, vieux: { type: 'bar' } },
+              pages: [{ name: 'P1', place: [{ ref: 'titre' }] }] };
+  pruneOrphans(s);
+  assert.ok(s.components.titre);                 // placé → conservé
+  assert.equal(s.components.vieux, undefined);   // orphelin hérité → retiré
+});
+
+test('pruneOrphans : conserve les physiques même non placés', () => {
+  const s = { components: { led: { type: 'led_ring' }, buzz: { type: 'sound' } },
+              pages: [{ name: 'P1', place: [] }] };
+  pruneOrphans(s);
+  assert.ok(s.components.led && s.components.buzz);   // globaux sans placement → conservés
+});
+
+test('pruneOrphans : conserve un composant placé sur n\'importe quelle page', () => {
+  const s = { components: { a: { type: 'bar' } },
+              pages: [{ name: 'P1', place: [] }, { name: 'P2', place: [{ ref: 'a' }] }] };
+  pruneOrphans(s);
+  assert.ok(s.components.a);
+});
+
+test('pruneOrphans : idempotent', () => {
+  const s = { components: { x: { type: 'label' } }, pages: [{ name: 'P1', place: [] }] };
+  pruneOrphans(s); pruneOrphans(s);
+  assert.equal(s.components.x, undefined);
 });

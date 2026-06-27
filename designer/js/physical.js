@@ -25,6 +25,19 @@ export function stripPhysicalPlacements(state) {
   }
 }
 
+// Migration : retire de `components` toute définition non référencée par un placement (toutes pages) ET
+// non physique. Nettoie les orphelins hérités des suppressions de page d'avant le fix de removePage (les
+// physiques led_ring/sound, globaux sans placement, sont conservés). Idempotent. Même prédicat que removePage.
+export function pruneOrphans(state) {
+  const comps = state.components || {};
+  const used = new Set();
+  for (const page of state.pages || [])
+    for (const pl of page.place || [])
+      used.add(pl.ref);
+  for (const id of Object.keys(comps))
+    if (!used.has(id) && !isPhysicalType(comps[id]?.type)) delete comps[id];
+}
+
 // Migration : garantit la présence d'UN composant de chaque type physique (led_ring, sound).
 // Si aucun composant d'un type n'existe, en injecte un avec l'id par défaut du registre (led / buzz),
 // ou un id dé-dupliqué <type><n> si cet id est déjà pris par autre chose. Idempotent.
