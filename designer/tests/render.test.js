@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  pickFontPx, barFill, barGeometry, pickThresholdColor, formatValue, formatRemaining,
+  pickFontPx, font, barFill, barGeometry, pickThresholdColor, formatValue, formatRemaining,
   ringSweepDeg, arcIndicatorAngles, pointOnArc, arcPath, ringPaths, sparklinePoints, meterAngle, capArcPath, ledLit,
   resolveIcon
 } from '../js/render.js';
@@ -13,6 +13,14 @@ test('pickFontPx renvoie la taille exacte, clampée à [8,120] (Tiny TTF rend to
   assert.equal(pickFontPx(5), 8);     // sous le plancher → 8
   assert.equal(pickFontPx(200), 120); // au-dessus du plafond → 120
   assert.equal(pickFontPx(undefined), 20); // valeur absente → défaut 20
+});
+
+test('font() compose style/graisse/taille/famille CSS', () => {
+  assert.equal(font('montserrat', false, false, 20), '20px Montserrat, system-ui, sans-serif');
+  assert.equal(font('lora', true, false, 28), "700 28px Lora, system-ui, serif");
+  assert.equal(font('jetbrains_mono', false, true, 14), "italic 14px 'JetBrains Mono', ui-monospace, monospace");
+  assert.equal(font('inter', true, true, 36), "italic 700 36px Inter, system-ui, sans-serif");
+  assert.equal(font('comic', false, false, 20), '20px Montserrat, system-ui, sans-serif'); // famille inconnue → montserrat
 });
 
 test('barFill = fraction clampée', () => {

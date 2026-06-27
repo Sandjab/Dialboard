@@ -175,7 +175,18 @@ export function meterAngle(value, min, max) {
 
 // --- Builders DOM (non testés sous Node ; vérifiés au navigateur). Aucun ne s'exécute à l'import. ---
 
-const FONT = px => `${px}px Montserrat, system-ui, sans-serif`;
+// Familles → pile CSS (parité Tiny TTF côté device). Famille inconnue → montserrat.
+const FONT_STACKS = {
+  montserrat:     'Montserrat, system-ui, sans-serif',
+  jetbrains_mono: "'JetBrains Mono', ui-monospace, monospace",
+  lora:           'Lora, system-ui, serif',
+  inter:          'Inter, system-ui, sans-serif',
+};
+// Raccourci CSS `font` : [italic] [700] <px>px <stack>.
+export function font(family, bold, italic, px) {
+  const stack = FONT_STACKS[family] || FONT_STACKS.montserrat;
+  return `${italic ? 'italic ' : ''}${bold ? '700 ' : ''}${px}px ${stack}`;
+}
 const SVGNS = 'http://www.w3.org/2000/svg';
 
 let capSeq = 0;   // ids uniques pour les <textPath> de cap (un par rendu de ring)
@@ -183,7 +194,7 @@ let capSeq = 0;   // ids uniques pour les <textPath> de cap (un par rendu de rin
 export function buildLabel(comp) {
   const n = document.createElement('div');
   n.className = 'w w-label';
-  n.style.font = FONT(pickFontPx(comp.font ?? 20));
+  n.style.font = font(comp.font_family, comp.bold, comp.italic, pickFontPx(comp.font ?? 20));
   n.style.color = comp.color || '#FFFFFF';
   n.textContent = comp.text || 'Label';
   return n;
@@ -192,7 +203,7 @@ export function buildLabel(comp) {
 export function buildReadout(comp, mock = MOCKS.readout) {
   const n = document.createElement('div');
   n.className = 'w w-readout';
-  n.style.font = FONT(pickFontPx(comp.font ?? 20));
+  n.style.font = font(comp.font_family, comp.bold, comp.italic, pickFontPx(comp.font ?? 20));
   n.style.color = comp.color || '#FFFFFF';
   const val = formatValue(mock.value, comp.unit || '');
   n.textContent = comp.label ? `${comp.label} ${val}` : val; // miroir view.cpp:201-209
@@ -225,7 +236,7 @@ export function buildBar(comp, placement, mock = MOCKS.bar) {
     lbl.className = 'w-bar-label w-bar-label--' + (comp.label_align || 'TOP_MID');
     lbl.textContent = comp.label;
     lbl.style.color = comp.label_color || '#9AA0AA';
-    lbl.style.fontSize = (comp.label_font || 14) + 'px';
+    lbl.style.font = font(comp.label_family, comp.label_bold, comp.label_italic, pickFontPx(comp.label_font ?? 14));
     wrap.appendChild(lbl);
   }
   return wrap;
@@ -271,7 +282,7 @@ export function buildRing(comp, placement, mock = MOCKS.ring) {
   if (comp.center_pct) {                        // lecture centrale (coexiste avec la pastille)
     const ctr = document.createElement('div');
     ctr.className = 'w-ring-center';
-    ctr.style.font = FONT(pickFontPx(comp.font ?? 20));
+    ctr.style.font = font(comp.font_family, comp.bold, comp.italic, pickFontPx(comp.font ?? 20));
     ctr.style.color = comp.center_color || col; // center_color surcharge le seuil (view.cpp:168)
     ctr.textContent = formatValue(mock.value, comp.unit || '');
     wrap.appendChild(ctr);
