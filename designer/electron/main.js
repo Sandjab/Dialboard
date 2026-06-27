@@ -38,7 +38,13 @@ function injectCors() {
     // Préflight : le navigateur exige un 2xx ET les en-têtes. On neutralise OPTIONS côté Electron pour
     // ne pas dépendre du comportement OPTIONS du device (ni du mock, qui ne gère pas OPTIONS).
     if (details.method === 'OPTIONS') return cb({ statusLine: 'HTTP/1.1 204 No Content', responseHeaders: cors });
-    cb({ responseHeaders: { ...details.responseHeaders, ...cors } });
+    // Retire d'abord tout en-tête CORS du device (insensible à la casse) : un access-control-allow-origin déjà
+    // émis par le firmware s'ajouterait au nôtre (clés de casse ≠ en JS) → doublon → Chromium rejette.
+    const clean = {};
+    for (const [k, v] of Object.entries(details.responseHeaders || {})) {
+      if (!/^access-control-/i.test(k)) clean[k] = v;
+    }
+    cb({ responseHeaders: { ...clean, ...cors } });
   });
 }
 
@@ -48,12 +54,18 @@ function serveApp() {
     const filePath = path.join(ROOT, decodeURIComponent(pathname));
     // Garde anti-traversal : %2E%2E / %2F survivent à la normalisation d'URL puis au décodage.
     if (!filePath.startsWith(ROOT + path.sep)) return new Response('Forbidden', { status: 403 });
-    const res = await net.fetch(pathToFileURL(filePath).toString());
-    const ct = MIME[path.extname(filePath).toLowerCase()];
-    if (!ct) return res;
-    const headers = new Headers(res.headers);
-    headers.set('Content-Type', ct);
-    return new Response(res.body, { status: res.status, headers });
+    try {
+      const res = await net.fetch(pathToFileURL(filePath).toString());
+      const ct = MIME[path.extname(filePath).toLowerCase()];
+      if (!ct) return res;
+      const headers = new Headers(res.headers);
+      headers.set('Content-Type', ct);
+      return new Response(res.body, { status: res.status, headers });
+    } catch (err) {
+      // Fichier absent/illisible : 404 explicite + log (cf. spec) plutôt qu'une promesse rejetée non gérée.
+      console.error('[serveApp] fichier introuvable ou illisible : ' + filePath, err);
+      return new Response('Not Found', { status: 404 });
+    }
   });
 }
 
@@ -64,16 +76,17 @@ app.whenReady().then(() => {
       const { Bonjour } = await import('bonjour-service');
       const { parseService, isDialboardService } = await import('./discovery.mjs');
       const bonjour = new Bonjour();
-      const browser = bonjour.find({ type: 'http' });
+      let browser;
       try {
+        browser = bonjour.find({ type: 'http' });
         await new Promise((r) => setTimeout(r, 2500));
         const found = browser.services.filter(isDialboardService).map(parseService).filter(Boolean);
         const byIp = new Map();
         for (const d of found) if (!byIp.has(d.ip)) byIp.set(d.ip, d);
         return [...byIp.values()];
       } finally {
-        browser.stop();
-        bonjour.destroy();   // toujours fermer le socket multicast, même en cas d'erreur
+        if (browser) browser.stop();
+        bonjour.destroy();   // toujours fermer le socket multicast, même si find() jette
       }
     } catch (e) {
       console.error('[discover-devices]', e);   // best-effort UX, mais on trace (pas de panne muette)

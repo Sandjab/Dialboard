@@ -54,7 +54,7 @@ window.addEventListener('DOMContentLoaded', () => {
     try { list = await ipcRenderer.invoke('discover-devices'); } catch (e) { list = []; }
     rescan.disabled = false;
     renderPicker(list);
-    if (list.length === 1) setUrl(list[0].url);   // 1 device → remplissage direct
+    if (list.length === 1 && document.activeElement !== base) setUrl(list[0].url);   // 1 device → remplissage direct (sauf si le champ est en cours d'édition)
   }
 
   scan();
