@@ -35,9 +35,12 @@ const lv_font_t* get_font(uint8_t family, uint16_t px, bool bold, bool italic) {
   for (int i = 0; i < s_cache_n; i++)
     if (s_cache[i].fam == family && s_cache[i].style == style && s_cache[i].px == px)
       return s_cache[i].font;
+  // Cache plein : on retombe sur le bitmap plutôt que créer une fonte non mise en cache (qui fuirait
+  // à chaque appel suivant). Borne atteinte seulement par des layouts à >32 combinaisons fonte/taille.
+  if (s_cache_n >= FONT_CACHE_MAX) return fallback(px);
   const Ttf &t = TTF[family][style];
   lv_font_t *f = lv_tiny_ttf_create_data((const void*)t.data, *t.len, px);
   if (!f) return fallback(px);
-  if (s_cache_n < FONT_CACHE_MAX) s_cache[s_cache_n++] = { family, style, px, f };
+  s_cache[s_cache_n++] = { family, style, px, f };
   return f;
 }
