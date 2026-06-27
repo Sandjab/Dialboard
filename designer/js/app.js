@@ -407,8 +407,9 @@ async function main() {
   // Joignabilité dérivée de TOUTE op device (via withBusy), pas seulement du bouton Statut. markReachable
   // n'écrase PAS un détail riche déjà posé par le Statut (label « ● ip » + infobulle page/uptime/sources).
   const devHost = () => { const b = $('base').value; try { return new URL(b).host || b; } catch (e) { return b || 'device'; } };
-  const markReachable = () => { if (!devPill.classList.contains('ok')) setDevicePill('ok', '● ' + devHost(), 'Device joignable — « Statut » pour le détail'); };
-  const markUnreachable = (msg) => setDevicePill('err', '○ injoignable', msg);
+  // Déclarations de fonction (hoisted) : référencées par withBusy défini plus haut, sans risque de TDZ.
+  function markReachable() { if (!devPill.classList.contains('ok')) setDevicePill('ok', '● ' + devHost(), 'Device joignable — « Statut » pour le détail'); }
+  function markUnreachable(msg) { setDevicePill('err', '○ injoignable', msg); }
   // Check de connexion au 1er lancement, dès qu'une URL est connue (embarqué : location.origin ; dev local :
   // dernière URL sauvegardée). Best-effort SILENCIEUX : hors withBusy → ni toast « Statut… » ni verrou busy.
   (async () => {
