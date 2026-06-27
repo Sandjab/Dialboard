@@ -5,12 +5,30 @@
   "description": "Wrapper Electron du designer Dialboard (PoC socle).",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist": "electron-builder --mac"
   },
   "dependencies": {
     "bonjour-service": "^1.4.2"
   },
   "devDependencies": {
-    "electron": "^42.5.0"
+    "electron": "^42.5.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "io.github.sandjab.dialboard.designer",
+    "productName": "Dialboard Designer",
+    "directories": { "output": "dist" },
+    "files": ["!mock-device.mjs", "!mock-announce.mjs"],
+    "extraResources": [
+      { "from": "../../designer", "to": "app-root/designer" },
+      { "from": "../../schema", "to": "app-root/schema" }
+    ],
+    "mac": {
+      "icon": "build/icon.icns",
+      "category": "public.app-category.developer-tools",
+      "target": ["dmg"],
+      "identity": null
+    }
   }
 }
