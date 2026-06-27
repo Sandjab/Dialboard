@@ -6,15 +6,13 @@ import {
   resolveIcon
 } from '../js/render.js';
 
-test('pickFontPx retombe sur les 5 tailles LVGL', () => {
-  assert.equal(pickFontPx(48), 48);
-  assert.equal(pickFontPx(36), 36);
-  assert.equal(pickFontPx(28), 28);
+test('pickFontPx renvoie la taille exacte, clampée à [8,120] (Tiny TTF rend toute taille)', () => {
+  assert.equal(pickFontPx(24), 24);
+  assert.equal(pickFontPx(72), 72);
   assert.equal(pickFontPx(20), 20);
-  assert.equal(pickFontPx(14), 14);
-  assert.equal(pickFontPx(40), 36); // entre 36 et 48 → 36
-  assert.equal(pickFontPx(27), 20); // entre 20 et 28 → 20
-  assert.equal(pickFontPx(11), 14); // toute autre valeur → 14
+  assert.equal(pickFontPx(5), 8);     // sous le plancher → 8
+  assert.equal(pickFontPx(200), 120); // au-dessus du plafond → 120
+  assert.equal(pickFontPx(undefined), 20); // valeur absente → défaut 20
 });
 
 test('barFill = fraction clampée', () => {

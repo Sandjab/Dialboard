@@ -36,13 +36,12 @@ function ledHexRgb(hex) {
 function ledMix(a, b, t) { return a.map((v, i) => Math.round(v + (b[i] - v) * t)); }
 function ledRgb(c) { return `rgb(${c[0]},${c[1]},${c[2]})`; }
 
-// Police LVGL embarquée : 14/20/28/36/48 px (pick_font, view.cpp:21-27). Toute autre valeur retombe sur 14.
+// Taille de police rendue (px). Tiny TTF rend n'importe quelle taille → on renvoie la valeur exacte,
+// clampée au domaine schéma [8,120] ; valeur absente → défaut 20 (miroir firmware).
 export function pickFontPx(font) {
-  if (font >= 48) return 48;
-  if (font >= 36) return 36;
-  if (font >= 28) return 28;
-  if (font >= 20) return 20;
-  return 14;
+  const n = Math.round(Number(font));
+  if (!Number.isFinite(n)) return 20;
+  return Math.max(8, Math.min(120, n));
 }
 
 // bar : fraction remplie (clampée). Miroir lv_bar : (value − min) / (max − min).
