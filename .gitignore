@@ -11,3 +11,4 @@ playgrounds/*
 src/secrets.h
 # Maquettes du compagnon visuel de brainstorm (scratch, non trackées)
 .superpowers/
+designer/electron/node_modules/
