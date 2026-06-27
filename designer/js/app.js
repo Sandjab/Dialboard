@@ -26,6 +26,7 @@ import { createSelection, sameSelection, isSelectionValid } from './selection.js
 import { loadSettings, saveSettings, normalizeSettings, applyVisualSettings, createSettings } from './settings.js';
 import { logs, installConsoleCapture } from './logs.js';
 import { DEFAULT_LAYOUT } from './default-layout.js';
+import { serializeBundle, loadBundle } from './bundle.js';
 
 const $ = id => document.getElementById(id);
 
@@ -189,10 +190,42 @@ async function main() {
 
   // Export / import fichier layout.json (filet indépendant du device). Après import, on revient à la
   // page 1 (l'ancienne page active peut ne plus exister) et on rafraîchit l'arbre.
+  const onLoad = () => { model.commit(s => { stripPhysicalPlacements(s); ensurePhysicals(s); }); canvas.setPage(0); tree.render(); };
   bindFileIO(model, {
     exportBtn: $('export'), importBtn: $('import'), importInput: $('import-file'),
-    onLoad: () => { model.commit(s => { stripPhysicalPlacements(s); ensurePhysicals(s); }); canvas.setPage(0); tree.render(); }
+    onLoad,
   });
+
+  // Mode desktop (Electron) : workflow fichier .dboard (layout + assets). Inactif en web (window.desktop absent).
+  if (window.desktop) {
+    let currentPath = null, dirty = false;
+    const baseName = (p) => (p ? p.replace(/^.*[\\/]/, '') : 'Sans titre');
+    const refreshTitle = () => window.desktop.setTitle(baseName(currentPath) + (dirty ? ' •' : ''));
+    refreshTitle();
+    model.subscribe(() => { dirty = true; refreshTitle(); });
+    window.desktop.onMenu(async (action) => {
+      try {
+        if (action === 'open') {
+          const r = await window.desktop.openBundle();
+          if (!r) return;
+          loadBundle(model, r.text);
+          onLoad();
+          currentPath = r.path; dirty = false; refreshTitle();
+          logs.logActivity('Bundle ouvert : ' + baseName(r.path));
+        } else {                                   // 'save' | 'saveAs'
+          const text = serializeBundle(model);
+          const r = (action === 'save' && currentPath)
+            ? await window.desktop.saveBundle(text, currentPath)
+            : await window.desktop.saveBundleAs(text);
+          if (!r) return;                          // dialogue annulé → ne pas marquer propre
+          currentPath = r.path; dirty = false; refreshTitle();
+          logs.logActivity('Bundle enregistré : ' + baseName(r.path));
+        }
+      } catch (e) {
+        showToast('Fichier : ' + e.message, { kind: 'err' });
+      }
+    });
+  }
 
   // Panneau Sources (pull réseau) : édition des sources top-level. Indépendant du canvas/pages.
   createSources($('sources'), model);
