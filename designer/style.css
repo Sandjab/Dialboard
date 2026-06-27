@@ -36,13 +36,18 @@
   --layers-w: 220px;         /* colonne calques */
   --insp-w: 300px;           /* colonne inspecteur */
 }
+:root[data-theme="green"]  { --accent:#22C55E; --accent-strong:#22C55E; --accent-hover:#4ADE80; --accent-dim:rgba(34,197,94,.10);  --accent-soft:rgba(34,197,94,.18); }
+:root[data-theme="blue"]   { --accent:#3B82F6; --accent-strong:#3B82F6; --accent-hover:#60A5FA; --accent-dim:rgba(59,130,246,.10); --accent-soft:rgba(59,130,246,.18); }
+:root[data-theme="violet"] { --accent:#8B5CF6; --accent-strong:#8B5CF6; --accent-hover:#A78BFA; --accent-dim:rgba(139,92,246,.10); --accent-soft:rgba(139,92,246,.18); }
+:root[data-theme="red"]    { --accent:#EF4444; --accent-strong:#EF4444; --accent-hover:#F87171; --accent-dim:rgba(239,68,68,.10);  --accent-soft:rgba(239,68,68,.18); }
+:root[data-theme="yellow"] { --accent:#EAB308; --accent-strong:#EAB308; --accent-hover:#FACC15; --accent-dim:rgba(234,179,8,.10);  --accent-soft:rgba(234,179,8,.18); }
 * { box-sizing: border-box; }
 body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: var(--bg); color: var(--ink); }
 header { display: flex; align-items: center; gap: 0; padding: 0 10px; height: 42px; border-bottom: 1px solid var(--line); background: var(--panel); }
 header .grow { flex: 1; }
 /* --- Top bar : brand --- */
-/* Lockup de marque en ambre (titre + icône) : seule exception « décorative » à l'accent, qui reste
-   ailleurs réservé aux états actifs/sélectionnés. color cascade sur .tb-brand-name + le currentColor du mark. */
+/* Lockup de marque (titre + icône) coloré par var(--accent) : il suit donc le thème actif.
+   color cascade sur .tb-brand-name + le currentColor du mark. */
 .tb-brand { display: flex; align-items: center; gap: 8px; padding-right: 14px; margin-right: 8px; border-right: 1px solid var(--line); height: 100%; color: var(--accent); }
 .tb-brand-mark { width: 18px; height: 18px; }
 .tb-brand-name { font-family: var(--font-mono); font-weight: 500; font-size: calc(12px * var(--scale)); letter-spacing: .18em; text-transform: uppercase; }

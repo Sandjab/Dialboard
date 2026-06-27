@@ -39,6 +39,7 @@ export function saveSettings(s) {
 
 // Applique les réglages VISUELS au DOM : variable d'opacité (racine) + classe/pas de grille (stage).
 export function applyVisualSettings(s) {
+  document.documentElement.dataset.theme = s.theme;
   document.documentElement.style.setProperty('--ghost-opacity', String(s.ghostOpacity));
   const wrap = document.getElementById('board');
   if (wrap) {
@@ -76,6 +77,17 @@ export function createSettings(root, { toggleBtn, onOpen, getSettings, setSettin
   function build() {
     const s = getSettings();
     pane.replaceChildren();   // vide le panneau (équivalent sûr de innerHTML='')
+
+    // Thème (accent de l'UI designer)
+    const themeRow = settingRow('Thème');
+    const themeSel = document.createElement('select');
+    for (const [val, txt] of [['amber','Ambre'],['green','Vert'],['blue','Bleu'],['violet','Violet'],['red','Rouge'],['yellow','Jaune']]) {
+      const o = document.createElement('option'); o.value = val; o.textContent = txt;
+      if (val === s.theme) o.selected = true; themeSel.appendChild(o);
+    }
+    themeSel.onchange = () => setSettings({ theme: themeSel.value });   // commit sur change (cf. invariant input/change)
+    themeRow.querySelector('.set-line').appendChild(themeSel);
+    pane.appendChild(themeRow);
 
     // Transparence des invisibles
     const opRow = settingRow('Transparence des invisibles');
