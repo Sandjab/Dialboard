@@ -186,6 +186,13 @@ designer/electron/
   au dossier de l'app (`designer/electron/`) ; `../../designer` pointe donc hors de cet arbre. Les
   mappings `from`/`to` explicites le gèrent, mais **à vérifier au 1er build** (présence effective de
   `Resources/app-root/{designer,schema}`). Repli : script `stage`.
+- **Auto-inclusion récursive (constaté au build, RÉSOLU)** : `designer/electron/` vit *dans*
+  `designer/`, donc copier `designer/` embarque le wrapper — dont `electron/dist/` (la sortie en
+  cours) → **récursion infinie** `ENAMETOOLONG`. Résolu par un `filter` sur la copie de `designer/`
+  excluant `electron/**`. On exclut aussi `tests/` : sans cela les `*.test.js` copiés sous
+  `designer/` cassent `node --test` *sans argument* (convention CLAUDE.md ; `dist/` est gitignoré
+  mais le test runner ne lit pas `.gitignore`). Filtre retenu :
+  `["**/*", "!electron", "!electron/**", "!tests", "!tests/**"]`.
 - **Garde anti-traversée en packagé** : `ROOT = resources/app-root` confine `app://` à designer+
   schema ; vérifier que la garde `startsWith(ROOT + path.sep)` ne casse pas un chemin légitime une
   fois sous `resources` (séparateurs, casse).

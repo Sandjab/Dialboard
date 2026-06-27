@@ -180,7 +180,7 @@ Et ajouter au niveau racine du JSON la clé `build` (sœur de `scripts`/`depende
     "directories": { "output": "dist" },
     "files": ["!mock-device.mjs", "!mock-announce.mjs"],
     "extraResources": [
-      { "from": "../../designer", "to": "app-root/designer" },
+      { "from": "../../designer", "to": "app-root/designer", "filter": ["**/*", "!electron", "!electron/**", "!tests", "!tests/**"] },
       { "from": "../../schema", "to": "app-root/schema" }
     ],
     "mac": {
@@ -196,6 +196,11 @@ Points de vigilance (ne pas dévier) :
 - `files` = **uniquement des négations** → elles s'ajoutent aux includes par défaut (qui embarquent `node_modules` de prod, dont `bonjour-service`). Une liste d'includes positifs remplacerait le glob par défaut et largerait `node_modules`.
 - `identity: null` → build **non signé** explicite (electron-builder ne cherche aucun certificat).
 - `extraResources.from` pointe **hors** du dossier app (`../../`) → c'est voulu ; vérifié au build en Task 4.
+- `filter` **obligatoire** sur la copie de `designer/` : `designer/electron/` vit *dans* `designer/`,
+  donc sans exclusion la copie embarquerait le wrapper — dont `electron/dist/` (la sortie en cours
+  → **récursion infinie**, `ENAMETOOLONG`) et `electron/node_modules/`. On exclut aussi `tests/` :
+  les `*.test.js` embarqués sous `designer/` casseraient `node --test` *sans argument* (la convention
+  CLAUDE.md découvre depuis le cwd et tomberait sur les copies dans `dist/`, non lu par `.gitignore`).
 
 - [ ] **Step 3: Valider que package.json reste un JSON valide**
 
@@ -229,7 +234,7 @@ git commit -m "feat(designer): packaging — config electron-builder (mac dmg no
 
 Run: `cd designer/electron && npm run dist`
 Expected: build sans erreur de signature ; produit dans `dist/` un `.dmg` (nom du type `Dialboard Designer-0.0.0-arm64.dmg`) et un `.app` sous `dist/mac-arm64/` (ou `dist/mac/`).
-Si erreur « cannot copy extraResources / from outside » : repli prévu par la spec = script `stage` (décision 2 écartée) — stop et signaler avant d'improviser.
+Si `ENAMETOOLONG` / chemins récursifs `app-root/designer/electron/dist/.../app-root/...` : le `filter` excluant `electron/**` (Task 3) n'est pas pris en compte → vérifier le `package.json`. Nettoyer la sortie corrompue (`rm -rf designer/electron/dist`, à faire valider) **avant** de relancer (le scan re-bute sinon sur les chemins trop longs).
 
 - [ ] **Step 2: Vérifier le staging dans le bundle**
 
