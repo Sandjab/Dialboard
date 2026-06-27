@@ -78,7 +78,11 @@ function makeInput(kind, value, onChange, placeholder) {
     el.addEventListener('change', () => onChange(el.value.toUpperCase()));
   } else if (kind === 'font') {
     el = document.createElement('select');
-    for (const f of FONTS) { const o = document.createElement('option'); o.value = String(f); o.textContent = f + ' px'; if (f === (value ?? 20)) o.selected = true; el.appendChild(o); }
+    // Préréglages + la valeur courante si elle est hors préréglage (taille importée 8–120) : sinon le
+    // select afficherait le 1er préréglage et un change committerait cette mauvaise valeur (écrasement).
+    const cur = Number(value);
+    const opts = (Number.isFinite(cur) && !FONTS.includes(cur)) ? [...FONTS, cur].sort((a, b) => a - b) : FONTS;
+    for (const f of opts) { const o = document.createElement('option'); o.value = String(f); o.textContent = f + ' px'; if (f === (value ?? 20)) o.selected = true; el.appendChild(o); }
     el.addEventListener('change', () => onChange(Number(el.value)));
   } else if (kind === 'anchor') {
     el = document.createElement('select');

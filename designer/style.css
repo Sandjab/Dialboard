@@ -222,8 +222,8 @@ main > .col:last-child { border-right: 0; }
 /* Halo ambre derrière l'écran rond : la marge généreuse devient atmosphère plutôt que vide résiduel. */
 #canvas-col { display: flex; flex-direction: column; align-items: center; overflow: auto;
   background: radial-gradient(circle at 50% 34%, rgba(255,159,64,.07), transparent 58%), var(--panel); }
-/* Boîte qui RÉSERVE la place du canvas zoomé : le transform du .stage ne crée pas de boîte de mise
-   en page, donc le wrap porte la taille à l'échelle pour pousser le footer et garder le centrage. */
+/* Boîte qui RÉSERVE la place du canvas mis à l'échelle (fit) : le transform du .stage ne crée pas de boîte
+   de mise en page, donc le wrap porte la taille à l'échelle pour pousser le footer et garder le centrage. */
 /* board-fit réserve la taille scalée (posée par app.js) → centrage + footer poussé ; board porte l'échelle. */
 .board-fit { flex: none; position: relative; }
 .board { position: absolute; top: 0; left: 0; transform-origin: top left; }   /* taille + transform: scale() posés par JS */
