@@ -334,11 +334,14 @@ async function main() {
       const okMsg = await fn();
       t.morph(typeof okMsg === 'string' ? okMsg : 'Terminé', 'ok');
       logs.logActivity(typeof okMsg === 'string' ? okMsg : 'Opération device');
+      markReachable();                                       // op réussie → device joignable
       return okMsg;
     } catch (e) {
       const hint = e instanceof TypeError ? ' (réseau/CORS ? cf. README)' : '';
       t.morph('Échec : ' + e.message + hint, 'err');
       logs.logActivity('Échec device : ' + e.message);
+      if (e instanceof TypeError) markUnreachable(e.message);   // fetch rejeté = device injoignable
+      else markReachable();                                     // HTTP/validation : le device a répondu
       return undefined;
     } finally {
       setDeviceBusy(false);
@@ -401,18 +404,18 @@ async function main() {
     devPill.textContent = label;
     devPill.title = tooltip;
   };
+  // Joignabilité dérivée de TOUTE op device (via withBusy), pas seulement du bouton Statut. markReachable
+  // n'écrase PAS un détail riche déjà posé par le Statut (label « ● ip » + infobulle page/uptime/sources).
+  const devHost = () => { const b = $('base').value; try { return new URL(b).host || b; } catch (e) { return b || 'device'; } };
+  const markReachable = () => { if (!devPill.classList.contains('ok')) setDevicePill('ok', '● ' + devHost(), 'Device joignable — « Statut » pour le détail'); };
+  const markUnreachable = (msg) => setDevicePill('err', '○ injoignable', msg);
   $('statusbtn').onclick = () => {
     const base = $('base').value;
     if (!base) return void showToast('URL device ?');
     withBusy('Statut…', async () => {
-      try {
-        const f = formatDeviceStatus(await getStatus(base));
-        setDevicePill('ok', f.label, f.tooltip);
-        return 'Statut OK';
-      } catch (e) {
-        setDevicePill('err', '○ injoignable', e.message);
-        throw e;
-      }
+      const f = formatDeviceStatus(await getStatus(base));
+      setDevicePill('ok', f.label, f.tooltip);   // détail riche ; markReachable ne l'écrase pas, withBusy gère l'échec
+      return 'Statut OK';
     });
   };
   $('values').onclick = () => {
