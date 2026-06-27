@@ -1,9 +1,10 @@
 // Process principal Electron du designer desktop (PoC socle).
 // - sert designer/ + schema/ via le protocole interne app:// (file:// casserait les modules ES) ;
 // - injecte les en-têtes CORS sur les réponses du device (approche A) → designer/ reste zéro-touch.
-const { app, BrowserWindow, protocol, session, net, ipcMain } = require('electron');
+const { app, BrowserWindow, protocol, session, net, ipcMain, Menu, dialog } = require('electron');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
+const fs = require('node:fs/promises');
 
 // Racine servie par app:// : contient designer/ ET schema/ côte à côte (= racine du repo en dev).
 // app://app/designer/index.html → ROOT/designer/index.html ; le fetch('../schema/…') de app.js → ROOT/schema/…
@@ -84,6 +85,47 @@ app.whenReady().then(() => {
     webPreferences: { contextIsolation: true, preload: path.join(__dirname, 'preload.js') },
   });
   win.loadURL('app://app/designer/index.html');
+
+  // Menu natif : raccourcis fichier → relayés au renderer (qui détient model + caches).
+  const send = (action) => () => win.webContents.send('menu', action);
+  const fileMenu = {
+    label: 'Fichier',
+    submenu: [
+      { label: 'Ouvrir…', accelerator: 'CmdOrCtrl+O', click: send('open') },
+      { label: 'Enregistrer', accelerator: 'CmdOrCtrl+S', click: send('save') },
+      { label: 'Enregistrer sous…', accelerator: 'CmdOrCtrl+Shift+S', click: send('saveAs') },
+      { type: 'separator' },
+      process.platform === 'darwin' ? { role: 'close' } : { role: 'quit' },
+    ],
+  };
+  const template = process.platform === 'darwin'
+    ? [{ role: 'appMenu' }, fileMenu, { role: 'editMenu' }, { role: 'viewMenu' }]
+    : [fileMenu, { role: 'editMenu' }, { role: 'viewMenu' }];
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+
+  const DBOARD = [{ name: 'Dialboard', extensions: ['dboard'] }];
+  ipcMain.handle('file:open', async () => {
+    const r = await dialog.showOpenDialog(win, { filters: DBOARD, properties: ['openFile'] });
+    if (r.canceled || !r.filePaths[0]) return null;
+    return { path: r.filePaths[0], text: await fs.readFile(r.filePaths[0], 'utf8') };
+  });
+  ipcMain.handle('file:save', async (_e, { text, path: p }) => {
+    let target = p;
+    if (!target) {
+      const r = await dialog.showSaveDialog(win, { filters: DBOARD, defaultPath: 'layout.dboard' });
+      if (r.canceled || !r.filePath) return null;
+      target = r.filePath;
+    }
+    await fs.writeFile(target, text);
+    return { path: target };
+  });
+  ipcMain.handle('file:saveAs', async (_e, { text }) => {
+    const r = await dialog.showSaveDialog(win, { filters: DBOARD, defaultPath: 'layout.dboard' });
+    if (r.canceled || !r.filePath) return null;
+    await fs.writeFile(r.filePath, text);
+    return { path: r.filePath };
+  });
+  ipcMain.handle('window:setTitle', (_e, name) => win.setTitle(name));
 });
 
 app.on('window-all-closed', () => {

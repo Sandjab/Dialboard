@@ -1,7 +1,16 @@
 // Preload desktop : découverte mDNS auto. Capacité desktop-only → vit ici, pas dans designer/.
 // Contrat designer (zéro-touch) : poser #base.value puis dispatcher « change » déclenche le check
 // de connexion (probeConnection) et la pastille. Aucune modif de designer/ requise.
-const { ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
+
+// Pont desktop pour les fichiers locaux (.dboard). Exposé au renderer ; le designer l'utilise s'il existe.
+contextBridge.exposeInMainWorld('desktop', {
+  openBundle: () => ipcRenderer.invoke('file:open'),
+  saveBundle: (text, path) => ipcRenderer.invoke('file:save', { text, path }),
+  saveBundleAs: (text) => ipcRenderer.invoke('file:saveAs', { text }),
+  onMenu: (cb) => { ipcRenderer.removeAllListeners('menu'); ipcRenderer.on('menu', (_e, action) => cb(action)); },
+  setTitle: (name) => ipcRenderer.invoke('window:setTitle', name),
+});
 
 window.addEventListener('DOMContentLoaded', () => {
   const base = document.getElementById('base');
