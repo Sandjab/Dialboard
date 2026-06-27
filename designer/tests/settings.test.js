@@ -4,9 +4,22 @@ import { defaultSettings, normalizeSettings } from '../js/settings.js';
 
 test('defaultSettings: valeurs de référence', () => {
   assert.deepEqual(defaultSettings(), {
+    theme: 'amber',
     ghostOpacity: 0.38, gridShow: false, gridSnap: false, gridStep: 10,
     logActivity: true, logJs: false, logNet: false,
   });
+});
+
+test('settings: thème valide conservé', () => {
+  for (const t of ['amber', 'green', 'blue', 'violet', 'red', 'yellow']) {
+    assert.equal(normalizeSettings({ theme: t }).theme, t);
+  }
+});
+
+test('settings: thème inconnu → ambre (intent : pas d’accent indéfini)', () => {
+  assert.equal(normalizeSettings({ theme: 'turquoise' }).theme, 'amber');
+  assert.equal(normalizeSettings({ theme: 42 }).theme, 'amber');
+  assert.equal(normalizeSettings({}).theme, 'amber');
 });
 
 test('settings: défauts des journaux — activité ON, JS/réseau OFF (intent : activité visible d’emblée, debug optionnel)', () => {

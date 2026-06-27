@@ -4,9 +4,11 @@
 import { withConfirm } from './confirm.js';
 const KEY = 'rt-designer-settings';
 const STEPS = [5, 10, 20];
+const THEMES = ['amber', 'green', 'blue', 'violet', 'red', 'yellow'];
 
 export function defaultSettings() {
-  return { ghostOpacity: 0.38, gridShow: false, gridSnap: false, gridStep: 10,
+  return { theme: 'amber',
+           ghostOpacity: 0.38, gridShow: false, gridSnap: false, gridStep: 10,
            logActivity: true, logJs: false, logNet: false };
 }
 
@@ -15,6 +17,7 @@ export function normalizeSettings(raw) {
   const r = (raw && typeof raw === 'object') ? raw : {};
   const op = Number(r.ghostOpacity);
   return {
+    theme: THEMES.includes(r.theme) ? r.theme : d.theme,
     ghostOpacity: Number.isFinite(op) ? Math.min(1, Math.max(0, op)) : d.ghostOpacity,
     gridShow: typeof r.gridShow === 'boolean' ? r.gridShow : d.gridShow,
     gridSnap: typeof r.gridSnap === 'boolean' ? r.gridSnap : d.gridSnap,
