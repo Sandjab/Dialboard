@@ -55,14 +55,17 @@
   </header>
 
   <main>
-    <aside id="palette" class="col col-palette"><h2>Palette</h2></aside>
     <aside id="layers" class="col"><h2>Calques</h2></aside>
     <section id="canvas-col" class="col">
       <h2>Canvas</h2>
-      <div id="stage-wrap" class="stage-wrap">
-        <div id="stage" class="stage">
-          <div class="screen-circle"></div>
-          <div id="stage-grid" aria-hidden="true"></div>
+      <div id="board-fit" class="board-fit">
+        <div id="board" class="board">
+          <svg id="zones-svg" class="zones-svg" aria-hidden="true"></svg>
+          <div id="stage" class="stage">
+            <div class="screen-circle"></div>
+            <div id="stage-grid" aria-hidden="true"></div>
+          </div>
+          <!-- 4 zones d'icônes injectées par canvas-zones.js -->
         </div>
       </div>
       <div id="carousel" class="carousel"><!-- vignettes de pages injectées par carousel.js --></div>
