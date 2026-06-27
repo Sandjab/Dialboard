@@ -12,14 +12,15 @@ import { ANCHORS, ANCHORS_OUT } from './geometry.js';
 import { getMock, setMock } from './mocks.js';
 import { numDragValue } from './numdrag.js';
 
-const FONTS = [14, 20, 28, 36, 48];
+const FONTS = [12, 14, 20, 24, 28, 36, 48, 64, 72];
 // Selects à options fixes (value firmware → libellé FR). Étend le motif anchor/anchorOut.
 const SELECTS = {
-  barmode: [['normal', 'Normal'], ['symmetrical', 'Symétrique']],
-  orient:  [['horizontal', 'Horizontal'], ['vertical', 'Vertical']],
-  arcmode: [['normal', 'Normal'], ['symmetrical', 'Symétrique'], ['reverse', 'Inversé']],
-  dash:    [['solid', 'Plein'], ['dashed', 'Tirets'], ['dotted', 'Pointillé']],
-  symbol:  Object.keys(ICON_SVG).map(n => [n, n]),
+  barmode:    [['normal', 'Normal'], ['symmetrical', 'Symétrique']],
+  orient:     [['horizontal', 'Horizontal'], ['vertical', 'Vertical']],
+  arcmode:    [['normal', 'Normal'], ['symmetrical', 'Symétrique'], ['reverse', 'Inversé']],
+  dash:       [['solid', 'Plein'], ['dashed', 'Tirets'], ['dotted', 'Pointillé']],
+  symbol:     Object.keys(ICON_SVG).map(n => [n, n]),
+  fontfamily: [['montserrat', 'Montserrat'], ['jetbrains_mono', 'JetBrains Mono'], ['lora', 'Lora'], ['inter', 'Inter']],
 };
 const nonAscii = v => /[^\x00-\x7F]/.test(v ?? '');
 
