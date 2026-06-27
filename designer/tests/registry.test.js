@@ -102,6 +102,18 @@ test('registre : icon déclaré, value-driven (mockFields value), non physique',
   assert.equal(d.color, '#FFFFFF');
 });
 
+test('registry : famille/gras/italique exposés sur les composants textuels, pas sur icon', () => {
+  const keysOf = t => COMPONENTS[t].compFields.map(f => f[0]);
+  for (const t of ['label', 'readout', 'ring']) {
+    assert.ok(keysOf(t).includes('font_family'), `${t} doit exposer font_family`);
+    assert.ok(keysOf(t).includes('bold'), `${t} doit exposer bold`);
+    assert.ok(keysOf(t).includes('italic'), `${t} doit exposer italic`);
+  }
+  const barKeys = keysOf('bar');
+  assert.ok(barKeys.includes('label_family') && barKeys.includes('label_bold') && barKeys.includes('label_italic'));
+  assert.ok(!keysOf('icon').includes('font_family'), 'icon ne doit pas exposer font_family');
+});
+
 test('conformité : enum symbolName du schéma == clés de ICON_SVG (render.js)', async () => {
   const { ICON_SVG } = await import('../js/render.js');
   const schemaNames = schema.$defs.symbolName.enum.slice().sort();

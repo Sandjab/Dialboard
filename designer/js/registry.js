@@ -24,7 +24,7 @@ export const COMPONENTS = {
     defaults: () => ({ type: 'label', text: 'Texte', font: 20, color: '#FFFFFF' }),
     makePlacement: screenPlacement,
     centered: false, physical: false,
-    compFields: [['text', 'Texte', 'asciitext'], ['font', 'Police', 'font'], ['color', 'Couleur', 'color'], ['bind', 'Variable (pull)', 'asciitext']],
+    compFields: [['text', 'Texte', 'asciitext'], ['font', 'Police', 'font'], ['font_family', 'Police (famille)', 'fontfamily'], ['bold', 'Gras', 'bool'], ['italic', 'Italique', 'bool'], ['color', 'Couleur', 'color'], ['bind', 'Variable (pull)', 'asciitext']],
     placeFields: [['anchor', 'Ancrage', 'anchor'], ['dx', 'dx', 'num'], ['dy', 'dy', 'num']],
     mockFields: [],
     build: (comp) => buildLabel(comp),
@@ -34,7 +34,7 @@ export const COMPONENTS = {
     defaults: () => ({ type: 'readout', label: 'Label', font: 20, color: '#FFFFFF' }),
     makePlacement: screenPlacement,
     centered: false, physical: false,
-    compFields: [['label', 'Label', 'asciitext'], ['unit', 'Unité', 'asciitext'], ['font', 'Police', 'font'], ['color', 'Couleur', 'color'], ['bind', 'Variable (pull)', 'asciitext']],
+    compFields: [['label', 'Label', 'asciitext'], ['unit', 'Unité', 'asciitext'], ['font', 'Police', 'font'], ['font_family', 'Police (famille)', 'fontfamily'], ['bold', 'Gras', 'bool'], ['italic', 'Italique', 'bool'], ['color', 'Couleur', 'color'], ['bind', 'Variable (pull)', 'asciitext']],
     placeFields: [['anchor', 'Ancrage', 'anchor'], ['dx', 'dx', 'num'], ['dy', 'dy', 'num']],
     mockFields: [['value', 'Valeur (aperçu)']],
     build: (comp, _pl, mock) => buildReadout(comp, mock),
@@ -44,7 +44,7 @@ export const COMPONENTS = {
     defaults: () => ({ type: 'bar', label: 'Bar', min: 0, max: 100, color: '#38BDF8', label_color: '#9AA0AA', label_font: 14, label_align: 'TOP_MID' }),
     makePlacement: screenPlacement,
     centered: false, physical: false,
-    compFields: [['label', 'Label', 'asciitext'], ['min', 'Min', 'num'], ['max', 'Max', 'num'], ['color', 'Couleur', 'color'], ['mode', 'Mode', 'barmode'], ['orientation', 'Orientation', 'orient'], ['anim_ms', 'Animation (ms)', 'num'], ['label_color', 'Couleur label', 'color'], ['label_font', 'Police label', 'font'], ['label_align', 'Alignement label', 'anchorOut'], ['bind', 'Variable (pull)', 'asciitext']],
+    compFields: [['label', 'Label', 'asciitext'], ['min', 'Min', 'num'], ['max', 'Max', 'num'], ['color', 'Couleur', 'color'], ['mode', 'Mode', 'barmode'], ['orientation', 'Orientation', 'orient'], ['anim_ms', 'Animation (ms)', 'num'], ['label_color', 'Couleur label', 'color'], ['label_font', 'Police label', 'font'], ['label_family', 'Famille label', 'fontfamily'], ['label_bold', 'Label gras', 'bool'], ['label_italic', 'Label italique', 'bool'], ['label_align', 'Alignement label', 'anchorOut'], ['bind', 'Variable (pull)', 'asciitext']],
     placeFields: [['anchor', 'Ancrage', 'anchor'], ['dx', 'dx', 'num'], ['dy', 'dy', 'num'], ['width', 'Largeur', 'num', 200], ['height', 'Hauteur', 'num', 16]],  // 4e = placeholder du défaut firmware (view.cpp:184)
     mockFields: [['value', 'Valeur (aperçu)']],
     build: (comp, pl, mock) => buildBar(comp, pl, mock),
@@ -59,6 +59,9 @@ export const COMPONENTS = {
                  ['pill', 'Pastille %', 'bool'],                             // indépendant du centre (les deux coexistent)
                  ['center_pct', 'Centre %', 'bool'],
                  ['font', 'Police centre', 'font', c => !!c.center_pct],     // dimensionne le chiffre central
+                 ['font_family', 'Famille centre', 'fontfamily', c => !!c.center_pct],
+                 ['bold', 'Centre gras', 'bool', c => !!c.center_pct],
+                 ['italic', 'Centre italique', 'bool', c => !!c.center_pct],
                  ['center_color', 'Couleur centre', 'color', c => !!c.center_pct],
                  ['countdown', 'Countdown', 'bool'], ['min', 'Min', 'num'], ['max', 'Max', 'num'],
                  ['cap_prefix', 'Préfixe légende', 'asciitext'],
