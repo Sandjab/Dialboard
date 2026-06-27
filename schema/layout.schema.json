@@ -51,6 +51,10 @@
       "maximum": 120,
       "description": "Taille de police en px. Rendu Tiny TTF (taille exacte, pas d'arrondi). Defaut 20."
     },
+    "fontFamily": {
+      "enum": ["montserrat", "jetbrains_mono", "lora", "inter"],
+      "description": "Famille de caracteres (rendu Tiny TTF). Defaut montserrat."
+    },
     "threshold": {
       "type": "array",
       "description": "[limite, \"#hex\"] : la couleur s'applique quand la valeur passe SOUS la limite.",
@@ -109,6 +113,9 @@
         "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
         "text": { "$ref": "#/$defs/ascii", "description": "Texte statique (peut etre remplace via /update avec une string)." },
         "font": { "$ref": "#/$defs/font" },
+        "font_family": { "$ref": "#/$defs/fontFamily" },
+        "bold": { "type": "boolean", "description": "Gras (vrai cut). Defaut false." },
+        "italic": { "type": "boolean", "description": "Italique (vrai cut). Defaut false." },
         "color": { "$ref": "#/$defs/hexColor" }
       }
     },
@@ -123,6 +130,9 @@
         "label": { "$ref": "#/$defs/ascii", "description": "Libelle affiche devant la valeur (ex. \"CPU\")." },
         "unit": { "$ref": "#/$defs/ascii", "description": "Unite ASCII (%, GB, C, Mbps)." },
         "font": { "$ref": "#/$defs/font" },
+        "font_family": { "$ref": "#/$defs/fontFamily" },
+        "bold": { "type": "boolean", "description": "Gras (vrai cut). Defaut false." },
+        "italic": { "type": "boolean", "description": "Italique (vrai cut). Defaut false." },
         "color": { "$ref": "#/$defs/hexColor" }
       }
     },
@@ -140,6 +150,9 @@
         "color": { "$ref": "#/$defs/hexColor" },
         "label_color": { "$ref": "#/$defs/hexColor", "description": "Couleur du libelle. Defaut #9AA0AA." },
         "label_font": { "$ref": "#/$defs/font", "description": "Taille de police du libelle. Defaut 14." },
+        "label_family": { "$ref": "#/$defs/fontFamily", "description": "Famille du libelle. Defaut montserrat." },
+        "label_bold": { "type": "boolean", "description": "Libelle en gras. Defaut false." },
+        "label_italic": { "type": "boolean", "description": "Libelle en italique. Defaut false." },
         "label_align": { "$ref": "#/$defs/anchorOut", "description": "Position du libelle autour de la barre. Defaut TOP_MID." },
         "thresholds": { "type": "array", "items": { "$ref": "#/$defs/threshold" }, "description": "Couleur de l'indicateur quand la valeur passe sous une limite (comme le ring). Vide = couleur unie." },
         "mode": { "enum": ["normal", "symmetrical"], "description": "normal = remplit depuis le bord ; symmetrical = depuis 0 (min negatif requis). Defaut normal. (lv_bar_set_mode)" },
@@ -157,6 +170,9 @@
         "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
         "color": { "$ref": "#/$defs/hexColor" },
         "font": { "$ref": "#/$defs/font", "description": "Taille du chiffre central (center_pct)." },
+        "font_family": { "$ref": "#/$defs/fontFamily" },
+        "bold": { "type": "boolean", "description": "Gras (vrai cut). Defaut false." },
+        "italic": { "type": "boolean", "description": "Italique (vrai cut). Defaut false." },
         "pill": { "type": "boolean", "description": "Affiche un pill de pourcentage sur la partie haute de la bande." },
         "countdown": { "type": "boolean", "description": "Decremente reset_in_s d'une unite/s et l'affiche dans l'ouverture." },
         "min": { "type": "number", "description": "Defaut 0." },

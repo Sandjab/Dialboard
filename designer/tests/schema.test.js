@@ -285,3 +285,27 @@ test('schema : font hors domaine 8-120 rejeté', () => {
   const hi = base(); hi.components.t = { type: 'readout', font: 200 };
   assert.equal(validate(hi).valid, false);
 });
+
+test('schema : font_family/bold/italic acceptés sur label/readout/ring', () => {
+  const l = base();
+  l.components.t = { type: 'label', text: 'x', font_family: 'lora', bold: true, italic: true };
+  assert.equal(validate(l).valid, true, JSON.stringify(validate(l).errors));
+});
+
+test('schema : famille inconnue rejetée', () => {
+  const l = base();
+  l.components.t = { type: 'label', text: 'x', font_family: 'comic_sans' };
+  assert.equal(validate(l).valid, false);
+});
+
+test('schema : bar accepte label_family/label_bold/label_italic', () => {
+  const l = base();
+  l.components.t = { type: 'bar', label: 'B', label_family: 'inter', label_bold: true, label_italic: false };
+  assert.equal(validate(l).valid, true, JSON.stringify(validate(l).errors));
+});
+
+test('schema : icon reste taille seule — font_family rejeté (décision : glyphe de symbole)', () => {
+  const l = base();
+  l.components.t = { type: 'icon', symbol: 'bell', font_family: 'lora' };
+  assert.equal(validate(l).valid, false);
+});
