@@ -12,6 +12,11 @@
 #define LV_FONT_MONTSERRAT_36  1
 #define LV_FONT_MONTSERRAT_48  1
 
+// Moteur Tiny TTF (stb_truetype, fourni par LVGL) : rend le texte des composants depuis des TTF
+// embarques en flash, a n'importe quelle taille. Les Montserrat bitmap restent (symboles d'icone).
+#define LV_USE_TINY_TTF        1
+#define LV_TINY_TTF_FILE_SUPPORT 0   // chargement memoire (lv_tiny_ttf_create_data), pas de FS
+
 // Widgets "extra" utilises par chart/jauge
 #define LV_USE_CHART           1
 #define LV_USE_SCALE           1
