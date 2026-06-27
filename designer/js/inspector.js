@@ -12,7 +12,7 @@ import { ANCHORS, ANCHORS_OUT } from './geometry.js';
 import { getMock, setMock } from './mocks.js';
 import { numDragValue } from './numdrag.js';
 
-const FONTS = [12, 14, 20, 24, 28, 36, 48, 64, 72];
+const FONTS = [12, 14, 20, 24, 28, 36, 48, 64, 72, 80, 96];
 // Selects à options fixes (value firmware → libellé FR). Étend le motif anchor/anchorOut.
 const SELECTS = {
   barmode:    [['normal', 'Normal'], ['symmetrical', 'Symétrique']],
