@@ -280,25 +280,19 @@ async function main() {
     canvas.selectPlacement(null);
   });
 
-  // Échelle d'affichage du canvas = fit (board entier visible dans la colonne) × zoom utilisateur. Le board
-  // (écran + zones) est scalé d'un bloc → les zones épousent l'écran à toute échelle ; le rect live du #stage
-  // (÷360) reste la source du facteur pour le DnD et les interactions (palette/canvas). Zoom persisté.
-  const ZOOM_KEY = 'rt-designer-zoom';
-  const ZOOM_ALLOWED = ['1', '1.5', '2'];
-  const board = $('board'), boardFit = $('board-fit'), canvasCol = $('canvas-col'), zoomSel = $('zoom');
-  let userZoom = '1';
-  try { const z = localStorage.getItem(ZOOM_KEY); if (ZOOM_ALLOWED.includes(z)) userZoom = z; } catch (e) {}
-  zoomSel.value = userZoom;
+  // Échelle d'affichage du canvas = fit (board entier visible dans la colonne). Le board (écran + zones)
+  // est scalé d'un bloc → les zones épousent l'écran à toute échelle ; le rect live du #stage (÷360) reste
+  // la source du facteur pour le DnD et les interactions (palette/canvas).
+  const board = $('board'), boardFit = $('board-fit'), canvasCol = $('canvas-col');
   const applyScale = () => {
     const availW = Math.max(120, canvasCol.clientWidth - 24);
     const availH = Math.max(120, canvasCol.clientHeight - 150);   // réserve pour le titre + le carousel
     const fit = Math.min(availW / BOARD_W, availH / BOARD_H, 1.5);
-    const s = Math.max(0.2, fit) * Number(userZoom);
+    const s = Math.max(0.2, fit);
     board.style.transform = `scale(${s})`;
     boardFit.style.width = (BOARD_W * s) + 'px';
     boardFit.style.height = (BOARD_H * s) + 'px';
   };
-  zoomSel.onchange = () => { userZoom = zoomSel.value; applyScale(); try { localStorage.setItem(ZOOM_KEY, userZoom); } catch (e) {} };
   new ResizeObserver(applyScale).observe(canvasCol);
   applyScale();
 

@@ -42,8 +42,7 @@ export function formatSelectionContext(state, sel) {
 
 // --- DOM (vérifié navigateur ; pas de test node, cf. convention projet) ---
 // Barre d'état : gauche = contexte de sélection (s'abonne à selection + model) ; droite = verdict de
-// validation cliquable (s'abonne à model → validate) qui ouvre la console Problèmes (onValidClick). Le
-// <select id="zoom"> vit dans le markup à droite (display-only, câblé par app.js — pas géré ici).
+// validation cliquable (s'abonne à model → validate) qui ouvre la console Problèmes (onValidClick).
 export function createStatusbar(root, model, { selection, validate, onValidClick }) {
   const context = document.createElement('span');
   context.className = 'sb-context';
@@ -54,7 +53,7 @@ export function createStatusbar(root, model, { selection, validate, onValidClick
   valid.onclick = () => onValidClick?.();
   const spacer = document.createElement('span');
   spacer.className = 'sb-spacer';
-  // Ordre : contexte | spacer | validation | (zoom déjà présent dans le markup HTML à droite).
+  // Ordre : contexte | spacer | validation.
   root.prepend(context, spacer, valid);
 
   const renderContext = () => { context.textContent = formatSelectionContext(model.state, selection.get()); };

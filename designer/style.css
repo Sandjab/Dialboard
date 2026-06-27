@@ -141,7 +141,7 @@ main > .col:last-child { border-right: 0; }
   background: var(--panel-2); border: 1px solid var(--border-2); border-radius: 6px; box-shadow: 0 6px 24px rgba(0,0,0,.5); }
 .tree-menu-item.has-sub:hover > .tree-submenu { display: block; }
 
-/* --- Barre d'état (Phase 6) : contexte de sélection (gauche) · validation cliquable + zoom (droite) --- */
+/* --- Barre d'état (Phase 6) : contexte de sélection (gauche) · validation cliquable (droite) --- */
 .statusbar { display: flex; align-items: center; gap: 12px; padding: 0 14px;
   height: 24px; border-top: 1px solid var(--line); background: var(--panel);
   font-family: var(--font-mono); font-size: 10px; letter-spacing: .06em; color: var(--muted); }
@@ -152,7 +152,6 @@ main > .col:last-child { border-right: 0; }
 .sb-valid.sb-ok { color: var(--ok); }
 .sb-valid.sb-warn { color: var(--warn); }
 .sb-valid.sb-err { color: var(--err); }
-.sb-zoom { display: flex; align-items: center; gap: 6px; color: var(--muted); font-family: var(--font-mono); font-size: 10px; }
 
 /* --- Console bas repliable (Phase 6) : [Problèmes | Source], corps replié par défaut --- */
 .console { border-top: 1px solid var(--line); background: var(--panel); }
