@@ -21,7 +21,7 @@
     "directories": { "output": "dist" },
     "files": ["!mock-device.mjs", "!mock-announce.mjs"],
     "extraResources": [
-      { "from": "../../designer", "to": "app-root/designer" },
+      { "from": "../../designer", "to": "app-root/designer", "filter": ["**/*", "!electron", "!electron/**", "!tests", "!tests/**"] },
       { "from": "../../schema", "to": "app-root/schema" }
     ],
     "mac": {
