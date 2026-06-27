@@ -12,6 +12,8 @@ enum LineDash { LINE_SOLID, LINE_DASHED, LINE_DOTTED };      // line : motif du 
 enum Anchor   { A_CENTER, A_TOP_MID, A_BOTTOM_MID, A_LEFT_MID, A_RIGHT_MID,
                 A_TOP_LEFT, A_TOP_RIGHT, A_BOTTOM_LEFT, A_BOTTOM_RIGHT };
 
+enum FontFamily : uint8_t { FAMILY_MONTSERRAT = 0, FAMILY_JETBRAINS_MONO, FAMILY_LORA, FAMILY_INTER };
+
 struct Threshold { float limit; uint32_t color; };
 
 struct IconState { float at; uint8_t symbol; uint32_t color; bool has_symbol; bool has_color; };
@@ -37,8 +39,14 @@ struct Component {
     Threshold thresholds[MAX_THRESHOLDS];
     int      threshold_count;
     uint16_t font;
+    uint8_t  font_family;            // famille de police (defaut FAMILY_MONTSERRAT)
+    bool     bold;                   // gras (defaut false)
+    bool     italic;                 // italique (defaut false)
     uint32_t label_color;            // bar : couleur du libelle (defaut 0x9AA0AA)
     uint16_t label_font;             // bar : taille de police du libelle (defaut 14)
+    uint8_t  label_family;           // bar : famille du libelle (defaut FAMILY_MONTSERRAT)
+    bool     label_bold;             // bar : libelle gras
+    bool     label_italic;           // bar : libelle italique
     Anchor   label_align;            // bar : position du libelle autour de la barre (defaut A_TOP_MID)
     BarMode  bar_mode;               // bar : normal | symmetrical (lv_bar_set_mode)
     bool     bar_vertical;           // bar : orientation verticale (lv_bar_set_orientation)

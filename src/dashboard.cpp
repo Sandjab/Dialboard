@@ -33,6 +33,14 @@ static const struct { const char* name; CompType type; } COMP_NAMES[] = {
     { "icon", COMP_ICON },
 };
 
+static uint8_t parse_font_family(const char *s) {
+    if (!s) return FAMILY_MONTSERRAT;
+    if (!strcmp(s, "jetbrains_mono")) return FAMILY_JETBRAINS_MONO;
+    if (!strcmp(s, "lora"))           return FAMILY_LORA;
+    if (!strcmp(s, "inter"))          return FAMILY_INTER;
+    return FAMILY_MONTSERRAT;
+}
+
 static CompType parse_type(const char* s) {
     if (!s) return COMP_NONE;
     for (const auto& e : COMP_NAMES)
@@ -134,8 +142,14 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
         c.visible     = o["visible"] | true;   // config-time : caché par défaut possible (visible:false). Aussi pilotable via /update.
         strlcpy(c.cap_prefix, o["cap_prefix"] | "", sizeof(c.cap_prefix));
         c.font        = o["font"] | 20;
+        c.font_family = parse_font_family(o["font_family"] | "montserrat");
+        c.bold        = o["bold"]   | false;
+        c.italic      = o["italic"] | false;
         c.label_color = parse_hex_color(o["label_color"] | "#9AA0AA", 0x9AA0AA);
         c.label_font  = o["label_font"] | 14;
+        c.label_family = parse_font_family(o["label_family"] | "montserrat");
+        c.label_bold   = o["label_bold"]   | false;
+        c.label_italic = o["label_italic"] | false;
         c.label_align = parse_anchor(o["label_align"] | "TOP_MID");
         c.bar_mode     = parse_bar_mode(o["mode"] | "normal");
         c.bar_vertical = !strcmp(o["orientation"] | "horizontal", "vertical");

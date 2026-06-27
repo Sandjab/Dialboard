@@ -986,6 +986,27 @@ void test_icon_parsed(void) {
     TEST_ASSERT_EQUAL_INT(0, d.components[i2].icon_state_count);
 }
 
+#define LAYOUT_FONTS "{\"components\":{\"l\":{\"type\":\"label\",\"text\":\"x\",\"font\":24,\"font_family\":\"lora\",\"bold\":true,\"italic\":true}},\"pages\":[{\"name\":\"P\",\"place\":[{\"ref\":\"l\",\"anchor\":\"CENTER\"}]}]}"
+
+void test_font_family_parse(void) {
+    Dashboard d; char err[128];
+    TEST_ASSERT_TRUE(dash_set_layout(&d, LAYOUT_FONTS, err, sizeof(err)));
+    TEST_ASSERT_EQUAL_INT(1, d.comp_count);
+    TEST_ASSERT_EQUAL_INT(24, d.components[0].font);
+    TEST_ASSERT_EQUAL_INT(FAMILY_LORA, d.components[0].font_family);
+    TEST_ASSERT_TRUE(d.components[0].bold);
+    TEST_ASSERT_TRUE(d.components[0].italic);
+}
+
+void test_font_family_default(void) {
+    Dashboard d; char err[128];
+    const char *L = "{\"components\":{\"l\":{\"type\":\"label\",\"text\":\"x\"}},\"pages\":[{\"name\":\"P\",\"place\":[{\"ref\":\"l\",\"anchor\":\"CENTER\"}]}]}";
+    TEST_ASSERT_TRUE(dash_set_layout(&d, L, err, sizeof(err)));
+    TEST_ASSERT_EQUAL_INT(FAMILY_MONTSERRAT, d.components[0].font_family);
+    TEST_ASSERT_FALSE(d.components[0].bold);
+    TEST_ASSERT_FALSE(d.components[0].italic);
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_remaining_seconds);
@@ -1107,5 +1128,7 @@ int main(int, char**) {
     RUN_TEST(test_asset_resolve_prefixes_on_sd);
     RUN_TEST(test_asset_resolve_bare_on_littlefs);
     RUN_TEST(test_asset_resolve_truncates_gracefully);
+    RUN_TEST(test_font_family_parse);
+    RUN_TEST(test_font_family_default);
     return UNITY_END();
 }
