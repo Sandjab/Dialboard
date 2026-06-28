@@ -213,3 +213,24 @@ test('insertTargetIndex : X sous b (before=false) → X juste sous b', () => {
 test('insertTargetIndex : page cible à un seul élément, X au-dessus → X en tête display', () => {
   assert.deepEqual(displayAfterInsert(['a'], 'X', 'a', true), ['X','a']);
 });
+
+test('treeModel : les physiques sont listés hors pages, par ref + type + label', () => {
+  const state = {
+    title: 'D',
+    components: {
+      led: { type: 'led_ring' },
+      buzz: { type: 'sound' },
+      t1: { type: 'label', text: 'x' },
+    },
+    pages: [{ name: 'P1', place: [{ ref: 't1' }, { ref: 'led' }] }],
+  };
+  const tm = treeModel(state);
+  // physiques présents, par ref
+  assert.deepEqual(tm.physicals.map(p => p.ref).sort(), ['buzz', 'led']);
+  // un physique reste affiché côté page s'il est placé (legacy) — on ne filtre pas ici
+  assert.equal(tm.pages[0].components.some(c => c.ref === 'led'), true);
+  // type et label remontés
+  const led = tm.physicals.find(p => p.ref === 'led');
+  assert.equal(led.type, 'led_ring');
+  assert.notEqual(led.label, '?');   // libellé résolu depuis le registre, pas le repli orphelin
+});

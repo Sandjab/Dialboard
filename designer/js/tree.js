@@ -4,6 +4,7 @@
 import { COMPONENTS } from './registry.js';
 import { iconFor } from './icons.js';
 import { setComponentProp, addPage, removePage, renamePage, reorderPages, uniquePageName, pageNameTaken, renameComponent, duplicatePage, reorderPlacement, movePlacementToPage, isValidId } from './mutations.js';
+import { physicalComponentIds } from './physical.js';
 import { logs } from './logs.js';
 import { showToast } from './toast.js';
 import { t } from './i18n.js';
@@ -20,6 +21,10 @@ const EYE_OFF_URI  = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
 // canvas/inspecteur). Le libellé vient du registre ; repli '?' si le ref est orphelin.
 export function treeModel(state) {
   const comps = state?.components || {};
+  const physicals = physicalComponentIds(state || {}).map(ref => {
+    const type = comps[ref]?.type ?? null;
+    return { ref, type, label: type ? t(COMPONENTS[type].label) : '?' };
+  });
   const pages = (state?.pages || []).map((p, index) => {
     const place = Array.isArray(p.place) ? p.place : [];
     const components = place
@@ -37,7 +42,7 @@ export function treeModel(state) {
       .reverse();                                     // z-order inversé : dessus en premier
     return { index, name: p.name, components };
   });
-  return { title: state?.title ?? '', pages };
+  return { title: state?.title ?? '', physicals, pages };
 }
 
 // Drop d'un composant (drag&drop arbre) → index cible dans place[]. L'arbre affiche place[] INVERSÉ
