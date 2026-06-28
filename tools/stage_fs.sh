@@ -12,12 +12,13 @@ set -euo pipefail
 cd "$(dirname "$0")/.."   # -> Dialboard/
 
 rm -rf data/designer data/schema
-mkdir -p data/designer/js data/designer/vendor data/schema
+mkdir -p data/designer/js data/designer/vendor data/designer/i18n data/schema
 
 cp designer/index.html        data/designer/index.htm
 cp designer/style.css         data/designer/
 cp designer/js/*.js           data/designer/js/
 cp -R designer/vendor/.        data/designer/vendor/
+cp -R designer/i18n/.         data/designer/i18n/
 cp schema/layout.schema.json  data/schema/
 
 echo "Staged → data/designer (index.htm + js + vendor + style.css), data/schema"
