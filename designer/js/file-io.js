@@ -4,6 +4,7 @@
 // (page active, sélection) après un import. Vérifié au navigateur.
 import { showToast } from './toast.js';
 import { logs } from './logs.js';
+import { t } from './i18n.js';
 
 export function bindFileIO(model, { exportBtn, importBtn, importInput, onLoad } = {}) {
   exportBtn.addEventListener('click', () => {
@@ -14,7 +15,7 @@ export function bindFileIO(model, { exportBtn, importBtn, importInput, onLoad } 
     a.download = 'layout.json';
     a.click();
     URL.revokeObjectURL(url);
-    logs.logActivity('Layout exporté (fichier)');
+    logs.logActivity(t('activity.layout_exported'));
   });
 
   importBtn.addEventListener('click', () => importInput.click());
@@ -26,9 +27,9 @@ export function bindFileIO(model, { exportBtn, importBtn, importInput, onLoad } 
       const text = await file.text();
       model.loadJSON(text);            // throw si JSON illisible ; la forme est validée par le panneau
       onLoad && onLoad();
-      logs.logActivity('Layout importé (fichier)');
+      logs.logActivity(t('activity.layout_imported'));
     } catch (e) {
-      showToast('Import échoué : ' + e.message, { kind: 'err' });
+      showToast(t('toast.import_failed', { msg: e.message }), { kind: 'err' });
     } finally {
       importInput.value = '';          // réautorise la réimportation du même fichier
     }

@@ -5,6 +5,7 @@
 import { referencedKeys, cacheBytes as bgBytes, cachePut as bgPut } from './bg-image.js';
 import { referencedImageKeys, cacheBytes as imgBytes, rehydrate as imgRehydrate } from './image-asset.js';
 import { referencedAimgKeys, packBytes as aimgBytes, rehydrate as aimgRehydrate } from './image-anim-asset.js';
+import { t } from './i18n.js';
 
 const CHUNK = 0x8000;
 function bytesToB64(u8) {
@@ -36,7 +37,7 @@ export function encodeBundle(layoutText, assets = {}) {
 // string .dboard → { layout: string JSON, assets:{bg,image,aimg : {key:Uint8Array}} }. Throw si invalide.
 export function decodeBundle(text) {
   const o = JSON.parse(text);
-  if (o.version !== 1 || !o.assets || !o.layout) throw new Error('Bundle .dboard invalide ou version non supportée');
+  if (o.version !== 1 || !o.assets || !o.layout) throw new Error(t('bundle.invalid'));
   return {
     layout: JSON.stringify(o.layout),
     assets: {

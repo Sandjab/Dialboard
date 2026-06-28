@@ -341,5 +341,18 @@
   "mdns.picker_title": "Devices détectés (mDNS)",
   "mdns.rescan_title": "Re-scanner le réseau (mDNS)",
   "mdns.picker_placeholder": "{count} devices…",
-  "mdns.device_default_name": "dialboard"
+  "mdns.device_default_name": "dialboard",
+  "ctx.rename_id": "Renommer (id)",
+  "ctx.duplicate": "Dupliquer",
+  "ctx.copy": "Copier",
+  "ctx.cut": "Couper",
+  "ctx.paste": "Coller",
+  "ctx.delete": "Supprimer",
+  "ctx.raise": "Monter (avant-plan)",
+  "ctx.lower": "Descendre (arrière-plan)",
+  "ctx.move_to": "Déplacer vers…",
+  "activity.layout_exported": "Layout exporté (fichier)",
+  "activity.layout_imported": "Layout importé (fichier)",
+  "toast.import_failed": "Import échoué : {msg}",
+  "bundle.invalid": "Bundle .dboard invalide ou version non supportée"
 }

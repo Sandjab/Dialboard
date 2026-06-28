@@ -363,4 +363,19 @@ export default {
   'mdns.rescan_title': 'Rescan the network (mDNS)',
   'mdns.picker_placeholder': '{count} devices…',
   'mdns.device_default_name': 'dialboard',
+  // --- Menu contextuel (arbre / carousel) ---
+  'ctx.rename_id': 'Rename (id)',
+  'ctx.duplicate': 'Duplicate',
+  'ctx.copy': 'Copy',
+  'ctx.cut': 'Cut',
+  'ctx.paste': 'Paste',
+  'ctx.delete': 'Delete',
+  'ctx.raise': 'Raise (front)',
+  'ctx.lower': 'Lower (back)',
+  'ctx.move_to': 'Move to…',
+  // --- Import/export fichier (file-io, bundle) ---
+  'activity.layout_exported': 'Layout exported (file)',
+  'activity.layout_imported': 'Layout imported (file)',
+  'toast.import_failed': 'Import failed: {msg}',
+  'bundle.invalid': 'Invalid .dboard bundle or unsupported version',
 };
