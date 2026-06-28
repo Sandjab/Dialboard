@@ -55,9 +55,11 @@ designer/js/i18n.js   moteur : t(), chargement de langue, scan HTML statique.
 
 - `i18n/` est servi en statique partout ; fetch **relatif à `index.html`** (`fetch('i18n/<code>.json')`)
   ⇒ un seul chemin marche en web (`./i18n/…`), device (`/designer/i18n/…`) et Electron (`app://…/i18n/…`).
-- `tools/stage_fs.sh` stagera `designer/i18n/` dans `data/` (comme `designer/`+`schema/`) pour le
-  device. Poids attendu d'un pack ≈ quelques dizaines de Ko (négligeable pour LittleFS). EN n'a **pas**
-  de fichier sur le device (intégré au bundle JS).
+- `tools/stage_fs.sh` stagera **tout** `designer/i18n/` dans `data/` (comme `designer/`+`schema/`) pour
+  le device. Poids attendu d'un pack ≈ quelques dizaines de Ko (négligeable pour LittleFS). ⚠️ `en.js`
+  **doit** être stagé : il n'y a **pas de bundler**, c'est un **module ES importé** par `js/i18n.js`
+  (`import EN from '../i18n/en.js'`) → absent du device, l'import donne un 404 et le moteur ne charge
+  pas. « Intégré au bundle » = importé statiquement (jamais fetché comme un pack), pas « absent du disque ».
 
 ### Catalogue plat, clés namespacées
 
