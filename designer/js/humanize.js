@@ -5,6 +5,8 @@
 
 const COLOR_PATTERN = '^#[0-9A-Fa-f]{6}$';
 const ASCII_PATTERN = '^[\\x00-\\x7F]*$';
+const ID_PATTERN = '^[A-Za-z0-9_]+$';
+const DISPLAY_PATTERN = '^[\\x20-\\x7E\\xA0-\\xFF]*$';
 
 const FR_TYPE = { integer: 'entier', number: 'nombre', string: 'texte', boolean: 'booléen', object: 'objet', array: 'liste' };
 const frType = t => FR_TYPE[t] || t;
@@ -30,6 +32,8 @@ export function humanizeAjvError(e) {
     case 'pattern':
       if (e.params?.pattern === COLOR_PATTERN) return `${where} : doit être une couleur au format #RRGGBB`;
       if (e.params?.pattern === ASCII_PATTERN) return `${where} : doit rester en ASCII (pas d'accents ni de symboles spéciaux)`;
+      if (e.params?.pattern === ID_PATTERN) return `${where} : identifiant invalide (lettres, chiffres, _ uniquement)`;
+      if (e.params?.pattern === DISPLAY_PATTERN) return `${where} : caractère non affichable par le device (Latin-1 uniquement)`;
       return `${where} : format invalide`;
     case 'enum': {
       const vals = (e.params?.allowedValues || []).join(', ');
