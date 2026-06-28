@@ -26,7 +26,7 @@ export function formatSelectionContext(state, sel) {
     return t('status.doc', { pages: pages.length, comps: total });
   }
   if (sel.kind === 'physical') {
-    const c = state.components?.[sel.ref];
+    const c = state?.components?.[sel.ref];
     const typeLabel = c && COMPONENTS[c.type] ? t(COMPONENTS[c.type].label) : '?';
     return t('status.physical', { type: typeLabel, ref: sel.ref });
   }

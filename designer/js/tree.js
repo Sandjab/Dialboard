@@ -23,7 +23,7 @@ export function treeModel(state) {
   const comps = state?.components || {};
   const physicals = physicalComponentIds(state || {}).map(ref => {
     const type = comps[ref]?.type ?? null;
-    return { ref, type, label: type ? t(COMPONENTS[type].label) : '?' };
+    return { ref, type, label: type && COMPONENTS[type] ? t(COMPONENTS[type].label) : '?' };
   });
   const pages = (state?.pages || []).map((p, index) => {
     const place = Array.isArray(p.place) ? p.place : [];
@@ -35,7 +35,7 @@ export function treeModel(state) {
           index: i,                                   // position réelle dans place[]
           ref: pl.ref,
           type,
-          label: type ? t(COMPONENTS[type].label) : '?',
+          label: type && COMPONENTS[type] ? t(COMPONENTS[type].label) : '?',
           visible: c?.visible !== false,
         };
       })
