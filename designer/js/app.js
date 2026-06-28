@@ -25,7 +25,7 @@ import { placeComponentCopy, duplicateComponent, removePlacementAndOrphan } from
 import { createSelection, sameSelection, isSelectionValid } from './selection.js';
 import { loadSettings, saveSettings, normalizeSettings, applyVisualSettings, createSettings } from './settings.js';
 import { logs, installConsoleCapture } from './logs.js';
-import { initI18n, applyStaticI18n, t } from './i18n.js';
+import { initI18n, applyStaticI18n, t, availableLanguages, currentLang } from './i18n.js';
 import { DEFAULT_LAYOUT } from './default-layout.js';
 import { serializeBundle, loadBundle } from './bundle.js';
 
@@ -237,10 +237,14 @@ async function main() {
   // L'aperçu de l'anneau LED vit dans le mini-aperçu du panneau Device (le liseré du canvas a été retiré).
   createDevicePanel($('device'), model);
   const drawer = createDrawer($('drawer'), { toggleBtn: $('drawer-toggle'), onOpen: () => settings.close() });  // settings déclaré juste après — closure, pas de TDZ
+  const languages = await availableLanguages();
   const settings = createSettings($('settings-drawer'), {
     toggleBtn: $('settings-toggle'),
     onOpen: () => drawer.close(),                 // un seul tiroir ouvert à la fois
     getSettings, setSettings,
+    languages,
+    currentLang: currentLang(),
+    onLanguageChange: (code) => { setSettings({ lang: code }); location.reload(); },
     onNewLayout: () => {                           // layout vierge (undoable : loadJSON snapshot)
       model.loadJSON(JSON.stringify(DEFAULT_LAYOUT));
       canvas.setPage(0); tree.render(); setSelection(null);

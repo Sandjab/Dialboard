@@ -2,6 +2,7 @@
 // localStorage, application des variables CSS. Le DOM du tiroir est ajouté en bas (createSettings).
 // Pur testé node ; load/save/apply touchent localStorage/DOM (non testés node, cf. convention).
 import { withConfirm } from './confirm.js';
+import { t } from './i18n.js';
 const KEY = 'rt-designer-settings';
 const STEPS = [5, 10, 20];
 const THEMES = ['amber', 'green', 'blue', 'violet', 'red', 'yellow'];
@@ -63,7 +64,7 @@ function checkbox(checked, onChange) {
   c.onchange = () => onChange(c.checked);
   return c;
 }
-export function createSettings(root, { toggleBtn, onOpen, getSettings, setSettings, onNewLayout }) {
+export function createSettings(root, { toggleBtn, onOpen, getSettings, setSettings, onNewLayout, languages = [], currentLang = 'en', onLanguageChange }) {
   const backdrop = root.querySelector('.drawer-backdrop');
   const closeBtn = root.querySelector('.drawer-close');
   const pane = root.querySelector('#settings');
@@ -90,6 +91,19 @@ export function createSettings(root, { toggleBtn, onOpen, getSettings, setSettin
     themeSel.onchange = () => setSettings({ theme: themeSel.value });   // commit sur change (cf. invariant input/change)
     themeRow.querySelector('.set-line').appendChild(themeSel);
     pane.appendChild(themeRow);
+
+    // Langue de l'interface (anglais intégré + packs du manifeste). Le changement recharge la page.
+    if (languages.length > 1 && onLanguageChange) {
+      const langRow = settingRow(t('i18n.language'));
+      const langSel = document.createElement('select');
+      for (const { code, name } of languages) {
+        const o = document.createElement('option'); o.value = code; o.textContent = name;
+        if (code === currentLang) o.selected = true; langSel.appendChild(o);
+      }
+      langSel.onchange = () => onLanguageChange(langSel.value);
+      langRow.querySelector('.set-line').appendChild(langSel);
+      pane.appendChild(langRow);
+    }
 
     // Transparence des invisibles
     const opRow = settingRow('Transparence des invisibles');
