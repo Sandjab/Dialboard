@@ -138,6 +138,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
   // Le `ref` se DÉRIVE du placement (jamais stocké dans la sélection — cf. spec §1).
   const currentSel = () => {
     const s = selection.get();
+    if (s && s.kind === 'physical') return { ref: s.ref, physical: true };   // led_ring/sound : pas de placement
     if (!s || s.kind !== 'comp') return null;
     const pl = model.state.pages?.[s.page]?.place?.[s.index];
     if (!pl) return null;
@@ -585,48 +586,51 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
       head.appendChild(eye);
     }
     body.appendChild(head);
+    if (c.type === 'sound') note(body, t('device.note_sound'));   // physique sans champ : note d'usage
 
-    const { sec: propSec, body: propBody } = section(t('inspector.sec.props'));
-    const rows = {};
-    for (const [key, label, kind, enableWhen] of COMPONENTS[c.type].compFields) {
-      if (kind === 'image') { propBody.appendChild(imageField(label, c)); continue; }   // picker bespoke
-      if (kind === 'image_anim') { propBody.appendChild(imageAnimField(label, c)); continue; }   // editeur bespoke
-      if (kind === 'fill') { propBody.appendChild(fillField(label, c)); continue; }   // forme : fond optionnel (bespoke : enableWhen non supporté, comme image/image_anim)
-      // Color picker : aperçu live sur 'input' (canvas seul, hors modèle → pas de flood undo) ; commit
-      // unique sur 'change' (makeInput), précédé d'un clearPreview pour que le commit re-rende l'état réel.
-      // ref figée au rendu : le color picker émet son 'change' en DIFFÉRÉ (après qu'un clic ailleurs a
-      // déjà déplacé `sel`) ; sans figer, le commit atterrirait sur la sélection courante (mauvais
-      // composant). On committe donc toujours sur le composant qu'on éditait. (cf. bug picker couleur)
-      const ref = sel.ref;
-      const placeIndex = sel.placeIndex;   // figé au rendu comme ref (orientation barre → swap W/H du placement)
-      const commit = v => {
-        if (kind === 'color') clearPreview?.();
-        // Orientation barre : bascule + échange Largeur/Hauteur du placement en UN seul commit (1 undo).
-        if (key === 'orientation' && c.type === 'bar') { model.commit(s => setBarOrientation(s, ref, getActivePage(), placeIndex, v)); return; }
-        model.commit(s => setComponentProp(s, ref, key, v), kind === 'num' ? { coalesce: 'num' } : undefined);   // F2 : coalesce num
-      };
-      const input = makeInput(kind, c[key], commit);
-      if (kind === 'color') input.addEventListener('input', () => previewProp?.(ref, { [key]: input.value.toUpperCase() }));
-      const displayLabel = key === 'bind' ? '⛓ ' + t('field.bind') : t(label);
-      const row = fieldRow(displayLabel, input, { charset: kind === 'idtext' ? 'id' : kind === 'latintext' ? 'latin1' : undefined });
-      if (key === 'bind') row.classList.add('insp-source');
-      rows[key] = { input, row, enableWhen };
-      propBody.appendChild(row);
-    }
-    body.appendChild(propSec);
-    // Grise les champs non pertinents dans l'état courant (ex : couleur/police du centre si center_pct off).
-    // En direct, sans rebuild : le garde-focus de render() bloquerait une reconstruction juste après le clic.
-    const syncEnabled = () => {
-      const cc = comp(); if (!cc) return;
-      for (const { input, row, enableWhen } of Object.values(rows)) {
-        if (!enableWhen) continue;
-        const ok = enableWhen(cc);
-        input.disabled = !ok;
-        row.classList.toggle('disabled', !ok);
+    if (COMPONENTS[c.type].compFields.length) {   // sound n'a aucun champ → pas de rubrique vide
+      const { sec: propSec, body: propBody } = section(t('inspector.sec.props'));
+      const rows = {};
+      for (const [key, label, kind, enableWhen] of COMPONENTS[c.type].compFields) {
+        if (kind === 'image') { propBody.appendChild(imageField(label, c)); continue; }   // picker bespoke
+        if (kind === 'image_anim') { propBody.appendChild(imageAnimField(label, c)); continue; }   // editeur bespoke
+        if (kind === 'fill') { propBody.appendChild(fillField(label, c)); continue; }   // forme : fond optionnel (bespoke : enableWhen non supporté, comme image/image_anim)
+        // Color picker : aperçu live sur 'input' (canvas seul, hors modèle → pas de flood undo) ; commit
+        // unique sur 'change' (makeInput), précédé d'un clearPreview pour que le commit re-rende l'état réel.
+        // ref figée au rendu : le color picker émet son 'change' en DIFFÉRÉ (après qu'un clic ailleurs a
+        // déjà déplacé `sel`) ; sans figer, le commit atterrirait sur la sélection courante (mauvais
+        // composant). On committe donc toujours sur le composant qu'on éditait. (cf. bug picker couleur)
+        const ref = sel.ref;
+        const placeIndex = sel.placeIndex;   // figé au rendu comme ref (orientation barre → swap W/H du placement)
+        const commit = v => {
+          if (kind === 'color') clearPreview?.();
+          // Orientation barre : bascule + échange Largeur/Hauteur du placement en UN seul commit (1 undo).
+          if (key === 'orientation' && c.type === 'bar') { model.commit(s => setBarOrientation(s, ref, getActivePage(), placeIndex, v)); return; }
+          model.commit(s => setComponentProp(s, ref, key, v), kind === 'num' ? { coalesce: 'num' } : undefined);   // F2 : coalesce num
+        };
+        const input = makeInput(kind, c[key], commit);
+        if (kind === 'color') input.addEventListener('input', () => previewProp?.(ref, { [key]: input.value.toUpperCase() }));
+        const displayLabel = key === 'bind' ? '⛓ ' + t('field.bind') : t(label);
+        const row = fieldRow(displayLabel, input, { charset: kind === 'idtext' ? 'id' : kind === 'latintext' ? 'latin1' : undefined });
+        if (key === 'bind') row.classList.add('insp-source');
+        rows[key] = { input, row, enableWhen };
+        propBody.appendChild(row);
       }
-    };
-    syncEnabled();
-    body.addEventListener('change', syncEnabled); // un toggle (ex: center_pct) re-évalue les dépendants
+      body.appendChild(propSec);
+      // Grise les champs non pertinents dans l'état courant (ex : couleur/police du centre si center_pct off).
+      // En direct, sans rebuild : le garde-focus de render() bloquerait une reconstruction juste après le clic.
+      const syncEnabled = () => {
+        const cc = comp(); if (!cc) return;
+        for (const { input, row, enableWhen } of Object.values(rows)) {
+          if (!enableWhen) continue;
+          const ok = enableWhen(cc);
+          input.disabled = !ok;
+          row.classList.toggle('disabled', !ok);
+        }
+      };
+      syncEnabled();
+      body.addEventListener('change', syncEnabled); // un toggle (ex: center_pct) re-évalue les dépendants
+    }
 
     renderExtras(body, c); // Task 6
 
