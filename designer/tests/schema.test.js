@@ -170,7 +170,7 @@ test('validate : image_anim au-dela du plafond memoire -> erreur', () => {
   l.pages[0].place.push({ ref: 'sp', anchor: 'CENTER' });
   const r = validate(l);
   assert.equal(r.valid, false);
-  assert.ok(r.errors.some(e => /pack trop gros|trop de frames/.test(e)));
+  assert.ok(r.errors.some(e => /pack too large|too many frames/.test(e)));   // messages validate.* (EN en contexte test)
 });
 
 test('schema : comp_ring accepte cap_prefix ASCII', () => {

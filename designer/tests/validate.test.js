@@ -63,7 +63,7 @@ test('limite firmware : trop de composants (>32) → invalide', () => {
   for (let i = 0; i < 33; i++) comps['c' + i] = { type: 'label', text: 'x' };
   const r = validate({ components: comps, pages: [{ name: 'p', place: [] }] });
   assert.equal(r.valid, false);
-  assert.ok(r.errors.some(e => e.includes('composants')));
+  assert.ok(r.errors.some(e => e.includes('components')));
 });
 
 test('limite firmware : trop de pages (>8) → invalide', () => {

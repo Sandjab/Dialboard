@@ -24,9 +24,9 @@ test('encodeBundle : pose version 1 et des assets base64 (intent : format stable
 });
 
 test('decodeBundle : rejette un bundle sans version (intent : ne pas charger un format inconnu)', () => {
-  assert.throws(() => decodeBundle(JSON.stringify({ layout, assets: {} })), /version|invalide/i);
+  assert.throws(() => decodeBundle(JSON.stringify({ layout, assets: {} })), /version|invalid/i);
 });
 
 test('decodeBundle : rejette un bundle sans layout (intent : un bundle tronqué échoue clairement)', () => {
-  assert.throws(() => decodeBundle(JSON.stringify({ version: 1, assets: {} })), /layout|invalide/i);
+  assert.throws(() => decodeBundle(JSON.stringify({ version: 1, assets: {} })), /version|invalid/i);
 });

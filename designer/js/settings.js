@@ -82,10 +82,10 @@ export function createSettings(root, { toggleBtn, onOpen, getSettings, setSettin
     pane.replaceChildren();   // vide le panneau (équivalent sûr de innerHTML='')
 
     // Thème (accent de l'UI designer)
-    const themeRow = settingRow('Thème');
+    const themeRow = settingRow(t('settings.theme'));
     const themeSel = document.createElement('select');
-    for (const [val, txt] of [['amber','Ambre'],['green','Vert'],['blue','Bleu'],['violet','Violet'],['red','Rouge'],['yellow','Jaune']]) {
-      const o = document.createElement('option'); o.value = val; o.textContent = txt;
+    for (const val of THEMES) {
+      const o = document.createElement('option'); o.value = val; o.textContent = t('settings.theme.' + val);
       if (val === s.theme) o.selected = true; themeSel.appendChild(o);
     }
     themeSel.onchange = () => setSettings({ theme: themeSel.value });   // commit sur change (cf. invariant input/change)
@@ -106,7 +106,7 @@ export function createSettings(root, { toggleBtn, onOpen, getSettings, setSettin
     }
 
     // Transparence des invisibles
-    const opRow = settingRow('Transparence des invisibles');
+    const opRow = settingRow(t('settings.ghost_opacity'));
     const op = document.createElement('input');
     op.type = 'range'; op.min = '0'; op.max = '1'; op.step = '0.02'; op.value = String(s.ghostOpacity);
     const opVal = document.createElement('span'); opVal.className = 'set-val'; opVal.textContent = s.ghostOpacity.toFixed(2);
@@ -116,17 +116,17 @@ export function createSettings(root, { toggleBtn, onOpen, getSettings, setSettin
     pane.appendChild(opRow);
 
     // Afficher la grille
-    const gridRow = settingRow('Afficher la grille');
+    const gridRow = settingRow(t('settings.grid_show'));
     gridRow.querySelector('.set-line').appendChild(checkbox(s.gridShow, v => setSettings({ gridShow: v })));
     pane.appendChild(gridRow);
 
     // Aimanter (snap)
-    const snapRow = settingRow('Aimanter au pas (snap)');
+    const snapRow = settingRow(t('settings.grid_snap'));
     snapRow.querySelector('.set-line').appendChild(checkbox(s.gridSnap, v => setSettings({ gridSnap: v })));
     pane.appendChild(snapRow);
 
     // Pas de la grille
-    const stepRow = settingRow('Pas de la grille');
+    const stepRow = settingRow(t('settings.grid_step'));
     const step = document.createElement('select');
     for (const v of STEPS) {
       const o = document.createElement('option'); o.value = String(v); o.textContent = v + ' px';
@@ -137,21 +137,21 @@ export function createSettings(root, { toggleBtn, onOpen, getSettings, setSettin
     pane.appendChild(stepRow);
 
     // Journaux de la console (chaque case montre/masque l'onglet correspondant)
-    const actRow = settingRow('Journal d’activité');
+    const actRow = settingRow(t('settings.log_activity'));
     actRow.querySelector('.set-line').appendChild(checkbox(s.logActivity, v => setSettings({ logActivity: v })));
     pane.appendChild(actRow);
-    const jsRow = settingRow('Journal JS (console navigateur)');
+    const jsRow = settingRow(t('settings.log_js'));
     jsRow.querySelector('.set-line').appendChild(checkbox(s.logJs, v => setSettings({ logJs: v })));
     pane.appendChild(jsRow);
-    const netRow = settingRow('Journal réseau (device)');
+    const netRow = settingRow(t('settings.log_net'));
     netRow.querySelector('.set-line').appendChild(checkbox(s.logNet, v => setSettings({ logNet: v })));
     pane.appendChild(netRow);
 
     // Actions
     const actions = document.createElement('div'); actions.className = 'set-actions';
-    const neww = document.createElement('button'); neww.className = 'set-btn'; neww.type = 'button'; neww.textContent = 'Nouveau (layout vierge)';
+    const neww = document.createElement('button'); neww.className = 'set-btn'; neww.type = 'button'; neww.textContent = t('settings.new_layout');
     withConfirm(neww, () => onNewLayout && onNewLayout());
-    const reset = document.createElement('button'); reset.className = 'set-btn'; reset.type = 'button'; reset.textContent = 'Réinitialiser les réglages';
+    const reset = document.createElement('button'); reset.className = 'set-btn'; reset.type = 'button'; reset.textContent = t('settings.reset');
     reset.onclick = () => { setSettings(defaultSettings()); build(); };   // reconstruit pour resync les contrôles
     actions.append(neww, reset);
     pane.appendChild(actions);

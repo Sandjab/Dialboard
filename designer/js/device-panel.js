@@ -9,12 +9,13 @@ import { getMock, setMock } from './mocks.js';
 import { physicalComponentIds } from './physical.js';
 import { paintRing, ledFrame, ledFrameAt } from './led-ring-preview.js';
 import { showToast } from './toast.js';
+import { t } from './i18n.js';
 
 function fieldInput(kind, value, onChange) {
   if (kind === 'ledmode') {
     const sel = document.createElement('select');
     for (const [val, txt] of LED_MODES) {
-      const o = document.createElement('option'); o.value = val; o.textContent = txt;
+      const o = document.createElement('option'); o.value = val; o.textContent = t(txt);
       if (val === (value ?? LED_MODES[0][0])) o.selected = true;
       sel.appendChild(o);
     }
@@ -74,7 +75,7 @@ export function createDevicePanel(root, model) {
           if (renamingId !== id) return;
           const nid = inp.value.trim();
           if (cancelled || !nid || nid === orig) { renamingId = null; render(); return; }        // vide/identique/Échap → annule
-          if (model.state.components?.[nid]) { showToast(`L'id « ${nid} » est déjà pris`); renamingId = null; render(); return; }
+          if (model.state.components?.[nid]) { showToast(t('id.taken', { id: nid })); renamingId = null; render(); return; }
           renamingId = null;
           model.commit(s => renameComponent(s, orig, nid));   // → subscribe → render()
         };
@@ -91,21 +92,21 @@ export function createDevicePanel(root, model) {
         queueMicrotask(() => { inp.focus(); inp.select(); });
       } else {
         const title = document.createElement('span'); title.className = 'src-title';
-        title.textContent = `${id} · ${def.label}`;
-        title.title = "Double-cliquer pour renommer l'id";
+        title.textContent = `${id} · ${t(def.label)}`;
+        title.title = t('device.rename_tip');
         title.addEventListener('dblclick', () => { renamingId = id; render(); });
         head.appendChild(title);
       }
       card.appendChild(head);
       if (c.type === 'sound') {
         const note = document.createElement('div'); note.className = 'src-note';
-        note.textContent = 'Déclenché via /update : {tone, ms} ou {name: ok|alert|error}';
+        note.textContent = t('device.note_sound');
         card.appendChild(note);
       }
 
       const rows = [];                       // pour le grisage enableWhen
       for (const [key, label, kind, enableWhen] of (def.compFields || [])) {
-        const row = labelled(label, fieldInput(kind, c[key], v => model.commit(s => setComponentProp(s, id, key, v))));
+        const row = labelled(t(label), fieldInput(kind, c[key], v => model.commit(s => setComponentProp(s, id, key, v))));
         rows.push({ row, enableWhen });
         card.appendChild(row);
       }
@@ -132,7 +133,7 @@ export function createDevicePanel(root, model) {
       if (def.mockFields?.length) {
         const m = getMock(id, c.type);
         for (const [key, label] of def.mockFields) {
-          card.appendChild(labelled(label, fieldInput('num', m[key], v => {
+          card.appendChild(labelled(t(label), fieldInput('num', m[key], v => {
             setMock(id, { [key]: v === '' ? 0 : v });   // le mini se met à jour via le listener 'change' de la carte
           })));
         }
@@ -142,10 +143,10 @@ export function createDevicePanel(root, model) {
         paintRing(mini, ledFrame(liveComp(), getMock(id, 'led_ring')));
         card.appendChild(mini);
 
-        const play = document.createElement('button'); play.className = 'src-add'; play.textContent = '▶ Aperçu';   // réutilise le style src-add (bouton plein)
+        const play = document.createElement('button'); play.className = 'src-add'; play.textContent = t('device.preview');   // réutilise le style src-add (bouton plein)
         play.addEventListener('click', () => {
-          if (previewRaf) { stopPreview(); play.textContent = '▶ Aperçu'; paintRing(mini, ledFrame(liveComp(), getMock(id, 'led_ring'))); return; }
-          play.textContent = '⏸ Aperçu';
+          if (previewRaf) { stopPreview(); play.textContent = t('device.preview'); paintRing(mini, ledFrame(liveComp(), getMock(id, 'led_ring'))); return; }
+          play.textContent = t('device.preview_stop');
           const loop = () => { paintRing(mini, ledFrameAt(liveComp(), getMock(id, 'led_ring'), performance.now())); previewRaf = requestAnimationFrame(loop); };
           loop();
         });

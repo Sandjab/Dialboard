@@ -11,14 +11,16 @@ import { ICON_SVG } from './render.js';
 import { ANCHORS, ANCHORS_OUT } from './geometry.js';
 import { getMock, setMock } from './mocks.js';
 import { numDragValue } from './numdrag.js';
+import { t } from './i18n.js';
 
 const FONTS = [12, 14, 20, 24, 28, 36, 48, 64, 72, 80, 96];
-// Selects à options fixes (value firmware → libellé FR). Étend le motif anchor/anchorOut.
+// Selects à options fixes (value firmware → clé i18n ou libellé propre [symboles/familles : non traduits,
+// t() retombe sur la chaîne]). Étend le motif anchor/anchorOut. Résolus par t() au rendu.
 const SELECTS = {
-  barmode:    [['normal', 'Normal'], ['symmetrical', 'Symétrique']],
-  orient:     [['horizontal', 'Horizontal'], ['vertical', 'Vertical']],
-  arcmode:    [['normal', 'Normal'], ['symmetrical', 'Symétrique'], ['reverse', 'Inversé']],
-  dash:       [['solid', 'Plein'], ['dashed', 'Tirets'], ['dotted', 'Pointillé']],
+  barmode:    [['normal', 'select.barmode.normal'], ['symmetrical', 'select.barmode.symmetrical']],
+  orient:     [['horizontal', 'select.orient.horizontal'], ['vertical', 'select.orient.vertical']],
+  arcmode:    [['normal', 'select.arcmode.normal'], ['symmetrical', 'select.arcmode.symmetrical'], ['reverse', 'select.arcmode.reverse']],
+  dash:       [['solid', 'select.dash.solid'], ['dashed', 'select.dash.dashed'], ['dotted', 'select.dash.dotted']],
   symbol:     Object.keys(ICON_SVG).map(n => [n, n]),
   fontfamily: [['montserrat', 'Montserrat'], ['jetbrains_mono', 'JetBrains Mono'], ['lora', 'Lora'], ['inter', 'Inter']],
 };
@@ -101,7 +103,7 @@ function makeInput(kind, value, onChange, placeholder) {
   } else if (SELECTS[kind]) {
     el = document.createElement('select');
     const opts = SELECTS[kind];
-    for (const [val, txt] of opts) { const o = document.createElement('option'); o.value = val; o.textContent = txt; if (val === (value ?? opts[0][0])) o.selected = true; el.appendChild(o); }
+    for (const [val, txt] of opts) { const o = document.createElement('option'); o.value = val; o.textContent = t(txt); if (val === (value ?? opts[0][0])) o.selected = true; el.appendChild(o); }
     el.addEventListener('change', () => onChange(el.value));
   } else { // text / latintext / idtext
     el = document.createElement('input'); el.type = 'text'; el.value = value ?? '';
@@ -151,10 +153,10 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
   //  - color (F3) : un aperçu live non committé (picker annulé après avoir bougé le curseur → pas de
   //                 'change') resterait « collé » au canvas ; on restaure l'état réel du modèle.
   root.addEventListener('focusout', e => {
-    const t = e.target;
-    if (!t || t.tagName !== 'INPUT') return;
-    if (t.type === 'number') model.breakCoalesce();
-    else if (t.type === 'color') { clearPreview?.(); rerenderCanvas?.(); }
+    const el = e.target;
+    if (!el || el.tagName !== 'INPUT') return;
+    if (el.type === 'number') model.breakCoalesce();
+    else if (el.type === 'color') { clearPreview?.(); rerenderCanvas?.(); }
   });
 
   // Sous-titre de section.
@@ -177,13 +179,13 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     // --- Géométrie du placement ---
     const gf = COMPONENTS[c.type].placeFields;
     if (gf.length) {
-      const { sec: plSec, body: plBody } = section('Placement');
-      if (c.type === 'ring') note(plBody, 'Anneau centré : ancrage/dx/dy ignorés par le firmware.');
+      const { sec: plSec, body: plBody } = section(t('inspector.sec.placement'));
+      if (c.type === 'ring') note(plBody, t('inspector.note.ring_centered'));
       for (const [key, label, kind, ph] of gf) {
         const opts = kind === 'num' ? { coalesce: 'num' } : undefined;   // F2 : flèches/spinner d'un champ num = 1 entrée d'undo
         const input = makeInput(kind, p[key], v => model.commit(s => setPlacementProp(s, getActivePage(), sel.placeIndex, key, v), opts), ph);
         placementInputs[key] = input;   // réf. pour setLivePlacement (drag)
-        plBody.appendChild(fieldRow(label, input));
+        plBody.appendChild(fieldRow(t(label), input));
       }
       body.appendChild(plSec);
     }
@@ -191,8 +193,8 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     // --- Seuils ring/meter (liste éditable de [limite, #couleur]) ---
     // ring : couleur si valeur < limite ; meter : zone d'arc (limite précédente → limite).
     if (c.type === 'ring' || c.type === 'meter' || c.type === 'bar') {
-      const { sec: thSec, body: thBody } = section(c.type === 'meter' ? 'Zones (couleur de la limite précédente à la limite)'
-                                                                       : 'Seuils (couleur si valeur < limite)');
+      const { sec: thSec, body: thBody } = section(c.type === 'meter' ? t('inspector.sec.zones')
+                                                                       : t('inspector.sec.thresholds'));
       const ref = sel.ref;   // figée au rendu (cf. compField : 'change' tardif du picker couleur)
       const ths = (c.thresholds || []).map(t => [t[0], t[1]]); // copie locale éditable
       const commitThs = (opts) => model.commit(s => setThresholds(s, ref, ths.filter(t => t[1])), opts);
@@ -209,7 +211,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
         row.appendChild(lim); row.appendChild(col); row.appendChild(rm);
         thBody.appendChild(row);
       });
-      const add = document.createElement('button'); add.className = 'insp-th-add'; add.textContent = '+ seuil';
+      const add = document.createElement('button'); add.className = 'insp-th-add'; add.textContent = t('inspector.btn.add_threshold');
       add.addEventListener('click', () => { ths.push([0, '#FF0000']); commitThs(); });
       thBody.appendChild(add);
       body.appendChild(thSec);
@@ -217,8 +219,8 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
 
     // --- États icon (table {at, symbol?, color?} ; 1re bande où valeur < at gagne ; omis = base) ---
     if (c.type === 'icon') {
-      const { sec: stSec, body: stBody } = section('États (glyphe/couleur si valeur < seuil)');
-      note(stBody, 'Vide = icône statique. « (base) » / couleur décochée = retombe sur le symbole/la couleur de base.');
+      const { sec: stSec, body: stBody } = section(t('inspector.sec.states'));
+      note(stBody, t('inspector.note.icon_states'));
       const ref = sel.ref;                                   // figée au rendu (cf. invariant inspecteur)
       const names = Object.keys(ICON_SVG);
       const st = (c.states || []).map(s => ({ ...s }));       // copie locale éditable
@@ -231,11 +233,11 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
         const row = document.createElement('div'); row.className = 'insp-row';
         const at = makeInput('num', e.at, v => { st[idx].at = v === '' ? 0 : v; commit({ coalesce: 'num' }); });   // F2 num
         const symSel = document.createElement('select');
-        const base = document.createElement('option'); base.value = ''; base.textContent = '(base)';
+        const base = document.createElement('option'); base.value = ''; base.textContent = t('inspector.opt.base');
         symSel.appendChild(base);
         for (const nm of names) { const o = document.createElement('option'); o.value = nm; o.textContent = nm; if (nm === e.symbol) o.selected = true; symSel.appendChild(o); }
         symSel.addEventListener('change', () => { st[idx].symbol = symSel.value || undefined; commit(); });
-        const colOn = document.createElement('input'); colOn.type = 'checkbox'; colOn.checked = e.color != null; colOn.title = 'Forcer une couleur';
+        const colOn = document.createElement('input'); colOn.type = 'checkbox'; colOn.checked = e.color != null; colOn.title = t('inspector.tip.force_color');
         const col = document.createElement('input'); col.type = 'color'; col.value = e.color || '#FF0000'; col.disabled = e.color == null;
         colOn.addEventListener('change', () => { col.disabled = !colOn.checked; st[idx].color = colOn.checked ? col.value.toUpperCase() : undefined; commit(); });
         col.addEventListener('change', () => { clearPreview?.(); st[idx].color = col.value.toUpperCase(); commit(); });
@@ -252,7 +254,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
         row.append(at, symSel, colOn, col, rm);
         stBody.appendChild(row);
       });
-      const add = document.createElement('button'); add.className = 'insp-th-add'; add.textContent = '+ état';
+      const add = document.createElement('button'); add.className = 'insp-th-add'; add.textContent = t('inspector.btn.add_state');
       add.addEventListener('click', () => { st.push({ at: 0, symbol: names[0] }); commit(); });
       stBody.appendChild(add);
       body.appendChild(stSec);
@@ -261,14 +263,14 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     // --- Valeur d'aperçu (mock) : hors layout, re-rend le canvas sans toucher au modèle/undo ---
     const mf = COMPONENTS[c.type].mockFields;
     if (mf.length) {
-      const { sec: mockSec, body: mockBody } = section('Aperçu (mock, non poussé au device)', true);
+      const { sec: mockSec, body: mockBody } = section(t('inspector.sec.mock'), true);
       const m = getMock(sel.ref, c.type);
       for (const [key, label] of mf) {
         const input = makeInput('num', m[key], v => {
           setMock(sel.ref, { [key]: v === '' ? 0 : v });
           rerenderCanvas && rerenderCanvas();
         });
-        mockBody.appendChild(fieldRow(label, input));
+        mockBody.appendChild(fieldRow(t(label), input));
       }
       body.appendChild(mockSec);
     }
@@ -279,7 +281,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
   // (image-asset) pour permettre le re-render au resize (cf. canvas.addImageHandles).
   function imageField(label, c) {
     const row = document.createElement('div'); row.className = 'insp-row';
-    const span = document.createElement('span'); span.className = 'insp-label'; span.textContent = label;
+    const span = document.createElement('span'); span.className = 'insp-label'; span.textContent = t(label);
     row.appendChild(span);
     const file = document.createElement('input');
     file.type = 'file'; file.accept = 'image/*'; file.className = 'insp-bg-file';
@@ -294,7 +296,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     row.appendChild(file);
     const pick = document.createElement('button');                              // .insp-bg-file est masqué (CSS) : un bouton dossier l'ouvre, comme le fond
     pick.type = 'button'; pick.className = 'insp-iconbtn';
-    pick.title = c.src ? "Changer l'image" : "Choisir une image";
+    pick.title = c.src ? t('inspector.tip.change_image') : t('inspector.tip.pick_image');
     const pickIcon = document.createElement('img');
     pickIcon.src = FOLDER_URI; pickIcon.width = 16; pickIcon.height = 16; pickIcon.alt = pick.title;
     pick.appendChild(pickIcon);
@@ -303,11 +305,11 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     if (c.src) {
       const thumb = document.createElement('img'); thumb.className = 'insp-bg-thumb';
       const u = imagePreviewUrl(c.src);
-      if (u) thumb.src = u; else thumb.alt = '(recharger depuis le device)';
+      if (u) thumb.src = u; else thumb.alt = t('inspector.alt.reload_device');
       row.appendChild(thumb);
       const del = document.createElement('button');
       del.type = 'button'; del.className = 'insp-bg-reset'; del.textContent = '↺';
-      del.title = "Retirer l'image";
+      del.title = t('inspector.tip.remove_image');
       del.addEventListener('click', () => model.commit(st => setComponentProp(st, sel.ref, 'src', null)));
       row.appendChild(del);
     }
@@ -321,7 +323,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
   function imageAnimField(label, c) {
     const wrap = document.createElement('div'); wrap.className = 'insp-aimg';
     const row = document.createElement('div'); row.className = 'insp-row';
-    const span = document.createElement('span'); span.className = 'insp-label'; span.textContent = label;
+    const span = document.createElement('span'); span.className = 'insp-label'; span.textContent = t(label);
     row.appendChild(span);
     const file = document.createElement('input');
     file.type = 'file'; file.accept = 'image/*'; file.multiple = true; file.className = 'insp-bg-file';
@@ -346,7 +348,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     row.appendChild(file);
     const pick = document.createElement('button');                              // .insp-bg-file est masqué (CSS) : un bouton dossier l'ouvre, comme le fond
     pick.type = 'button'; pick.className = 'insp-iconbtn';
-    pick.title = c.src ? "Changer l'animation" : "Choisir une animation";
+    pick.title = c.src ? t('inspector.tip.change_anim') : t('inspector.tip.pick_anim');
     const pickIcon = document.createElement('img');
     pickIcon.src = FOLDER_URI; pickIcon.width = 16; pickIcon.height = 16; pickIcon.alt = pick.title;
     pick.appendChild(pickIcon);
@@ -355,7 +357,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     if (c.src) {
       const del = document.createElement('button');
       del.type = 'button'; del.className = 'insp-bg-reset'; del.textContent = '↺';
-      del.title = "Retirer l'animation";
+      del.title = t('inspector.tip.remove_anim');
       del.addEventListener('click', () => model.commit(st => {
         setComponentProp(st, sel.ref, 'src', null);
         setComponentProp(st, sel.ref, 'frames', null);
@@ -367,22 +369,22 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     if (urls.length) {
       const strip = document.createElement('div'); strip.className = 'insp-aimg-strip';
       urls.forEach((u, i) => {
-        const t = document.createElement('img'); t.className = 'insp-aimg-frame'; t.src = u;
-        if (i === (c.rest_frame || 0)) t.classList.add('is-rest');
-        t.title = 'Frame ' + i + ' — clic = frame de repos';
-        t.addEventListener('click', () => model.commit(st => setComponentProp(st, sel.ref, 'rest_frame', i)));
-        strip.appendChild(t);
+        const fr = document.createElement('img'); fr.className = 'insp-aimg-frame'; fr.src = u;
+        if (i === (c.rest_frame || 0)) fr.classList.add('is-rest');
+        fr.title = t('inspector.tip.frame', { i });
+        fr.addEventListener('click', () => model.commit(st => setComponentProp(st, sel.ref, 'rest_frame', i)));
+        strip.appendChild(fr);
       });
       wrap.appendChild(strip);
       const play = document.createElement('button');
-      play.type = 'button'; play.className = 'insp-aimg-play'; play.textContent = '▶ Aperçu';
+      play.type = 'button'; play.className = 'insp-aimg-play'; play.textContent = t('device.preview');
       play.addEventListener('click', () => {
-        if (_aimgPreviewTimer) { clearInterval(_aimgPreviewTimer); _aimgPreviewTimer = null; play.textContent = '▶ Aperçu'; return; }
+        if (_aimgPreviewTimer) { clearInterval(_aimgPreviewTimer); _aimgPreviewTimer = null; play.textContent = t('device.preview'); return; }
         const node = document.querySelector(`#stage [data-ref="${sel.ref}"]`);
         const imgEl = node ? node.querySelector('.w-image-img') : null;
         if (!imgEl) return;
         let f = 0;
-        play.textContent = '⏸ Aperçu';
+        play.textContent = t('device.preview_stop');
         _aimgPreviewTimer = setInterval(() => {
           f = (f + 1) % urls.length;
           imgEl.src = urls[f];
@@ -399,10 +401,10 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
   function fillField(label, c) {
     const ref = sel.ref;                                  // figée au rendu (cf. invariant inspecteur)
     const row = document.createElement('div'); row.className = 'insp-row';
-    const span = document.createElement('span'); span.className = 'insp-label'; span.textContent = label;
+    const span = document.createElement('span'); span.className = 'insp-label'; span.textContent = t(label);
     row.appendChild(span);
     const on = document.createElement('input'); on.type = 'checkbox'; on.checked = c.fill != null;
-    on.title = 'Remplir le fond';
+    on.title = t('inspector.tip.fill_bg');
     const col = document.createElement('input'); col.type = 'color'; col.value = c.fill || '#38BDF8';
     col.disabled = c.fill == null;
     on.addEventListener('change', () => {
@@ -421,7 +423,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
   // arbre↔inspecteur (Option 1) : on n'édite rien tant que rien n'est sélectionné.
   function renderEmpty(body) {
     const tip = document.createElement('p'); tip.className = 'todo';
-    tip.textContent = 'Rien de sélectionné — choisis un élément dans l’arbre, ou un widget sur le canvas.';
+    tip.textContent = t('inspector.empty');
     body.appendChild(tip);
   }
 
@@ -430,30 +432,30 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
   function renderDoc(body) {
     const s = model.state;
     const head = document.createElement('div'); head.className = 'insp-head';
-    const htitle = document.createElement('span'); htitle.textContent = 'Document';
+    const htitle = document.createElement('span'); htitle.textContent = t('inspector.doc.title');
     head.appendChild(htitle);
     body.appendChild(head);
 
     const titleInput = makeInput('text', s.title ?? '', v => model.commit(st => { st.title = v; }));
-    body.appendChild(fieldRow('Titre', titleInput, { charset: 'latin1' }));     // texte affiché par le device = Latin-1
+    body.appendChild(fieldRow(t('inspector.field.title'), titleInput, { charset: 'latin1' }));     // texte affiché par le device = Latin-1
     const bg = makeInput('color', s.background || '#000000', v => model.commit(st => { st.background = v; }));
-    body.appendChild(fieldRow('Fond', bg));
+    body.appendChild(fieldRow(t('inspector.field.bg'), bg));
 
-    sub(body, 'Navigation');
+    sub(body, t('inspector.sub.nav'));
     // wrap : défaut firmware true (boucle). Coché = boucler (dernière → première) ; décoché = buter au bord.
     const wrap = s.nav?.wrap !== false;
     const cb = makeInput('bool', wrap, v => model.commit(st => setNavWrap(st, v)));
-    body.appendChild(fieldRow('Boucler la navigation', cb));
+    body.appendChild(fieldRow(t('inspector.field.nav_wrap'), cb));
 
     const np = s.pages?.length ?? 0;
     const nc = Object.keys(s.components || {}).length;
-    note(body, `${np} page(s) · ${nc} composant(s)`);
+    note(body, t('inspector.note.doc_counts', { np, nc }));
     if (openDrawer) {
       const link = document.createElement('button');
       link.type = 'button';
       link.className = 'insp-link';
-      link.textContent = 'Ouvrir la plomberie (Device) →';
-      link.title = 'Sorties physiques (led_ring/sound) + sources pull';
+      link.textContent = t('inspector.link.device');
+      link.title = t('inspector.link.device_tip');
       link.onclick = () => openDrawer();
       body.appendChild(link);
     }
@@ -467,7 +469,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     if (!pg) { renderEmpty(body); return; }   // robustesse : page disparue (reorder/suppr concurrente)
 
     const head = document.createElement('div'); head.className = 'insp-head';
-    const htitle = document.createElement('span'); htitle.textContent = `Page « ${pg.name || `Page ${pi + 1}`} »`;
+    const htitle = document.createElement('span'); htitle.textContent = t('inspector.page.title', { name: pg.name || t('page.default', { n: pi + 1 }) });
     head.appendChild(htitle);
     body.appendChild(head);
 
@@ -475,25 +477,25 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     const name = makeInput('text', pg.name ?? '', v => {
       const nv = (v || '').trim();
       if (!nv || nv === (pg.name || '')) { render(); return; }
-      if (!isValidId(nv)) { showToast('nom de page invalide : lettres, chiffres, _ uniquement'); render(); return; }
-      if (pageNameTaken(s, nv, pi)) { showToast(`« ${nv} » est déjà utilisé`); render(); return; }
+      if (!isValidId(nv)) { showToast(t('page.invalid_name')); render(); return; }
+      if (pageNameTaken(s, nv, pi)) { showToast(t('page.name_taken', { name: nv })); render(); return; }
       model.commit(st => renamePage(st, pi, nv));
     });
-    body.appendChild(fieldRow('Nom', name, { charset: 'id' }));
+    body.appendChild(fieldRow(t('inspector.field.name'), name, { charset: 'id' }));
 
     // Fond de la page : override optionnel. (hérité) si absent (= fond global) ; ↺ pour réhériter sinon.
     const hasBgImg = !!pg.background_image;   // image présente → la couleur de page n'est plus qu'un repli
     const pbg = makeInput('color', pg.background || s.background || '#000000',
       v => model.commit(st => setPageBackground(st, pi, v)));
-    const row = fieldRow('Fond page', pbg);
-    if (hasBgImg) { row.classList.add('insp-row--fallback'); pbg.title = "Repli : ne s'affiche que si l'image de fond est absente."; }
+    const row = fieldRow(t('inspector.field.page_bg'), pbg);
+    if (hasBgImg) { row.classList.add('insp-row--fallback'); pbg.title = t('inspector.tip.page_bg_fallback'); }
     if (pg.background == null) {
-      const hint = document.createElement('span'); hint.className = 'insp-bg-hint'; hint.textContent = '(hérité)';
+      const hint = document.createElement('span'); hint.className = 'insp-bg-hint'; hint.textContent = t('inspector.hint.inherited');
       row.appendChild(hint);
     } else {
       const reset = document.createElement('button');
       reset.type = 'button'; reset.className = 'insp-bg-reset'; reset.textContent = '↺';
-      reset.title = 'Hériter du fond global';
+      reset.title = t('inspector.tip.inherit_bg');
       reset.addEventListener('click', () => model.commit(st => setPageBackground(st, pi, null)));
       row.appendChild(reset);
     }
@@ -503,7 +505,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     // bouton dossier ; conversion + upload au navigateur (bg-image.js) ; la clé (hash) est posée dans le layout.
     const imgRow = document.createElement('div'); imgRow.className = 'insp-row insp-bg-row';
     const imgLabel = document.createElement('span'); imgLabel.className = 'insp-label';
-    imgLabel.textContent = 'Image de fond';
+    imgLabel.textContent = t('inspector.field.bg_image');
     imgRow.appendChild(imgLabel);
     const file = document.createElement('input');
     file.type = 'file'; file.accept = 'image/*'; file.className = 'insp-bg-file';   // masqué (CSS), ouvert par le bouton dossier
@@ -520,12 +522,12 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
       const u = previewUrl(pg.background_image);
       if (u) {
         const thumb = document.createElement('img');
-        thumb.className = 'insp-bg-thumb'; thumb.src = u; thumb.alt = 'aperçu du fond';
+        thumb.className = 'insp-bg-thumb'; thumb.src = u; thumb.alt = t('inspector.alt.bg_preview');
         imgRow.appendChild(thumb);
       } else {
         const ph = document.createElement('span');
         ph.className = 'insp-bg-thumb insp-bg-thumb--empty';
-        ph.title = 'Fond défini — aperçu indisponible (octets stockés sur le device)';
+        ph.title = t('inspector.tip.bg_unavailable');
         const phIcon = document.createElement('img');
         phIcon.src = IMAGE_URI; phIcon.width = 18; phIcon.height = 18; phIcon.alt = '';
         ph.appendChild(phIcon);
@@ -534,7 +536,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     }
     const pick = document.createElement('button');
     pick.type = 'button'; pick.className = 'insp-iconbtn';
-    pick.title = pg.background_image ? "Changer l'image" : "Choisir une image";
+    pick.title = pg.background_image ? t('inspector.tip.change_image') : t('inspector.tip.pick_image');
     const pickIcon = document.createElement('img');
     pickIcon.src = FOLDER_URI; pickIcon.width = 16; pickIcon.height = 16; pickIcon.alt = pick.title;
     pick.appendChild(pickIcon);
@@ -543,18 +545,18 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     if (pg.background_image) {
       const del = document.createElement('button');
       del.type = 'button'; del.className = 'insp-iconbtn';
-      del.title = "Retirer l'image";
+      del.title = t('inspector.tip.remove_image');
       const delIcon = document.createElement('img');
-      delIcon.src = TRASH_URI; delIcon.width = 16; delIcon.height = 16; delIcon.alt = "Retirer l'image";
+      delIcon.src = TRASH_URI; delIcon.width = 16; delIcon.height = 16; delIcon.alt = t('inspector.tip.remove_image');
       del.appendChild(delIcon);
       del.addEventListener('click', () => model.commit(st => setPageBackgroundImage(st, pi, null)));
       imgRow.appendChild(del);
     }
     body.appendChild(imgRow);
-    if (hasBgImg) note(body, "L'image de fond prime sur la couleur ; celle-ci sert de repli si l'image est absente du device.");
+    if (hasBgImg) note(body, t('inspector.note.bg_image_priority'));
 
     const onPage = pg.place?.length ?? 0;
-    note(body, `${onPage} composant(s) placé(s) sur cette page`);
+    note(body, t('inspector.note.page_count', { n: onPage }));
   }
 
   // Vue Composant : props/géométrie/seuils/aperçu mock + œil d'en-tête + bouton device visible + suppr.
@@ -569,10 +571,10 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
       const visible = c.visible !== false;
       const eye = document.createElement('button');
       eye.className = 'insp-eye';
-      eye.title = visible ? 'Visible — cliquer pour cacher' : 'Caché — cliquer pour afficher';
+      eye.title = visible ? t('tree.eye.visible') : t('tree.eye.hidden');
       const icon = document.createElement('img');
       icon.src = visible ? EYE_OPEN_URI : EYE_OFF_URI;
-      icon.width = 15; icon.height = 15; icon.alt = visible ? 'visible' : 'caché';
+      icon.width = 15; icon.height = 15; icon.alt = visible ? t('tree.eye.alt_visible') : t('tree.eye.alt_hidden');
       eye.appendChild(icon);
       const ref = sel.ref;                              // figée au rendu (cf. invariant inspecteur/canvas)
       eye.addEventListener('click', () => {
@@ -584,7 +586,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     }
     body.appendChild(head);
 
-    const { sec: propSec, body: propBody } = section('Propriétés');
+    const { sec: propSec, body: propBody } = section(t('inspector.sec.props'));
     const rows = {};
     for (const [key, label, kind, enableWhen] of COMPONENTS[c.type].compFields) {
       if (kind === 'image') { propBody.appendChild(imageField(label, c)); continue; }   // picker bespoke
@@ -605,7 +607,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
       };
       const input = makeInput(kind, c[key], commit);
       if (kind === 'color') input.addEventListener('input', () => previewProp?.(ref, { [key]: input.value.toUpperCase() }));
-      const displayLabel = key === 'bind' ? '⛓ Variable (pull)' : label;
+      const displayLabel = key === 'bind' ? '⛓ ' + t('field.bind') : t(label);
       const row = fieldRow(displayLabel, input, { charset: kind === 'idtext' ? 'id' : kind === 'latintext' ? 'latin1' : undefined });
       if (key === 'bind') row.classList.add('insp-source');
       rows[key] = { input, row, enableWhen };
@@ -632,7 +634,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
       const ref = sel.ref;
       const dev = document.createElement('button');
       dev.className = 'insp-devvis';
-      dev.textContent = deviceHidden.has(ref) ? 'Afficher sur le device' : 'Cacher sur le device';
+      dev.textContent = deviceHidden.has(ref) ? t('inspector.btn.show_device') : t('inspector.btn.hide_device');
       dev.addEventListener('click', async () => {
         dev.disabled = true;                            // évite des push concurrents au double-clic (réseau lent)
         try {
@@ -640,7 +642,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
           const ok = await pushVisible(ref, nextVisible);
           if (ok) {
             if (nextVisible) deviceHidden.delete(ref); else deviceHidden.add(ref);
-            dev.textContent = deviceHidden.has(ref) ? 'Afficher sur le device' : 'Cacher sur le device';
+            dev.textContent = deviceHidden.has(ref) ? t('inspector.btn.show_device') : t('inspector.btn.hide_device');
           }
         } finally {
           dev.disabled = false;
@@ -649,7 +651,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
       body.appendChild(dev);
     }
 
-    const del = document.createElement('button'); del.className = 'insp-del'; del.textContent = 'Supprimer de la page';
+    const del = document.createElement('button'); del.className = 'insp-del'; del.textContent = t('inspector.btn.remove_from_page');
     del.addEventListener('click', () => {
       const i = sel.placeIndex;
       sel = null;

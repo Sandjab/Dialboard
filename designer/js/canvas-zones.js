@@ -5,6 +5,7 @@
 // (fit colonne × zoom) est appliquée par app.js sur le #board. Coords board = px à l'échelle 1.
 import { iconFor } from './icons.js';
 import { COMPONENTS } from './registry.js';
+import { t } from './i18n.js';
 import { SCREEN } from './geometry.js';
 
 // --- Paramètres validés (prompt playground) ---
@@ -113,13 +114,13 @@ export function renderZones(board) {
     grid.style.direction = z.side === 'right' ? 'rtl' : 'ltr';   // panneaux droits : plaqués à droite (rangée incomplète comprise)
     for (const [type, label] of slices[zi]) {
       const cell = document.createElement('div');
-      cell.className = 'palette-item'; cell.draggable = true; cell.dataset.type = type; cell.title = label;
+      cell.className = 'palette-item'; cell.draggable = true; cell.dataset.type = type; cell.title = t(label);
       cell.addEventListener('dragstart', e => e.dataTransfer.setData('text/rt-type', type));
       const chip = document.createElement('div'); chip.className = 'palette-chip';
       chip.style.width = chip.style.height = CHIP + 'px';
       const ic = iconFor(type); if (ic) chip.appendChild(ic);
       cell.appendChild(chip);
-      const lbl = document.createElement('div'); lbl.className = 'palette-label'; lbl.textContent = label;
+      const lbl = document.createElement('div'); lbl.className = 'palette-label'; lbl.textContent = t(label);
       cell.appendChild(lbl);
       grid.appendChild(cell);
     }

@@ -1,6 +1,7 @@
 // Menu contextuel partagé (arbre des calques ↔ carousel de pages).
 // contextMenuItems : pur (items selon la sélection), testé node.
 // openContextMenu : rendu DOM du menu flottant, onPick(id, extra) délègue l'action à l'appelant.
+import { t } from './i18n.js';
 
 // Modèle PUR du menu contextuel. Items : { id, label, disabled?, submenu? }. doc/null → [] (pas de
 // menu). z-order : raiseZ = vers la FIN de place[] (dessus), lowerZ = vers le DÉBUT (fond).
@@ -10,30 +11,30 @@ export function contextMenuItems(sel, state, { hasClipboard = false } = {}) {
   const pages = state?.pages || [];
   if (sel.kind === 'page') {
     return [
-      { id: 'rename', label: 'Renommer' },
-      { id: 'duplicate', label: 'Dupliquer la page' },
-      { id: 'delete', label: 'Supprimer la page', disabled: pages.length <= 1 },
-      { id: 'moveUp', label: 'Monter', disabled: sel.page <= 0 },
-      { id: 'moveDown', label: 'Descendre', disabled: sel.page >= pages.length - 1 },
+      { id: 'rename', label: t('tree.act.rename') },
+      { id: 'duplicate', label: t('tree.act.duplicate') },
+      { id: 'delete', label: t('tree.act.delete'), disabled: pages.length <= 1 },
+      { id: 'moveUp', label: t('tree.act.move_up'), disabled: sel.page <= 0 },
+      { id: 'moveDown', label: t('tree.act.move_down'), disabled: sel.page >= pages.length - 1 },
     ];
   }
   // comp
   const place = pages[sel.page]?.place || [];
   const items = [
-    { id: 'rename', label: 'Renommer (id)' },
-    { id: 'duplicate', label: 'Dupliquer' },
-    { id: 'copy', label: 'Copier' },
-    { id: 'cut', label: 'Couper' },
-    { id: 'paste', label: 'Coller', disabled: !hasClipboard },
-    { id: 'delete', label: 'Supprimer' },
-    { id: 'raiseZ', label: 'Monter (avant-plan)', disabled: sel.index >= place.length - 1 },
-    { id: 'lowerZ', label: 'Descendre (arrière-plan)', disabled: sel.index <= 0 },
+    { id: 'rename', label: t('ctx.rename_id') },
+    { id: 'duplicate', label: t('ctx.duplicate') },
+    { id: 'copy', label: t('ctx.copy') },
+    { id: 'cut', label: t('ctx.cut') },
+    { id: 'paste', label: t('ctx.paste'), disabled: !hasClipboard },
+    { id: 'delete', label: t('ctx.delete') },
+    { id: 'raiseZ', label: t('ctx.raise'), disabled: sel.index >= place.length - 1 },
+    { id: 'lowerZ', label: t('ctx.lower'), disabled: sel.index <= 0 },
   ];
   if (pages.length > 1) {
     const submenu = pages
-      .map((p, i) => ({ id: 'moveTo', label: p.name || `Page ${i + 1}`, page: i }))
+      .map((p, i) => ({ id: 'moveTo', label: p.name || t('page.default', { n: i + 1 }), page: i }))
       .filter(s => s.page !== sel.page);
-    items.push({ id: 'moveToPage', label: 'Déplacer vers…', submenu });
+    items.push({ id: 'moveToPage', label: t('ctx.move_to'), submenu });
   }
   return items;
 }

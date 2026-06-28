@@ -63,7 +63,7 @@ test("formatSelectionContext : page → nom + index base 1 + nb placements de CE
 
 test("formatSelectionContext : comp → libellé de type + ref + page + visible (intent : identifier l'élément édité d'un coup d'œil)", () => {
   const s = formatSelectionContext(ST, { kind: 'comp', page: 0, index: 0 });
-  assert.match(s, /Anneau/);     // COMPONENTS.ring.label
+  assert.match(s, /Ring/);       // t('comp.ring') — EN en contexte test
   assert.match(s, /ring1/);
   assert.match(s, /Accueil/);
   assert.match(s, /visible/);
