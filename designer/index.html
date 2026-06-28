@@ -20,44 +20,44 @@
     </div>
     <!-- Fichier local -->
     <div class="tb-group">
-      <button id="export" class="tb-btn" data-tip="Exporter JSON" title="Enregistre le layout dans un fichier .json local"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v9M4 7l4 4 4-4M2 14h12" transform="rotate(180 8 8)"/></svg></button>
-      <button id="import" class="tb-btn" data-tip="Importer JSON" title="Charge un layout depuis un fichier .json local"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 11V2M4 7l4 4 4-4M2 14h12"/></svg></button>
+      <button id="export" class="tb-btn" data-i18n-tip="toolbar.export.tip" data-i18n-title="toolbar.export.title" data-tip="Exporter JSON" title="Enregistre le layout dans un fichier .json local"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v9M4 7l4 4 4-4M2 14h12" transform="rotate(180 8 8)"/></svg></button>
+      <button id="import" class="tb-btn" data-i18n-tip="toolbar.import.tip" data-i18n-title="toolbar.import.title" data-tip="Importer JSON" title="Charge un layout depuis un fichier .json local"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 11V2M4 7l4 4 4-4M2 14h12"/></svg></button>
       <input id="import-file" type="file" accept="application/json,.json" hidden />
     </div>
     <!-- Historique -->
     <div class="tb-group">
-      <button id="undo" class="tb-btn" disabled data-tip="Annuler (Ctrl+Z)" title="Annuler (Ctrl+Z)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7h8a3 3 0 010 6H6M3 7l3-3M3 7l3 3"/></svg></button>
-      <button id="redo" class="tb-btn" disabled data-tip="Rétablir" title="Rétablir"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 7H5a3 3 0 000 6h5M13 7l-3-3M13 7l-3 3"/></svg></button>
+      <button id="undo" class="tb-btn" disabled data-i18n-tip="toolbar.undo.tip" data-i18n-title="toolbar.undo.title" data-tip="Annuler (Ctrl+Z)" title="Annuler (Ctrl+Z)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7h8a3 3 0 010 6H6M3 7l3-3M3 7l3 3"/></svg></button>
+      <button id="redo" class="tb-btn" disabled data-i18n-tip="toolbar.redo.tip" data-i18n-title="toolbar.redo.title" data-tip="Rétablir" title="Rétablir"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 7H5a3 3 0 000 6h5M13 7l-3-3M13 7l-3 3"/></svg></button>
     </div>
     <!-- Device — I/O du layout (lecture/écriture) + inspection / test -->
     <div class="tb-group">
-      <button id="load" class="tb-btn accent" data-tip="Charger (GET /layout)" title="Lit le layout actuel du device (GET /layout)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 10V2M5 5l3-3 3 3"/><rect x="2.5" y="10" width="11" height="4"/></svg></button>
-      <button id="push" class="tb-btn primary" data-tip="Pousser (POST /layout)" title="Écrit le layout dans la mémoire persistante du device (POST /layout)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8M5 7l3 3 3-3"/><rect x="2.5" y="12" width="11" height="2"/></svg></button>
-      <button id="values" class="tb-btn" data-tip="Valeurs test (POST /update)" title="Pousse les valeurs d'aperçu (mocks) au device via POST /update"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg></button>
-      <button id="statusbtn" class="tb-btn" data-tip="Statut (GET /status)" title="Lit GET /status (santé device + état des sources)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 9h3l2-5 2 9 2-4h3"/></svg></button>
-      <button id="capture" class="tb-btn" data-tip="Capture écran (GET /screenshot)" title="Capture l'écran du device (GET /screenshot)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="12" height="9"/><circle cx="8" cy="8.5" r="2.2"/><rect x="6" y="2.5" width="4" height="1.5"/></svg></button>
+      <button id="load" class="tb-btn accent" data-i18n-tip="toolbar.load.tip" data-i18n-title="toolbar.load.title" data-tip="Charger (GET /layout)" title="Lit le layout actuel du device (GET /layout)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 10V2M5 5l3-3 3 3"/><rect x="2.5" y="10" width="11" height="4"/></svg></button>
+      <button id="push" class="tb-btn primary" data-i18n-tip="toolbar.push.tip" data-i18n-title="toolbar.push.title" data-tip="Pousser (POST /layout)" title="Écrit le layout dans la mémoire persistante du device (POST /layout)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8M5 7l3 3 3-3"/><rect x="2.5" y="12" width="11" height="2"/></svg></button>
+      <button id="values" class="tb-btn" data-i18n-tip="toolbar.values.tip" data-i18n-title="toolbar.values.title" data-tip="Valeurs test (POST /update)" title="Pousse les valeurs d'aperçu (mocks) au device via POST /update"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg></button>
+      <button id="statusbtn" class="tb-btn" data-i18n-tip="toolbar.status.tip" data-i18n-title="toolbar.status.title" data-tip="Statut (GET /status)" title="Lit GET /status (santé device + état des sources)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 9h3l2-5 2 9 2-4h3"/></svg></button>
+      <button id="capture" class="tb-btn" data-i18n-tip="toolbar.capture.tip" data-i18n-title="toolbar.capture.title" data-tip="Capture écran (GET /screenshot)" title="Capture l'écran du device (GET /screenshot)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="12" height="9"/><circle cx="8" cy="8.5" r="2.2"/><rect x="6" y="2.5" width="4" height="1.5"/></svg></button>
     </div>
     <!-- Tiroir Device -->
     <div class="tb-group">
-      <button id="drawer-toggle" class="tb-btn" type="button" data-tip="Device (sorties physiques / sources)" title="Plomberie I/O : sorties physiques (led_ring/sound) + sources pull"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.5 3.5l1.4 1.4M11.1 11.1l1.4 1.4M12.5 3.5l-1.4 1.4M4.9 11.1l-1.4 1.4"/></svg></button>
+      <button id="drawer-toggle" class="tb-btn" type="button" data-i18n-tip="toolbar.device.tip" data-i18n-title="toolbar.device.title" data-tip="Device (sorties physiques / sources)" title="Plomberie I/O : sorties physiques (led_ring/sound) + sources pull"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.5 3.5l1.4 1.4M11.1 11.1l1.4 1.4M12.5 3.5l-1.4 1.4M4.9 11.1l-1.4 1.4"/></svg></button>
     </div>
     <!-- Réglages -->
     <div class="tb-group">
-      <button id="settings-toggle" class="tb-btn" type="button" data-tip="Réglages" title="Réglages du designer (transparence, grille, snap…)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h6M11 4h3M2 8h3M8 8h6M2 12h8M13 12h1"/><circle cx="9.5" cy="4" r="1.6"/><circle cx="6.5" cy="8" r="1.6"/><circle cx="11.5" cy="12" r="1.6"/></svg></button>
+      <button id="settings-toggle" class="tb-btn" type="button" data-i18n-tip="toolbar.settings.tip" data-i18n-title="toolbar.settings.title" data-tip="Réglages" title="Réglages du designer (transparence, grille, snap…)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h6M11 4h3M2 8h3M8 8h6M2 12h8M13 12h1"/><circle cx="9.5" cy="4" r="1.6"/><circle cx="6.5" cy="8" r="1.6"/><circle cx="11.5" cy="12" r="1.6"/></svg></button>
     </div>
     <span class="grow"></span>
     <!-- URL device + pastille connexion -->
     <div class="tb-url">
-      <label for="base">Device</label>
-      <input id="base" type="text" placeholder="http://192.168.1.35" size="20" />
+      <label for="base" data-i18n="toolbar.device_url.label">Device</label>
+      <input id="base" type="text" data-i18n-placeholder="toolbar.device_url.ph" placeholder="http://192.168.1.35" size="20" />
     </div>
-    <span id="dev-pill" class="dev-pill" title="Aucune requête device effectuée">○ non vérifié</span>
+    <span id="dev-pill" class="dev-pill" data-i18n="pill.untested" data-i18n-title="pill.untested.title" title="Aucune requête device effectuée">○ non vérifié</span>
   </header>
 
   <main>
-    <aside id="layers" class="col"><h2>Calques</h2></aside>
+    <aside id="layers" class="col"><h2 data-i18n="panel.layers">Calques</h2></aside>
     <section id="canvas-col" class="col">
-      <h2>Canvas</h2>
+      <h2 data-i18n="panel.canvas">Canvas</h2>
       <div id="board-fit" class="board-fit">
         <div id="board" class="board">
           <svg id="zones-svg" class="zones-svg" aria-hidden="true"></svg>
@@ -70,7 +70,7 @@
       </div>
       <div id="carousel" class="carousel"><!-- vignettes de pages injectées par carousel.js --></div>
     </section>
-    <aside id="inspector" class="col"><h2>Inspecteur</h2></aside>
+    <aside id="inspector" class="col"><h2 data-i18n="panel.inspector">Inspecteur</h2></aside>
   </main>
 
   <div id="statusbar" class="statusbar">
@@ -81,14 +81,14 @@
 
   <aside id="drawer" class="drawer" hidden>
     <div class="drawer-backdrop"></div>
-    <div class="drawer-panel" role="dialog" aria-label="Device">
+    <div class="drawer-panel" role="dialog" aria-label="Device" data-i18n-aria-label="drawer.device.aria">
       <div class="drawer-head">
-        <h2>Device</h2>
-        <button class="drawer-close" type="button" title="Fermer">✕</button>
+        <h2 data-i18n="drawer.device.title">Device</h2>
+        <button class="drawer-close" type="button" data-i18n-title="drawer.close" title="Fermer">✕</button>
       </div>
       <div class="drawer-tabs">
-        <button class="drawer-tab" type="button" data-tab="device">Sorties physiques</button>
-        <button class="drawer-tab" type="button" data-tab="sources">Sources pull</button>
+        <button class="drawer-tab" type="button" data-tab="device" data-i18n="drawer.tab.outputs">Sorties physiques</button>
+        <button class="drawer-tab" type="button" data-tab="sources" data-i18n="drawer.tab.sources">Sources pull</button>
       </div>
       <div id="device-pane" class="drawer-pane">
         <div id="device" class="sources-panel"></div>
@@ -101,10 +101,10 @@
 
   <aside id="settings-drawer" class="drawer" hidden>
     <div class="drawer-backdrop"></div>
-    <div class="drawer-panel" role="dialog" aria-label="Réglages">
+    <div class="drawer-panel" role="dialog" aria-label="Réglages" data-i18n-aria-label="drawer.settings.aria">
       <div class="drawer-head">
-        <h2>Réglages</h2>
-        <button class="drawer-close" type="button" title="Fermer">✕</button>
+        <h2 data-i18n="drawer.settings.title">Réglages</h2>
+        <button class="drawer-close" type="button" data-i18n-title="drawer.close" title="Fermer">✕</button>
       </div>
       <div id="settings-pane" class="drawer-pane">
         <div id="settings" class="settings-panel"></div>
@@ -114,12 +114,12 @@
 
   <div id="shot-overlay" class="shot-overlay" hidden>
     <div class="shot-box">
-      <img id="shot" alt="Capture écran du device" />
+      <img id="shot" data-i18n-alt="shot.alt" alt="Capture écran du device" />
       <div class="shot-nav">
-        <button id="shot-prev" title="Page précédente sur le device">◀</button>
+        <button id="shot-prev" data-i18n-title="shot.prev" title="Page précédente sur le device">◀</button>
         <span id="shot-page"></span>
-        <button id="shot-next" title="Page suivante sur le device">▶</button>
-        <button id="shot-close">Fermer</button>
+        <button id="shot-next" data-i18n-title="shot.next" title="Page suivante sur le device">▶</button>
+        <button id="shot-close" data-i18n="shot.close">Fermer</button>
       </div>
     </div>
   </div>
