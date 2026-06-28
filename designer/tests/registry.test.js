@@ -93,7 +93,7 @@ test('registre : icon déclaré, value-driven (mockFields value), non physique',
   assert.ok(COMPONENTS.icon, 'icon absent du registre');
   assert.equal(COMPONENTS.icon.physical, false);
   assert.equal(COMPONENTS.icon.centered, false);
-  assert.deepEqual(COMPONENTS.icon.mockFields, [['value', 'Valeur (aperçu)']]);
+  assert.deepEqual(COMPONENTS.icon.mockFields, [['value', 'field.mock_value']]);
   const cf = COMPONENTS.icon.compFields.map(f => f[0]);
   for (const k of ['symbol', 'color', 'font', 'bind']) assert.ok(cf.includes(k), `icon : ${k} manquant`);
   const d = COMPONENTS.icon.defaults();
@@ -137,6 +137,6 @@ test('registre : led_ring expose mode/period_ms + value (mock), défaut mode off
   assert.equal(period[3]({ mode: 'off' }),      false, 'off : period_ms grisé');
   assert.equal(COMPONENTS.led_ring.physical, true);
   assert.equal(COMPONENTS.led_ring.singleton, true);
-  assert.deepEqual(COMPONENTS.led_ring.mockFields, [['value', 'Valeur % (aperçu)']]);
+  assert.deepEqual(COMPONENTS.led_ring.mockFields, [['value', 'field.mock_pct']]);
   assert.equal(COMPONENTS.led_ring.defaults().mode, 'off');
 });

@@ -3,6 +3,7 @@
 // la page active, puis sélection du nouveau placement. Drop = UN commit. (Pages = tree.js ; aperçu = mocks.js.)
 import { uniqueId, addComponent, addPlacement } from './mutations.js';
 import { COMPONENTS } from './registry.js';
+import { t } from './i18n.js';
 import { SCREEN } from './geometry.js';
 import { logs } from './logs.js';
 import { renderZones } from './canvas-zones.js';
@@ -35,6 +36,6 @@ export function createPalette(board, model, { stage, getActivePage, onCreated } 
       addPlacement(s, pi, COMPONENTS[type].makePlacement(id, x, y));
       newIndex = s.pages[pi].place.length - 1;
     });
-    if (newIndex != null) { onCreated && onCreated(newIndex); logs.logActivity('Composant ajouté : ' + type); }
+    if (newIndex != null) { onCreated && onCreated(newIndex); logs.logActivity(t('activity.comp_added', { type })); }
   });
 }

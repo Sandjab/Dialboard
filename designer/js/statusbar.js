@@ -34,7 +34,7 @@ export function formatSelectionContext(state, sel) {
   const pl = page.place?.[sel.index];
   if (!pl) return '';
   const c = state.components?.[pl.ref];
-  const typeLabel = (c && COMPONENTS[c.type]?.label) || '?';
+  const typeLabel = c && COMPONENTS[c.type] ? t(COMPONENTS[c.type].label) : '?';
   const vis = c && c.visible === false ? t('status.hidden') : t('status.visible');
   const dx = pl.dx ?? 0, dy = pl.dy ?? 0;
   return t('status.comp', { type: typeLabel, ref: pl.ref, name: page.name ?? '', anchor: pl.anchor ?? 'CENTER', dx, dy, vis });

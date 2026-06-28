@@ -39,8 +39,9 @@ test('treeModel dérive le libellé de type depuis le registre', () => {
   const comps = treeModel(fresh()).pages[0].components;
   const byRef = Object.fromEntries(comps.map(c => [c.ref, c]));
   assert.equal(byRef.temp_ring.type, 'ring');
-  assert.equal(byRef.temp_ring.label, 'Anneau');   // COMPONENTS.ring.label
-  assert.equal(byRef.temp_val.label, 'Lecture');   // COMPONENTS.readout.label
+  // Le libellé est résolu par t() (clé comp.* du registre) → EN en contexte test.
+  assert.equal(byRef.temp_ring.label, 'Ring');     // t('comp.ring')
+  assert.equal(byRef.temp_val.label, 'Readout');   // t('comp.readout')
 });
 
 test('treeModel : visible=false seulement si la clé vaut explicitement false', () => {
