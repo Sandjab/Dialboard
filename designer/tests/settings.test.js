@@ -4,6 +4,7 @@ import { defaultSettings, normalizeSettings } from '../js/settings.js';
 
 test('defaultSettings: valeurs de référence', () => {
   assert.deepEqual(defaultSettings(), {
+    lang: 'en',
     theme: 'amber',
     ghostOpacity: 0.38, gridShow: false, gridSnap: false, gridStep: 10,
     logActivity: true, logJs: false, logNet: false,

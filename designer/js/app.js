@@ -25,6 +25,7 @@ import { placeComponentCopy, duplicateComponent, removePlacementAndOrphan } from
 import { createSelection, sameSelection, isSelectionValid } from './selection.js';
 import { loadSettings, saveSettings, normalizeSettings, applyVisualSettings, createSettings } from './settings.js';
 import { logs, installConsoleCapture } from './logs.js';
+import { initI18n, applyStaticI18n } from './i18n.js';
 import { DEFAULT_LAYOUT } from './default-layout.js';
 import { serializeBundle, loadBundle } from './bundle.js';
 
@@ -48,6 +49,8 @@ function buildUpdatePayload(state) {
 
 async function main() {
   installConsoleCapture();   // capture console.* vers le journal JS dès le boot (idempotent)
+  await initI18n(loadSettings().lang);   // langue active avant tout rendu (toasts, vues)
+  applyStaticI18n(document);             // traduit le chrome statique marqué (no-op tant que rien n'est marqué)
   // Le schema partage vit dans ../schema (hors du dossier designer) : servir depuis le parent.
   let schema;
   try {
