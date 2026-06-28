@@ -71,6 +71,8 @@ export function insertTargetIndex(place, toReal, before) {
 export function createTree(root, model, { selection, setSelection, getActivePage = () => 0, setPage, compActions = {}, getClipboard = () => null } = {}) {
   let renaming = null;   // index de la page en cours de renommage inline, ou null
   let renamingComp = null;   // { page, index } du composant en rename inline, ou null
+  let renamingPhysical = null;   // ref du physique en rename inline, ou null
+  let expandedDoc = true;        // nœud Document déplié par défaut (montre les physiques)
   let dragSrc = null;   // { page, index } du composant en cours de drag
   let dragSrcPage = null;   // index de la page en cours de drag (réordonnancement), ou null
   const expanded = new Set([getActivePage()]);   // pages dépliées (page active auto-dépliée)
@@ -205,6 +207,59 @@ export function createTree(root, model, { selection, setSelection, getActivePage
     });
     row.appendChild(eye);
     return row;
+  }
+
+  function physicalRow(ph, sel) {
+    if (renamingPhysical === ph.ref) {
+      const row = document.createElement('div'); row.className = 'tree-row tree-comp tree-physical';
+      const inp = document.createElement('input'); inp.className = 'tree-rename'; inp.value = ph.ref;
+      const orig = ph.ref;
+      const tryCommit = () => {
+        const id = inp.value.trim();
+        if (!id || id === orig) { renamingPhysical = null; render(); return true; }
+        if (!isValidId(id)) { showToast(t('id.invalid')); return false; }
+        if (model.state.components?.[id]) { showToast(t('id.taken', { id })); return false; }
+        renamingPhysical = null;
+        model.commit(s => renameComponent(s, orig, id));   // → subscribe → render()
+        return true;
+      };
+      inp.addEventListener('input', () => {
+        const v = inp.value.trim();
+        inp.classList.toggle('invalid', !!v && v !== orig && (!isValidId(v) || !!model.state.components?.[v]));
+      });
+      inp.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); tryCommit(); }
+        else if (e.key === 'Escape') { e.preventDefault(); renamingPhysical = null; render(); }
+      });
+      inp.addEventListener('blur', () => { if (renamingPhysical && !tryCommit()) { renamingPhysical = null; render(); } });
+      row.appendChild(inp);
+      queueMicrotask(() => { inp.focus(); inp.select(); });
+      return row;
+    }
+
+    const row = document.createElement('div');
+    const isSel = sel && sel.kind === 'physical' && sel.ref === ph.ref;
+    row.className = 'tree-row tree-comp tree-physical' + (isSel ? ' selected' : '');
+    const ic = ph.type ? iconFor(ph.type) : null;
+    if (ic) { ic.classList.add('tree-icon'); row.appendChild(ic); }
+    const name = document.createElement('span'); name.className = 'tree-label'; name.textContent = ph.ref;
+    const type = document.createElement('span'); type.className = 'tree-ref'; type.textContent = ph.label;
+    row.appendChild(name); row.appendChild(type);
+    row.addEventListener('click', () => { setSelection({ kind: 'physical', ref: ph.ref }); render(); });
+    row.addEventListener('dblclick', e => {
+      e.preventDefault();
+      setSelection({ kind: 'physical', ref: ph.ref });
+      renamingPhysical = ph.ref; render();
+    });
+    row.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      setSelection({ kind: 'physical', ref: ph.ref });
+      render();
+      openContextMenu(e.clientX, e.clientY,
+        contextMenuItems(selection.get(), model.state, { hasClipboard: !!getClipboard() }),
+        runMenu);
+    });
+    return row;   // PAS draggable, PAS d'œil, PAS de suppression (permanent, sans placement)
   }
 
   function pageRow(p, sel) {
@@ -412,12 +467,16 @@ export function createTree(root, model, { selection, setSelection, getActivePage
     // Document
     const doc = document.createElement('div');
     doc.className = 'tree-row tree-doc' + (sel && sel.kind === 'doc' ? ' selected' : '');
-    const dtw = document.createElement('span'); dtw.className = 'tree-twist'; dtw.textContent = '⚙';
+    const dtw = document.createElement('span'); dtw.className = 'tree-twist';
+    dtw.textContent = expandedDoc ? '▾' : '▸';
+    dtw.title = expandedDoc ? t('tree.twist.collapse') : t('tree.twist.expand');
+    dtw.addEventListener('click', e => { e.stopPropagation(); expandedDoc = !expandedDoc; render(); });
     const dlbl = document.createElement('span'); dlbl.className = 'tree-label';
     dlbl.textContent = t('tree.doc', { title: tm.title || t('tree.untitled') });
     doc.appendChild(dtw); doc.appendChild(dlbl);
     doc.addEventListener('click', () => { setSelection({ kind: 'doc' }); render(); });
     tree.appendChild(doc);
+    if (expandedDoc) tm.physicals.forEach(ph => tree.appendChild(physicalRow(ph, sel)));
 
     // Pages (+ composants des pages dépliées)
     tm.pages.forEach(p => {
@@ -435,6 +494,7 @@ export function createTree(root, model, { selection, setSelection, getActivePage
   selection.subscribe(() => {
     const sel = selection.get();
     if (sel && sel.kind === 'comp') expanded.add(sel.page);   // sélectionner un composant (même depuis le canvas) déplie sa page
+    if (sel && sel.kind === 'physical') expandedDoc = true;   // sélectionner un physique (Échap/programmatique) déplie le Document
     render();
   });   // changement de sélection (canvas/inspecteur/Échap) → re-surligner
   render();
@@ -448,6 +508,7 @@ export function createTree(root, model, { selection, setSelection, getActivePage
       renamingComp = { page: sel.page, index: sel.index };
       render();
     }
+    else if (sel.kind === 'physical') { expandedDoc = true; renamingPhysical = sel.ref; render(); }
   }
 
   // Exécute une action du menu sur la sélection COURANTE (la ligne a été sélectionnée à l'ouverture).
@@ -483,6 +544,8 @@ export function createTree(root, model, { selection, setSelection, getActivePage
         goPage(pi - 1); setSelection({ kind: 'page', page: pi - 1 }); return; }
       if (id === 'moveDown')  { if (pi >= total() - 1) return; model.commit(s => reorderPages(s, pi, pi + 1));
         goPage(pi + 1); setSelection({ kind: 'page', page: pi + 1 }); return; }
+    } else if (sel.kind === 'physical') {
+      if (id === 'rename') return beginRename();
     }
   }
 
