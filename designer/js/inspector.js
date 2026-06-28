@@ -11,6 +11,7 @@ import { ICON_SVG } from './render.js';
 import { ANCHORS, ANCHORS_OUT } from './geometry.js';
 import { getMock, setMock } from './mocks.js';
 import { numDragValue } from './numdrag.js';
+import { paintRing, ledFrame, ledFrameAt } from './led-ring-preview.js';
 import { t } from './i18n.js';
 
 const FONTS = [12, 14, 20, 24, 28, 36, 48, 64, 72, 80, 96];
@@ -133,6 +134,8 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
   numDragBreak = () => model.breakCoalesce();
   let sel = null; // { placeIndex, page, ref } | { ref, physical:true } ou null — RECALCULÉ depuis le store à chaque render()
   let placementInputs = {}; // { anchor, dx, dy } → <input>/<select> de la rubrique Placement, pour la MAJ live au drag
+  let ledPreviewRaf = null;   // requestAnimationFrame de l'aperçu LED animé, ou null
+  const stopLedPreview = () => { if (ledPreviewRaf) { cancelAnimationFrame(ledPreviewRaf); ledPreviewRaf = null; } };
 
   // La sélection courante, dérivée du store : un composant existant, ou null (doc/page/null/périmé).
   // Le `ref` se DÉRIVE du placement (jamais stocké dans la sélection — cf. spec §1).
@@ -634,6 +637,27 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
 
     renderExtras(body, c); // Task 6
 
+    if (c.type === 'led_ring') {
+      const ref = sel.ref;                                   // figé au rendu (cf. invariant inspecteur)
+      const liveComp = () => model.state.components[ref] || c;
+      const mini = document.createElement('div'); mini.className = 'led-ring-mini';
+      paintRing(mini, ledFrame(liveComp(), getMock(ref, 'led_ring')));
+      body.appendChild(mini);
+
+      const play = document.createElement('button'); play.className = 'src-add'; play.textContent = t('device.preview');
+      play.addEventListener('click', () => {
+        if (ledPreviewRaf) { stopLedPreview(); play.textContent = t('device.preview'); paintRing(mini, ledFrame(liveComp(), getMock(ref, 'led_ring'))); return; }
+        play.textContent = t('device.preview_stop');
+        const loop = () => { paintRing(mini, ledFrameAt(liveComp(), getMock(ref, 'led_ring'), performance.now())); ledPreviewRaf = requestAnimationFrame(loop); };
+        loop();
+      });
+      body.appendChild(play);
+
+      // Repeint le mini (frame statique) sur tout 'change' de l'inspecteur (mode/couleur/luminosité/valeur mock),
+      // sauf pendant l'animation ▶. Sans rebuild → reste à jour même quand le garde-focus bloque render().
+      body.addEventListener('change', () => { if (!ledPreviewRaf) paintRing(mini, ledFrame(liveComp(), getMock(ref, 'led_ring'))); });
+    }
+
     if (!COMPONENTS[c.type].physical && pushVisible) {
       const ref = sel.ref;
       const dev = document.createElement('button');
@@ -672,6 +696,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     if (root.contains(document.activeElement) && document.activeElement !== document.body) return;
     sel = currentSel();   // null sauf composant valide (le `ref` se DÉRIVE — cf. spec §1)
     if (_aimgPreviewTimer) { clearInterval(_aimgPreviewTimer); _aimgPreviewTimer = null; }   // stoppe l'aperçu avant tout rebuild
+    stopLedPreview();   // un aperçu LED en cours pointerait un nœud bientôt détaché
     root.querySelectorAll('.insp-body').forEach(n => n.remove());
     placementInputs = {};   // les anciens champs viennent d'être retirés
     const body = document.createElement('div'); body.className = 'insp-body';
