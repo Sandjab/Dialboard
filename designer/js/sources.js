@@ -6,6 +6,7 @@ import {
   uniqueSourceName, addSource, removeSource,
   setSourceProp, setSourceHeaders, setSourceVars
 } from './mutations.js';
+import { t } from './i18n.js';
 
 const MAX_SOURCES = 6, MAX_PAIRS = 6;  // miroir config.h (MAX_SOURCES, MAX_HEADERS/VARS_PER_SOURCE=4/6)
 
@@ -56,25 +57,25 @@ export function createSources(root, model) {
 
       const head = document.createElement('div'); head.className = 'src-head';
       const title = document.createElement('span'); title.className = 'src-title';
-      title.textContent = src.name || `source ${i + 1}`;
-      const del = document.createElement('button'); del.className = 'src-del'; del.textContent = 'Supprimer';
+      title.textContent = src.name || t('sources.default_name', { n: i + 1 });
+      const del = document.createElement('button'); del.className = 'src-del'; del.textContent = t('sources.delete');
       del.addEventListener('click', () => model.commit(s => removeSource(s, i)));
       head.appendChild(title); head.appendChild(del);
       card.appendChild(head);
 
-      card.appendChild(labelled('Nom', textInput(src.name, v => model.commit(s => setSourceProp(s, i, 'name', v)))));
-      card.appendChild(labelled('URL', textInput(src.url, v => model.commit(s => setSourceProp(s, i, 'url', v)), 'https://…')));
-      card.appendChild(labelled('Intervalle (s)', numInput(src.interval_s, v => model.commit(s => setSourceProp(s, i, 'interval_s', v)))));
+      card.appendChild(labelled(t('sources.name'), textInput(src.name, v => model.commit(s => setSourceProp(s, i, 'name', v)))));
+      card.appendChild(labelled(t('sources.url'), textInput(src.url, v => model.commit(s => setSourceProp(s, i, 'url', v)), 'https://…')));
+      card.appendChild(labelled(t('sources.interval'), numInput(src.interval_s, v => model.commit(s => setSourceProp(s, i, 'interval_s', v)))));
 
       // --- Headers (paires nom -> valeur ; "$nom" = reference a un secret) ---
       card.appendChild(pairEditor(
-        'En-tetes (valeur "$nom" = secret)', toPairs(src.headers), 'Nom', 'Valeur',
+        t('sources.headers'), toPairs(src.headers), t('sources.name'), t('sources.value'),
         pairs => model.commit(s => setSourceHeaders(s, i, fromPairs(pairs)))
       ));
 
       // --- Vars (paires nom -> JSON Pointer) ---
       card.appendChild(pairEditor(
-        'Variables (nom -> JSON Pointer)', toPairs(src.vars), 'Variable', '/chemin/json',
+        t('sources.vars'), toPairs(src.vars), t('sources.var_name'), t('sources.var_path_ph'),
         pairs => model.commit(s => setSourceVars(s, i, fromPairs(pairs)))
       ));
 
@@ -82,7 +83,7 @@ export function createSources(root, model) {
     });
 
     const add = document.createElement('button'); add.className = 'src-add';
-    add.textContent = '+ source';
+    add.textContent = t('sources.add');
     add.disabled = sources.length >= MAX_SOURCES;
     add.addEventListener('click', () => model.commit(s => addSource(s, uniqueSourceName(s))));
     root.appendChild(add);

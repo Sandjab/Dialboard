@@ -4,6 +4,8 @@
 // journaux sont MASQUÉS quand leur case (settings) est décochée ; si l'onglet actif disparaît → Problèmes.
 // Câblage DOM, vérifié navigateur (pas de test node). refreshTabs() est appelé par app.js quand un réglage
 // de journal change.
+import { t } from './i18n.js';
+
 export function createConsole(root, model, { validate, logs, getSettings }) {
   let tab = 'problems';     // onglet actif : problems | source | activity | js | net
   let isOpen = false;       // corps déplié ? (≠ la méthode publique open(t) renvoyée plus bas)
@@ -18,15 +20,15 @@ export function createConsole(root, model, { validate, logs, getSettings }) {
     return b;
   };
   const tabBtns = {
-    problems: mkTab('problems', 'Problèmes'),
-    source: mkTab('source', 'Source'),
-    activity: mkTab('activity', 'Activité'),
-    js: mkTab('js', 'Log JS'),
-    net: mkTab('net', 'Log réseau'),
+    problems: mkTab('problems', t('console.tab.problems')),
+    source: mkTab('source', t('console.tab.source')),
+    activity: mkTab('activity', t('console.tab.activity')),
+    js: mkTab('js', t('console.tab.js')),
+    net: mkTab('net', t('console.tab.net')),
   };
   const spacer = document.createElement('span'); spacer.className = 'console-spacer';
   const toggle = document.createElement('button');
-  toggle.type = 'button'; toggle.className = 'console-toggle'; toggle.title = 'Replier / déplier la console';
+  toggle.type = 'button'; toggle.className = 'console-toggle'; toggle.title = t('console.toggle_tip');
   head.append(tabBtns.problems, tabBtns.source, tabBtns.activity, tabBtns.js, tabBtns.net, spacer, toggle);
 
   // --- Corps : Problèmes (liste) + Source (pre + Copier) + 3 panneaux de journaux (liste + Vider) ---
@@ -38,13 +40,13 @@ export function createConsole(root, model, { validate, logs, getSettings }) {
   source.className = 'console-source';
   const pre = document.createElement('pre'); pre.className = 'console-json';
   const copyBtn = document.createElement('button');
-  copyBtn.type = 'button'; copyBtn.className = 'console-copy'; copyBtn.textContent = 'Copier';
+  copyBtn.type = 'button'; copyBtn.className = 'console-copy'; copyBtn.textContent = t('console.copy');
   source.append(copyBtn, pre);
 
   const makeLogPanel = (kind) => {
     const wrap = document.createElement('div'); wrap.className = 'console-logwrap';
     const clearBtn = document.createElement('button');
-    clearBtn.type = 'button'; clearBtn.className = 'console-copy'; clearBtn.textContent = 'Vider';
+    clearBtn.type = 'button'; clearBtn.className = 'console-copy'; clearBtn.textContent = t('console.clear');
     clearBtn.onclick = () => logs.clear(kind);
     const listEl = document.createElement('div'); listEl.className = 'console-log';
     wrap.append(clearBtn, listEl);
@@ -89,7 +91,7 @@ export function createConsole(root, model, { validate, logs, getSettings }) {
     const { errors = [], warnings = [] } = validate(model.state);
     problems.replaceChildren();
     if (!errors.length && !warnings.length) {
-      const ok = document.createElement('div'); ok.className = 'console-empty'; ok.textContent = 'Aucun problème.';
+      const ok = document.createElement('div'); ok.className = 'console-empty'; ok.textContent = t('console.no_problems');
       problems.append(ok);
       return;
     }
@@ -108,7 +110,7 @@ export function createConsole(root, model, { validate, logs, getSettings }) {
     const rows = logs.get(kind);
     panel.listEl.replaceChildren();
     if (!rows.length) {
-      const empty = document.createElement('div'); empty.className = 'console-empty'; empty.textContent = 'Aucune entrée.';
+      const empty = document.createElement('div'); empty.className = 'console-empty'; empty.textContent = t('console.no_entries');
       panel.listEl.append(empty); return;
     }
     for (const r of rows) {
@@ -131,9 +133,9 @@ export function createConsole(root, model, { validate, logs, getSettings }) {
   let copyTimer = null;
   copyBtn.onclick = async () => {
     if (copyTimer) clearTimeout(copyTimer);   // clics rapides : annule le reset en attente (pas de « Copier » prématuré)
-    try { await navigator.clipboard.writeText(model.toJSON()); copyBtn.textContent = 'Copié ✓'; }
-    catch (e) { copyBtn.textContent = 'Échec copie'; }
-    copyTimer = setTimeout(() => { copyBtn.textContent = 'Copier'; copyTimer = null; }, 1500);
+    try { await navigator.clipboard.writeText(model.toJSON()); copyBtn.textContent = t('console.copied'); }
+    catch (e) { copyBtn.textContent = t('console.copy_failed'); }
+    copyTimer = setTimeout(() => { copyBtn.textContent = t('console.copy'); copyTimer = null; }, 1500);
   };
 
   const selectTab = (t) => { tab = t; isOpen = true; if (t in LOG_TABS) renderLog(t); syncView(); };

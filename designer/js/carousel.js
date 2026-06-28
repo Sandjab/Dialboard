@@ -9,6 +9,7 @@ import { addPage, uniquePageName, reorderPages, duplicatePage, removePage, renam
 import { previewUrl } from './bg-image.js';
 import { contextMenuItems, openContextMenu } from './contextmenu.js';
 import { showToast } from './toast.js';
+import { t } from './i18n.js';
 
 // Miroir de src/config.h:3 (#define MAX_PAGES 8) et de designer/js/validate.js:27 (LIM.pages).
 export const MAX_PAGES = 8;
@@ -88,7 +89,7 @@ export function createCarousel({ host }, model, { selection, setSelection, getAc
   function thumb(page, i, active) {
     const cell = document.createElement('div');
     cell.className = 'caro-thumb' + (active ? ' active' : '');
-    cell.title = page.name || `Page ${i + 1}`;
+    cell.title = page.name || t('page.default', { n: i + 1 });
     const disk = document.createElement('div');
     disk.className = 'caro-disk';
     const mini = buildPageStatic(page, model.state.components || {});
@@ -109,8 +110,8 @@ export function createCarousel({ host }, model, { selection, setSelection, getAc
       const tryCommit = () => {
         const v = inp.value.trim() || uniquePageName(model.state);
         if (v === page.name) { renaming = null; render(); return true; }
-        if (!isValidId(v)) { showToast('nom de page invalide : lettres, chiffres, _ uniquement'); return false; }
-        if (pageNameTaken(model.state, v, i)) { showToast(`« ${v} » est déjà utilisé`); return false; }
+        if (!isValidId(v)) { showToast(t('page.invalid_name')); return false; }
+        if (pageNameTaken(model.state, v, i)) { showToast(t('page.name_taken', { name: v })); return false; }
         renaming = null;
         model.commit(s => renamePage(s, i, v));
         return true;
@@ -124,7 +125,7 @@ export function createCarousel({ host }, model, { selection, setSelection, getAc
       cell.appendChild(inp); queueMicrotask(() => inp.focus());
     } else {
       const cap = document.createElement('div'); cap.className = 'caro-cap';
-      cap.textContent = page.name || `Page ${i + 1}`;
+      cap.textContent = page.name || t('page.default', { n: i + 1 });
       cell.appendChild(cap);
     }
     cell.addEventListener('click', () => {
@@ -193,7 +194,7 @@ export function createCarousel({ host }, model, { selection, setSelection, getAc
     const add = document.createElement('button');
     add.className = 'caro-add';
     add.textContent = '+';
-    add.title = 'Ajouter une page';
+    add.title = t('carousel.add_page');
     add.disabled = !canAddPage(model.state);
     add.addEventListener('click', () => {
       const name = uniquePageName(model.state);
