@@ -14,7 +14,7 @@ let mdnsLabels = {
   device_default_name: 'dialboard',
 };
 let applyMdnsLabels = () => {};
-const interp = (s, p) => String(s).replace(/\{(\w+)\}/g, (m, k) => (p && p[k] !== undefined ? String(p[k]) : m));
+const interp = (s, p) => String(s).replace(/\{(\w+)\}/g, (m, k) => (p && typeof p === 'object' && p[k] !== undefined ? String(p[k]) : m));   // parité avec i18n.js::interpolate (objet non-nul garanti)
 
 // Pont desktop pour les fichiers locaux (.dboard). Exposé au renderer ; le designer l'utilise s'il existe.
 contextBridge.exposeInMainWorld('desktop', {
@@ -51,13 +51,13 @@ window.addEventListener('DOMContentLoaded', () => {
 
   let lastList = [];
   function renderPicker(list) {
-    lastList = list;
+    lastList = Array.isArray(list) ? list : [];   // discover-devices peut résoudre non-array (erreur/réponse vide) → pas de TypeError
     picker.replaceChildren();
-    if (list.length < 2) { picker.style.display = 'none'; return; }
+    if (lastList.length < 2) { picker.style.display = 'none'; return; }
     const ph = document.createElement('option');
-    ph.value = ''; ph.textContent = interp(mdnsLabels.picker_placeholder, { count: list.length });
+    ph.value = ''; ph.textContent = interp(mdnsLabels.picker_placeholder, { count: lastList.length });
     picker.appendChild(ph);
-    for (const d of list) {
+    for (const d of lastList) {
       const o = document.createElement('option');
       o.value = d.url; o.textContent = `${d.name || mdnsLabels.device_default_name} — ${d.url}`;
       picker.appendChild(o);
