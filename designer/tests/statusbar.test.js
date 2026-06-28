@@ -85,3 +85,12 @@ test("formatSelectionContext : comp à ref orpheline → repli « ? » sans thro
 test("formatSelectionContext : sélection périmée (index hors place) → chaîne vide, pas de throw", () => {
   assert.equal(formatSelectionContext(ST, { kind: 'comp', page: 0, index: 9 }), '');
 });
+
+test("formatSelectionContext : physique → libellé de type + ref + « physical output » (intent : contexte non vide pour led_ring/sound, sans page/placement)", () => {
+  const st = { pages: [], components: { led: { type: 'led_ring' } } };
+  const s = formatSelectionContext(st, { kind: 'physical', ref: 'led' });
+  assert.notEqual(s, '');                 // PAS le repli vide d'une sélection périmée
+  assert.match(s, /led/);                  // la ref
+  assert.match(s, /physical output/);      // le suffixe (EN en contexte test)
+  assert.doesNotMatch(s, /\?/);            // libellé de type RÉSOLU depuis le registre, pas le repli '?'
+});

@@ -90,6 +90,7 @@ export default {
   'status.hidden': 'hidden',
   'status.visible': 'visible',
   'status.comp': '{type} · {ref} · page « {name} » · {anchor} ({dx}, {dy}) · {vis}',
+  'status.physical': '{type} · {ref} · physical output',
   'status.problems_tip': 'View problems',
   'menu.file': 'File',
   'menu.open': 'Open…',

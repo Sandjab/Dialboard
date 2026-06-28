@@ -87,6 +87,7 @@
   "status.hidden": "masqué",
   "status.visible": "visible",
   "status.comp": "{type} · {ref} · page « {name} » · {anchor} ({dx}, {dy}) · {vis}",
+  "status.physical": "{type} · {ref} · sortie physique",
   "status.problems_tip": "Voir les problèmes",
   "menu.file": "Fichier",
   "menu.open": "Ouvrir…",
