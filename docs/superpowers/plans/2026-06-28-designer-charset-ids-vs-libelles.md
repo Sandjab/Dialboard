@@ -12,6 +12,12 @@
 
 **Convention de commit :** messages `feat(designer):` / `test(designer):` ; terminer chaque message par le footer `Claude-Session:` de la session courante.
 
+> **Déviations d'exécution (mises à jour pendant l'implémentation) :**
+> - Format des noms de page générés figé sur **underscore** : `Page_1`, `Page_2`… et `<base>_copie`, `<base>_copie2`… (et non `Page1`/`(copie)`). Raison : cohérence avec `default-layout` `Page_1` et la convention `_copie`.
+> - Les **3 générateurs de noms de page** (`uniquePageName`, `uniqueCopyName`, fallback `duplicatePage`) + `default-layout.js` sont traités **dans le lot de la Task 1** (le resserrement du schéma les casse → même unité logique). Découle de la revue qualité Task 1.
+> - **Task 3 réduite** à : `isValidId` + gardes défensives `renameComponent`/`renamePage` (les générateurs en sont retirés).
+> - **Task 4 (`default-layout`) : faite** (commit Task 1, `Page_1`).
+
 ---
 
 ## Task 1 : Schéma — `$defs` id/display + rebranchement de tous les champs
