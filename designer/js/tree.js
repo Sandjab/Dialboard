@@ -114,9 +114,9 @@ export function createTree(root, model, { selection, setSelection, getActivePage
     row.className = 'tree-row tree-comp' + (c.visible ? '' : ' hidden') + (isSel ? ' selected' : '');
     const ic = c.type ? iconFor(c.type) : null;
     if (ic) { ic.classList.add('tree-icon'); row.appendChild(ic); }
-    const lbl = document.createElement('span'); lbl.className = 'tree-label'; lbl.textContent = c.label;
-    const ref = document.createElement('span'); ref.className = 'tree-ref'; ref.textContent = c.ref;
-    row.appendChild(lbl); row.appendChild(ref);
+    const name = document.createElement('span'); name.className = 'tree-label'; name.textContent = c.ref;
+    const type = document.createElement('span'); type.className = 'tree-ref'; type.textContent = c.label;
+    row.appendChild(name); row.appendChild(type);
     row.addEventListener('click', () => {
       if (pageIndex !== getActivePage()) goPage(pageIndex);      // bascule de page d'abord (met sel à null)…
       setSelection({ kind: 'comp', page: pageIndex, index: c.index });  // …puis sélectionne le composant
