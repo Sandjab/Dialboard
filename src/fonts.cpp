@@ -39,7 +39,12 @@ const lv_font_t* get_font(uint8_t family, uint16_t px, bool bold, bool italic) {
   // à chaque appel suivant). Borne atteinte seulement par des layouts à >32 combinaisons fonte/taille.
   if (s_cache_n >= FONT_CACHE_MAX) return fallback(px);
   const Ttf &t = TTF[family][style];
-  lv_font_t *f = lv_tiny_ttf_create_data((const void*)t.data, *t.len, px);
+  // cache_size=0 : pas de cache de bitmaps de glyphes. Chaque glyphe est rastérisé puis libéré
+  // juste après le tracé (pic mémoire = 1 glyphe). Sans ça, le cache (borné par *nombre*, pas par
+  // mémoire) accumule des bitmaps de plusieurs Ko en grosses tailles (80/96 px) et sature/fragmente
+  // le pool LVGL de 48 Ko -> échec d'alloc -> chiffre manquant (OOM glyphe) ou assert NULL -> hang.
+  lv_font_t *f = lv_tiny_ttf_create_data_ex((const void*)t.data, *t.len, px,
+                                            LV_FONT_KERNING_NORMAL, 0);
   if (!f) return fallback(px);
   s_cache[s_cache_n++] = { family, style, px, f };
   return f;
