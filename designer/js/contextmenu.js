@@ -8,6 +8,7 @@ import { t } from './i18n.js';
 // moveToPage.submenu = { id:'moveTo', label, page } des AUTRES pages (absent si une seule page).
 export function contextMenuItems(sel, state, { hasClipboard = false } = {}) {
   if (!sel || sel.kind === 'doc') return [];
+  if (sel.kind === 'physical') return [{ id: 'rename', label: t('ctx.rename_id') }];
   const pages = state?.pages || [];
   if (sel.kind === 'page') {
     return [
