@@ -69,7 +69,7 @@ test("formatSelectionContext : comp → libellé de type + ref + page + visible 
   assert.match(s, /visible/);
 });
 
-test("formatSelectionContext : comp masqué → « masqué »", () => {
+test("formatSelectionContext : comp masqué → « hidden » (rendu EN en contexte test)", () => {
   const s = formatSelectionContext(ST, { kind: 'comp', page: 1, index: 0 });
   assert.match(s, /Image/);      // COMPONENTS.image.label
   assert.match(s, /hidden/);

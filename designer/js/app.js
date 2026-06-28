@@ -52,6 +52,7 @@ async function main() {
   await initI18n(loadSettings().lang);   // langue active avant tout rendu (toasts, vues)
   applyStaticI18n(document);             // traduit le chrome statique marqué (no-op tant que rien n'est marqué)
   document.title = t('title.app');
+  document.documentElement.lang = currentLang();   // <html lang> suit la langue active (a11y, défaut HTML = fr)
   // Le schema partage vit dans ../schema (hors du dossier designer) : servir depuis le parent.
   let schema;
   try {
