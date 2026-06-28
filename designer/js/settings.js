@@ -93,7 +93,7 @@ export function createSettings(root, { toggleBtn, onOpen, getSettings, setSettin
     pane.appendChild(themeRow);
 
     // Langue de l'interface (anglais intégré + packs du manifeste). Le changement recharge la page.
-    if (languages.length > 1 && onLanguageChange) {
+    if (Array.isArray(languages) && languages.length > 1 && onLanguageChange) {
       const langRow = settingRow(t('i18n.language'));
       const langSel = document.createElement('select');
       for (const { code, name } of languages) {

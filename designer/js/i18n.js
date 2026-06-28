@@ -12,7 +12,7 @@ export function lookup(current, en, key) {
   return current[key] ?? en[key] ?? key;
 }
 export function interpolate(str, params) {
-  return String(str).replace(/\{(\w+)\}/g, (m, k) => (params && k in params ? String(params[k]) : m));
+  return String(str).replace(/\{(\w+)\}/g, (m, k) => (params && typeof params === 'object' && params[k] !== undefined ? String(params[k]) : m));
 }
 export function isLatin1(s) {
   // Plafond d'affichage = Latin-1 (= ce que les fontes du device rendent, cf. WS-2).
@@ -41,6 +41,12 @@ export function t(key, params) {
 // les clés default.* non-Latin-1 sont écartées (retombent sur EN) ; échec de fetch ⇒ fallback EN.
 export async function initI18n(lang) {
   if (!lang || lang === 'en') { current = EN; activeLang = 'en'; return; }
+  // Defense-in-depth (anti path-traversal) : lang est déjà validé par normalizeSettings, mais initI18n
+  // est exporté → on revalide le format avant de le mettre dans l'URL de fetch.
+  if (typeof lang !== 'string' || !/^[a-z]{2}(-[A-Z]{2})?$/.test(lang)) {
+    console.warn(`[i18n] code de langue invalide « ${lang} », fallback EN`);
+    current = EN; activeLang = 'en'; return;
+  }
   try {
     const res = await fetch(`i18n/${lang}.json`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);

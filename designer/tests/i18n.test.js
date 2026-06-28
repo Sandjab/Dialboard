@@ -27,6 +27,12 @@ test("interpolate: placeholder sans valeur laissé tel quel (intent : pas de \"u
   assert.equal(interpolate('a {x} b', {}), 'a {x} b');
 });
 
+test("interpolate: params non-objet ou valeur undefined → placeholder intact (intent : pas de plantage ni \"undefined\")", () => {
+  assert.equal(interpolate('a {x} b', 'foo'), 'a {x} b');          // params primitif : pas de TypeError sur `in`
+  assert.equal(interpolate('a {x} b', 5), 'a {x} b');
+  assert.equal(interpolate('a {x} b', { x: undefined }), 'a {x} b');   // undefined → laissé tel quel, pas la chaîne "undefined"
+});
+
 test('isLatin1: accents OK, hors-Latin-1 rejeté (intent : parité fontes device, cf. WS-2)', () => {
   assert.equal(isLatin1('Météo · °C'), true);
   assert.equal(isLatin1('Texte'), true);
