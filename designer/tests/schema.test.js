@@ -181,9 +181,9 @@ test('schema : comp_ring accepte cap_prefix ASCII', () => {
   assert.equal(r.valid, true, JSON.stringify(r.errors));
 });
 
-test('schema : comp_ring cap_prefix non-ASCII rejeté', () => {
+test('schema : comp_ring cap_prefix hors Latin-1 (emoji) rejeté', () => {
   const l = base();
-  l.components = { g: { type: 'ring', cap_prefix: 'café' } };
+  l.components = { g: { type: 'ring', cap_prefix: '🔥' } };
   l.pages = [{ name: 'P1', place: [{ ref: 'g', radius: 140 }] }];
   assert.equal(validate(l).valid, false);
 });
@@ -307,5 +307,100 @@ test('schema : bar accepte label_family/label_bold/label_italic', () => {
 test('schema : icon reste taille seule — font_family rejeté (décision : glyphe de symbole)', () => {
   const l = base();
   l.components.t = { type: 'icon', symbol: 'bell', font_family: 'lora' };
+  assert.equal(validate(l).valid, false);
+});
+
+// --- WS-2 : contrat charset IDs vs libellés ---
+
+test('schema : id de composant invalide (espace) rejeté', () => {
+  const l = base();
+  l.components['bad id'] = { type: 'readout', unit: 'C' };
+  l.pages[0].place.push({ ref: 'bad id', anchor: 'CENTER' });
+  assert.equal(validate(l).valid, false);
+});
+
+test('schema : nom de page invalide (espace) rejeté', () => {
+  const l = base();
+  l.pages[0].name = 'Page 1';
+  assert.equal(validate(l).valid, false);
+});
+
+test('schema : nom de page valide (underscore) accepté', () => {
+  const l = base();
+  l.pages[0].name = 'Page_1';
+  assert.equal(validate(l).valid, true);
+});
+
+test('schema : bind invalide (tiret) rejeté', () => {
+  const l = base();
+  l.components.t.bind = 'cpu-load';
+  assert.equal(validate(l).valid, false);
+});
+
+test('schema : bind valide accepté', () => {
+  const l = base();
+  l.components.t.bind = 'cpu_load';
+  assert.equal(validate(l).valid, true);
+});
+
+test('schema : clé de vars invalide rejetée', () => {
+  const l = base();
+  l.sources = [{ url: 'https://x', vars: { 'bad var': '/a' } }];
+  assert.equal(validate(l).valid, false);
+});
+
+test('schema : clé de vars valide acceptée', () => {
+  const l = base();
+  l.sources = [{ url: 'https://x', vars: { cpu_temp: '/main/temp' } }];
+  assert.equal(validate(l).valid, true);
+});
+
+test('schema : label accentué (Latin-1) accepté', () => {
+  const l = base();
+  l.components.t.label = 'Mémoire';
+  l.components.t.unit = '°C';
+  assert.equal(validate(l).valid, true);
+});
+
+test('schema : title accentué accepté', () => {
+  const l = base();
+  l.title = 'Mon écran';
+  assert.equal(validate(l).valid, true);
+});
+
+test('schema : cap_prefix accentué accepté (ring)', () => {
+  const l = base();
+  l.components.r = { type: 'ring', cap_prefix: 'Réf ' };
+  l.pages[0].place.push({ ref: 'r', radius: 80, thickness: 16 });
+  assert.equal(validate(l).valid, true);
+});
+
+test('schema : contenu hors Latin-1 (emoji) rejeté', () => {
+  const l = base();
+  l.components.t.label = 'CPU 🔥';
+  assert.equal(validate(l).valid, false);
+});
+
+test('schema : contenu hors Latin-1 (CJK) rejeté', () => {
+  const l = base();
+  l.components.t.label = '天気';
+  assert.equal(validate(l).valid, false);
+});
+
+test('schema : text de label accentué (Latin-1) accepté', () => {
+  const l = base();
+  l.components.lbl = { type: 'label', text: 'Été' };
+  assert.equal(validate(l).valid, true);
+});
+
+test('schema : name de source accentué (Latin-1) accepté', () => {
+  const l = base();
+  l.sources = [{ url: 'https://x', name: 'Système' }];
+  assert.equal(validate(l).valid, true);
+});
+
+test('schema : name de source hors Latin-1 (emoji) rejeté', () => {
+  const l = base();
+  l.sources = [{ url: 'https://x', name: 'source 🔥' }];
   assert.equal(validate(l).valid, false);
 });

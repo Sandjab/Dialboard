@@ -3,7 +3,7 @@
 // Remplace nav#pages : Document → pages (ordre nav) → composants (z-order INVERSÉ). cf. spec §1.
 import { COMPONENTS } from './registry.js';
 import { iconFor } from './icons.js';
-import { setComponentProp, addPage, removePage, renamePage, reorderPages, uniquePageName, pageNameTaken, renameComponent, duplicatePage, reorderPlacement, movePlacementToPage } from './mutations.js';
+import { setComponentProp, addPage, removePage, renamePage, reorderPages, uniquePageName, pageNameTaken, renameComponent, duplicatePage, reorderPlacement, movePlacementToPage, isValidId } from './mutations.js';
 import { logs } from './logs.js';
 import { showToast } from './toast.js';
 import { contextMenuItems, openContextMenu, closeContextMenu } from './contextmenu.js';
@@ -88,6 +88,7 @@ export function createTree(root, model, { selection, setSelection, getActivePage
       const tryCommit = () => {
         const id = inp.value.trim();
         if (!id || id === orig) { renamingComp = null; render(); return true; }   // vide/identique → annule
+        if (!isValidId(id)) { showToast('id invalide : lettres, chiffres, _ uniquement'); return false; }
         if (model.state.components?.[id]) { showToast(`L'id « ${id} » est déjà pris`); return false; }
         renamingComp = null;
         model.commit(s => renameComponent(s, orig, id));   // → subscribe → render()
@@ -95,7 +96,7 @@ export function createTree(root, model, { selection, setSelection, getActivePage
       };
       inp.addEventListener('input', () => {
         const v = inp.value.trim();
-        inp.classList.toggle('invalid', !!v && v !== orig && !!model.state.components?.[v]);
+        inp.classList.toggle('invalid', !!v && v !== orig && (!isValidId(v) || !!model.state.components?.[v]));
       });
       inp.addEventListener('keydown', e => {
         if (e.key === 'Enter') { e.preventDefault(); tryCommit(); }
@@ -210,6 +211,7 @@ export function createTree(root, model, { selection, setSelection, getActivePage
       const tryCommit = () => {
         const name = inp.value.trim() || uniquePageName(model.state);
         if (name === orig) { renaming = null; render(); return true; }      // pas de changement
+        if (!isValidId(name)) { showToast('nom de page invalide : lettres, chiffres, _ uniquement'); return false; }
         if (pageNameTaken(model.state, name, p.index)) { showToast(`« ${name} » est déjà utilisé`); return false; }
         renaming = null;
         model.commit(s => renamePage(s, p.index, name));                    // → subscribe → render()
@@ -218,7 +220,7 @@ export function createTree(root, model, { selection, setSelection, getActivePage
       };
       inp.addEventListener('input', () => {
         const v = inp.value.trim();
-        inp.classList.toggle('invalid', !!v && pageNameTaken(model.state, v, p.index));   // feedback live
+        inp.classList.toggle('invalid', !!v && (!isValidId(v) || pageNameTaken(model.state, v, p.index)));   // feedback live
       });
       inp.addEventListener('keydown', e => {
         if (e.key === 'Enter') { e.preventDefault(); tryCommit(); }         // doublon → toast + reste en édition

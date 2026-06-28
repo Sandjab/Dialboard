@@ -44,3 +44,13 @@ test('keyword inconnu retombe sur le message ajv brut', () => {
   const e = { keyword: 'weird', instancePath: '/x', params: {}, message: 'must be weird' };
   assert.match(humanizeAjvError(e), /must be weird/);
 });
+
+test('humanize : pattern id → message identifiant', () => {
+  const msg = humanizeAjvError({ instancePath: '/pages/0/name', keyword: 'pattern', params: { pattern: '^[A-Za-z0-9_]+$' } });
+  assert.match(msg, /identifiant invalide/);
+});
+
+test('humanize : pattern display → message Latin-1', () => {
+  const msg = humanizeAjvError({ instancePath: '/components/t/label', keyword: 'pattern', params: { pattern: '^[\\x20-\\x7E\\xA0-\\xFF]*$' } });
+  assert.match(msg, /Latin-1/);
+});

@@ -7,7 +7,7 @@
   "required": ["components", "pages"],
   "additionalProperties": false,
   "properties": {
-    "title": { "type": "string", "description": "Titre du dashboard (defaut \"\")." },
+    "title": { "$ref": "#/$defs/display", "description": "Titre du dashboard (defaut \"\")." },
     "background": { "$ref": "#/$defs/hexColor", "description": "Couleur de fond (defaut #000000)." },
     "nav": {
       "type": "object",
@@ -20,6 +20,7 @@
       "type": "object",
       "description": "Map id -> definition. AUCUNE position ici (la position vit dans pages[].place[]). Un meme id place sur plusieurs pages = un seul exemplaire, etat partage.",
       "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/id" },
       "additionalProperties": { "$ref": "#/$defs/component" }
     },
     "pages": {
@@ -43,7 +44,18 @@
     "ascii": {
       "type": "string",
       "pattern": "^[\\x00-\\x7F]*$",
-      "description": "ASCII uniquement : les polices Montserrat embarquees ne couvrent pas les accents/symboles non-ASCII."
+      "description": "Cle de contenu (hash d'asset) : ASCII pur. Utilisee par background_image et les src d'image/animation. (Le texte d'affichage a migre vers $defs/display, Latin-1.)"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_]+$",
+      "minLength": 1,
+      "description": "Identifiant (poignee de reference) : lettres ASCII, chiffres, underscore. Jamais traduit."
+    },
+    "display": {
+      "type": "string",
+      "pattern": "^[\\x20-\\x7E\\xA0-\\xFF]*$",
+      "description": "Texte affiche sur le device : Latin-1 (ce que les fontes embarquees rendent ; cf. tools/gen_fonts.py)."
     },
     "font": {
       "type": "integer",
@@ -110,8 +122,8 @@
       "properties": {
         "type": { "const": "label" },
         "visible": { "type": "boolean", "description": "Affiche le composant (defaut true). false = cache (LV_OBJ_FLAG_HIDDEN au rendu). Revelable a chaud via /update {\"<id>\":{\"visible\":true}}." },
-        "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
-        "text": { "$ref": "#/$defs/ascii", "description": "Texte statique (peut etre remplace via /update avec une string)." },
+        "bind": { "$ref": "#/$defs/id", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
+        "text": { "$ref": "#/$defs/display", "description": "Texte statique (peut etre remplace via /update avec une string)." },
         "font": { "$ref": "#/$defs/font" },
         "font_family": { "$ref": "#/$defs/fontFamily" },
         "bold": { "type": "boolean", "description": "Gras (vrai cut). Defaut false." },
@@ -126,9 +138,9 @@
       "properties": {
         "type": { "const": "readout" },
         "visible": { "type": "boolean", "description": "Affiche le composant (defaut true). false = cache (LV_OBJ_FLAG_HIDDEN au rendu). Revelable a chaud via /update {\"<id>\":{\"visible\":true}}." },
-        "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
-        "label": { "$ref": "#/$defs/ascii", "description": "Libelle affiche devant la valeur (ex. \"CPU\")." },
-        "unit": { "$ref": "#/$defs/ascii", "description": "Unite ASCII (%, GB, C, Mbps)." },
+        "bind": { "$ref": "#/$defs/id", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
+        "label": { "$ref": "#/$defs/display", "description": "Libelle affiche devant la valeur (ex. \"CPU\")." },
+        "unit": { "$ref": "#/$defs/display", "description": "Unite affichee apres la valeur (%, GB, °C, Mbps)." },
         "font": { "$ref": "#/$defs/font" },
         "font_family": { "$ref": "#/$defs/fontFamily" },
         "bold": { "type": "boolean", "description": "Gras (vrai cut). Defaut false." },
@@ -143,8 +155,8 @@
       "properties": {
         "type": { "const": "bar" },
         "visible": { "type": "boolean", "description": "Affiche le composant (defaut true). false = cache (LV_OBJ_FLAG_HIDDEN au rendu). Revelable a chaud via /update {\"<id>\":{\"visible\":true}}." },
-        "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
-        "label": { "$ref": "#/$defs/ascii", "description": "Libelle affiche au-dessus de la barre." },
+        "bind": { "$ref": "#/$defs/id", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
+        "label": { "$ref": "#/$defs/display", "description": "Libelle affiche au-dessus de la barre." },
         "min": { "type": "number", "description": "Defaut 0." },
         "max": { "type": "number", "description": "Defaut 100." },
         "color": { "$ref": "#/$defs/hexColor" },
@@ -167,7 +179,7 @@
       "properties": {
         "type": { "const": "ring" },
         "visible": { "type": "boolean", "description": "Affiche le composant (defaut true). false = cache (LV_OBJ_FLAG_HIDDEN au rendu). Revelable a chaud via /update {\"<id>\":{\"visible\":true}}." },
-        "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
+        "bind": { "$ref": "#/$defs/id", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
         "color": { "$ref": "#/$defs/hexColor" },
         "font": { "$ref": "#/$defs/font", "description": "Taille du chiffre central (center_pct)." },
         "font_family": { "$ref": "#/$defs/fontFamily" },
@@ -183,7 +195,7 @@
         },
         "center_pct": { "type": "boolean", "description": "Affiche value+unit au centre de l'anneau, en grand (police = font du composant). Peut coexister avec pill. La couleur suit le seuil par defaut. Unites non-ASCII (degre, micro) non rendues." },
         "center_color": { "$ref": "#/$defs/hexColor", "description": "Couleur du chiffre central (center_pct). Surcharge la couleur deduite du seuil. Absent = suit le seuil (ou color)." },
-        "cap_prefix": { "$ref": "#/$defs/ascii", "description": "Préfixe statique de la légende courbe (texte courbe = cap_prefix + caption). ASCII, défaut \"\"." },
+        "cap_prefix": { "$ref": "#/$defs/display", "description": "Préfixe statique de la légende courbe (texte courbe = cap_prefix + caption). Latin-1, défaut \"\"." },
         "mode": { "enum": ["normal", "symmetrical", "reverse"], "description": "Sens de remplissage de l'indicateur. normal = horaire ; reverse = anti-horaire ; symmetrical = depuis le milieu. Defaut normal. (lv_arc_set_mode)" },
         "rounded": { "type": "boolean", "description": "Extremites de l'indicateur arrondies. Defaut true (rendu actuel). (style arc_rounded)" }
       }
@@ -217,7 +229,7 @@
       "properties": {
         "type": { "const": "chart" },
         "visible": { "type": "boolean", "description": "Affiche le composant (defaut true). false = cache (LV_OBJ_FLAG_HIDDEN au rendu). Revelable a chaud via /update {\"<id>\":{\"visible\":true}}." },
-        "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id." },
+        "bind": { "$ref": "#/$defs/id", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id." },
         "color": { "$ref": "#/$defs/hexColor", "description": "Couleur de la serie." },
         "min": { "type": "number", "description": "Borne basse de l'axe Y. Defaut 0." },
         "max": { "type": "number", "description": "Borne haute de l'axe Y. Defaut 100." },
@@ -232,7 +244,7 @@
       "properties": {
         "type": { "const": "meter" },
         "visible": { "type": "boolean", "description": "Affiche le composant (defaut true). false = cache (LV_OBJ_FLAG_HIDDEN au rendu). Revelable a chaud via /update {\"<id>\":{\"visible\":true}}." },
-        "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id." },
+        "bind": { "$ref": "#/$defs/id", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id." },
         "color": { "$ref": "#/$defs/hexColor", "description": "Couleur de l'aiguille." },
         "min": { "type": "number", "description": "Borne basse de l'echelle. Defaut 0." },
         "max": { "type": "number", "description": "Borne haute de l'echelle. Defaut 100." },
@@ -272,7 +284,7 @@
         "rest_frame": { "type": "integer", "minimum": 0, "description": "Frame affichee au repos / apres un play fini. Defaut 0." },
         "loop": { "type": "integer", "minimum": 0, "description": "Nb de passes par defaut d'un play. 0 = infini (jusqu'a stop). Defaut 0." },
         "autoplay": { "type": "boolean", "description": "Demarre la lecture au chargement de la page. Defaut false." },
-        "bind": { "$ref": "#/$defs/ascii", "description": "Variable du contexte (pull) : selectionne la frame d'etat (clamp 0..frames-1) quand l'anim est a l'arret." }
+        "bind": { "$ref": "#/$defs/id", "description": "Variable du contexte (pull) : selectionne la frame d'etat (clamp 0..frames-1) quand l'anim est a l'arret." }
       }
     },
     "comp_led": {
@@ -283,7 +295,7 @@
       "properties": {
         "type": { "const": "led" },
         "visible": { "type": "boolean", "description": "Affiche le composant (defaut true). false = cache (LV_OBJ_FLAG_HIDDEN au rendu). Revelable a chaud via /update {\"<id>\":{\"visible\":true}}." },
-        "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
+        "bind": { "$ref": "#/$defs/id", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
         "color": { "$ref": "#/$defs/hexColor", "description": "Couleur allumee quand aucun seuil ne matche. Defaut #22C55E." },
         "off_below": { "type": "integer", "description": "value < off_below = eteint ; sinon allume. Defaut 1 (0 = eteint, >=1 = allume)." },
         "thresholds": {
@@ -320,7 +332,7 @@
       "properties": {
         "type": { "const": "icon" },
         "visible": { "type": "boolean", "description": "Affiche le composant (defaut true). false = cache (LV_OBJ_FLAG_HIDDEN). Pilotable via /update {\"<id>\":{\"visible\":true}}." },
-        "bind": { "$ref": "#/$defs/ascii", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
+        "bind": { "$ref": "#/$defs/id", "description": "Nom d'une variable du contexte (pull). Present = lit la variable au lieu d'etre pousse par id. Absent = push par id (defaut)." },
         "symbol": { "$ref": "#/$defs/symbolName", "description": "Glyphe de base (quand aucune bande de states ne matche). Defaut bell." },
         "color": { "$ref": "#/$defs/hexColor", "description": "Couleur de base (text_color). Defaut #FFFFFF." },
         "font": { "$ref": "#/$defs/font", "description": "Taille du glyphe. Defaut 28." },
@@ -372,7 +384,7 @@
       "required": ["name", "place"],
       "additionalProperties": false,
       "properties": {
-        "name": { "type": "string", "description": "Nom de page (cible de POST /page {\"name\":...})." },
+        "name": { "$ref": "#/$defs/id", "description": "Nom de page (cible de POST /page {\"name\":...})." },
         "background": { "$ref": "#/$defs/hexColor", "description": "Couleur de fond de la page (optionnel ; herite du background global du layout si absent)." },
         "background_image": { "$ref": "#/$defs/ascii", "description": "Cle d'asset image de fond (hash de contenu, hex). Bytes RGB565 360x360 uploades via POST /bgimage?key=. Absent = pas d'image (la couleur de fond s'applique)." },
         "place": {
@@ -406,7 +418,7 @@
       "additionalProperties": false,
       "description": "Une source de pull (1 source = 1 url). url requis (le firmware rejette une source sans url).",
       "properties": {
-        "name": { "type": "string", "description": "Nom de la source (libelle ; apparait dans GET /status)." },
+        "name": { "$ref": "#/$defs/display", "description": "Nom de la source (libelle ; apparait dans GET /status)." },
         "url": { "type": "string", "description": "URL HTTP(S) a interroger." },
         "interval_s": { "type": "integer", "minimum": 5, "description": "Periode de fetch en secondes. Defaut 60. Plancher impose 5 (CTX_MIN_INTERVAL_S)." },
         "headers": {
@@ -417,6 +429,7 @@
         "vars": {
           "type": "object",
           "description": "Map nom_de_variable -> JSON Pointer (RFC 6901, ex. \"/main/temp\") extrait de la reponse.",
+          "propertyNames": { "$ref": "#/$defs/id" },
           "additionalProperties": { "type": "string" }
         }
       }

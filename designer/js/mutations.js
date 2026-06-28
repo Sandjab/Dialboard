@@ -4,6 +4,9 @@
 
 import { COMPONENTS } from './registry.js';
 
+// Identifiant (poignée de référence) : lettres ASCII, chiffres, underscore. Cf. $defs/id du schéma.
+export const isValidId = s => /^[A-Za-z0-9_]+$/.test(s ?? '');
+
 // id unique pour un nouveau composant : <type><n>, n = 1er entier libre.
 export function uniqueId(state, type) {
   const comps = state.components || {};
@@ -129,13 +132,13 @@ export function setNavWrap(state, wrap) {
 
 // --- Pages (Plan C2) ---
 
-// Nom de page auto unique (« Page N » au premier N libre) : évite les collisions à la création, le
+// Nom de page auto unique (« Page_N » au premier N libre) : évite les collisions à la création, le
 // nom de page étant la cible de POST /page {"name":...}. Le renommage manuel reste libre. Cf. uniqueSourceName.
 export function uniquePageName(state) {
   const used = new Set((state.pages || []).map(p => p.name));
   let n = 1;
-  while (used.has(`Page ${n}`)) n++;
-  return `Page ${n}`;
+  while (used.has(`Page_${n}`)) n++;
+  return `Page_${n}`;
 }
 
 // `name` est-il déjà porté par une AUTRE page que `exceptIndex` ? Comparaison exacte (comme le strcmp
@@ -194,7 +197,9 @@ export function setPageBackgroundImage(state, pageIndex, key) {
 
 export function renamePage(state, pageIndex, name) {
   const page = state.pages?.[pageIndex];
-  if (page) page.name = name;
+  if (!page || !isValidId(name)) return false;
+  page.name = name;
+  return true;
 }
 
 // Déplace la page d'index `from` vers `to`. No-op si index hors bornes ou identiques.
@@ -206,13 +211,13 @@ export function reorderPages(state, from, to) {
   pages.splice(to, 0, p);
 }
 
-// Nom unique pour une page dupliquée : « <base> (copie) », puis « (copie 2) »… 1er libre. Le nom de
+// Nom unique pour une page dupliquée : « <base>_copie », puis « <base>_copie2 »… 1er libre. Le nom de
 // page est la cible de POST /page → unicité obligatoire (cf. uniquePageName / pageNameTaken).
 export function uniqueCopyName(state, base) {
   const used = new Set((state.pages || []).map(p => p.name));
-  let name = `${base} (copie)`;
+  let name = `${base}_copie`;
   let n = 2;
-  while (used.has(name)) name = `${base} (copie ${n++})`;
+  while (used.has(name)) name = `${base}_copie${n++}`;
   return name;
 }
 
@@ -225,7 +230,7 @@ export function duplicatePage(state, pageIndex) {
   const src = state.pages?.[pageIndex];
   if (!src) return -1;
   const newPage = structuredClone(src);                 // préserve background / background_image / autres props de page
-  newPage.name = uniqueCopyName(state, src.name || `Page ${pageIndex + 1}`);
+  newPage.name = uniqueCopyName(state, src.name || `Page_${pageIndex + 1}`);
   newPage.place = [];
   for (const pl of src.place || []) {
     const compDef = state.components?.[pl.ref];
@@ -270,13 +275,12 @@ export function movePlacementToPage(state, fromPage, placeIndex, toPage, toIndex
 }
 
 // Renomme l'id d'un composant : la clé dans `components` ET tous les place[].ref qui la pointent (toutes
-// pages). Retourne false (no-op) si oldId absent, newId vide, identique, ou DÉJÀ pris (garde d'unicité →
-// pas d'écrasement). Retourne true si renommé. L'id n'est PAS du texte d'affichage device (≠ text/label/
-// unit) → pas de contrainte ASCII ici.
+// pages). Retourne false (no-op) si oldId absent, newId vide/invalide/identique/déjà pris.
+// Retourne true si renommé. newId doit respecter isValidId (lettres ASCII, chiffres, underscore).
 export function renameComponent(state, oldId, newId) {
   const comps = state.components;
   if (!comps || !comps[oldId]) return false;
-  if (!newId || newId === oldId || comps[newId]) return false;
+  if (!newId || newId === oldId || comps[newId] || !isValidId(newId)) return false;
   comps[newId] = comps[oldId];
   delete comps[oldId];
   for (const page of state.pages || [])
