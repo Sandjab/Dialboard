@@ -1,7 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { formatDeviceStatus } from '../js/device.js';
-import { createDevicePanel } from '../js/device-panel.js';
 
 const base = { ip: '192.168.1.35', page: 0, pages: 5, uptime_s: 42, components: 24, sources: [] };
 
@@ -27,9 +26,4 @@ test('formatDeviceStatus : état par source — 200→ok, err_count→err, sinon
 test(`formatDeviceStatus : aucune source → pas de segment « sources » dans l'infobulle`, () => {
   const { tooltip } = formatDeviceStatus(base);
   assert.doesNotMatch(tooltip, /sources/);
-});
-
-test('device-panel : createDevicePanel(root, model) — fabrique à 2 paramètres requis', () => {
-  assert.equal(typeof createDevicePanel, 'function');
-  assert.equal(createDevicePanel.length, 2);   // root, model (garde contre l'ajout d'un 3e param requis)
 });

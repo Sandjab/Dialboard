@@ -16,7 +16,6 @@ import { createTree } from './tree.js';
 import { createCarousel } from './carousel.js';
 import { bindFileIO } from './file-io.js';
 import { createSources } from './sources.js';
-import { createDevicePanel } from './device-panel.js';
 import { stripPhysicalPlacements, ensurePhysicals, pruneOrphans } from './physical.js';
 import { showToast, makeToast } from './toast.js';
 import { withConfirm } from './confirm.js';
@@ -242,9 +241,6 @@ async function main() {
 
   // Panneau Sources (pull réseau) : édition des sources top-level. Indépendant du canvas/pages.
   createSources($('sources'), model);
-  // Panneau Device : composants physiques (led_ring/sound) édités hors pages (sorties globales).
-  // L'aperçu de l'anneau LED vit dans le mini-aperçu du panneau Device (le liseré du canvas a été retiré).
-  createDevicePanel($('device'), model);
   const drawer = createDrawer($('drawer'), { toggleBtn: $('drawer-toggle'), onOpen: () => settings.close() });  // settings déclaré juste après — closure, pas de TDZ
   const languages = await availableLanguages();
   const settings = createSettings($('settings-drawer'), {

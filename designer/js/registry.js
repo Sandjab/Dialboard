@@ -4,7 +4,7 @@
 // L'aperçu (build) reste dans render.js (double-maintenance du rendu firmware) ; ici on le référence
 // via une signature normalisée (comp, placement, mock).
 // i18n : les libellés (label de type, libellés de champs, LED_MODES) sont des CLÉS i18n résolues par t()
-// au point d'affichage (tree/statusbar/device-panel/inspector/canvas-zones). Le contenu textuel par
+// au point d'affichage (tree/statusbar/inspector/canvas-zones). Le contenu textuel par
 // défaut (default.*) est localisé À LA CRÉATION via t() — Latin-1 garanti (contrat WS-2).
 import { snapPlacement } from './geometry.js';
 import { t } from './i18n.js';
@@ -194,7 +194,7 @@ export const COMPONENTS = {
     ],
     placeFields: [],
     mockFields: [['value', 'field.mock_pct']],
-    build: null,   // physique : édité dans le panneau « Device », l'aperçu passe par led-ring-preview.js
+    build: null,   // physique : édité dans l'inspecteur (sélection depuis l'arbre), aperçu via led-ring-preview.js
   },
   sound: {
     label: 'comp.sound',

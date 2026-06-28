@@ -11,6 +11,7 @@ import { ICON_SVG } from './render.js';
 import { ANCHORS, ANCHORS_OUT } from './geometry.js';
 import { getMock, setMock } from './mocks.js';
 import { numDragValue } from './numdrag.js';
+import { paintRing, ledFrame, ledFrameAt } from './led-ring-preview.js';
 import { t } from './i18n.js';
 
 const FONTS = [12, 14, 20, 24, 28, 36, 48, 64, 72, 80, 96];
@@ -131,13 +132,16 @@ function fieldRow(label, input, { charset } = {}) {
 
 export function createInspector(root, model, { selection, rerenderCanvas, clearSelection, getActivePage = () => 0, previewProp, clearPreview, pushVisible, openDrawer } = {}) {
   numDragBreak = () => model.breakCoalesce();
-  let sel = null; // { placeIndex, page, ref } ou null — RECALCULÉ depuis le store à chaque render()
+  let sel = null; // { placeIndex, page, ref } | { ref, physical:true } ou null — RECALCULÉ depuis le store à chaque render()
   let placementInputs = {}; // { anchor, dx, dy } → <input>/<select> de la rubrique Placement, pour la MAJ live au drag
+  let ledPreviewRaf = null;   // requestAnimationFrame de l'aperçu LED animé, ou null
+  const stopLedPreview = () => { if (ledPreviewRaf) { cancelAnimationFrame(ledPreviewRaf); ledPreviewRaf = null; } };
 
   // La sélection courante, dérivée du store : un composant existant, ou null (doc/page/null/périmé).
   // Le `ref` se DÉRIVE du placement (jamais stocké dans la sélection — cf. spec §1).
   const currentSel = () => {
     const s = selection.get();
+    if (s && s.kind === 'physical') return { ref: s.ref, physical: true };   // led_ring/sound : pas de placement
     if (!s || s.kind !== 'comp') return null;
     const pl = model.state.pages?.[s.page]?.place?.[s.index];
     if (!pl) return null;
@@ -585,50 +589,74 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
       head.appendChild(eye);
     }
     body.appendChild(head);
+    if (c.type === 'sound') note(body, t('device.note_sound'));   // physique sans champ : note d'usage
 
-    const { sec: propSec, body: propBody } = section(t('inspector.sec.props'));
-    const rows = {};
-    for (const [key, label, kind, enableWhen] of COMPONENTS[c.type].compFields) {
-      if (kind === 'image') { propBody.appendChild(imageField(label, c)); continue; }   // picker bespoke
-      if (kind === 'image_anim') { propBody.appendChild(imageAnimField(label, c)); continue; }   // editeur bespoke
-      if (kind === 'fill') { propBody.appendChild(fillField(label, c)); continue; }   // forme : fond optionnel (bespoke : enableWhen non supporté, comme image/image_anim)
-      // Color picker : aperçu live sur 'input' (canvas seul, hors modèle → pas de flood undo) ; commit
-      // unique sur 'change' (makeInput), précédé d'un clearPreview pour que le commit re-rende l'état réel.
-      // ref figée au rendu : le color picker émet son 'change' en DIFFÉRÉ (après qu'un clic ailleurs a
-      // déjà déplacé `sel`) ; sans figer, le commit atterrirait sur la sélection courante (mauvais
-      // composant). On committe donc toujours sur le composant qu'on éditait. (cf. bug picker couleur)
-      const ref = sel.ref;
-      const placeIndex = sel.placeIndex;   // figé au rendu comme ref (orientation barre → swap W/H du placement)
-      const commit = v => {
-        if (kind === 'color') clearPreview?.();
-        // Orientation barre : bascule + échange Largeur/Hauteur du placement en UN seul commit (1 undo).
-        if (key === 'orientation' && c.type === 'bar') { model.commit(s => setBarOrientation(s, ref, getActivePage(), placeIndex, v)); return; }
-        model.commit(s => setComponentProp(s, ref, key, v), kind === 'num' ? { coalesce: 'num' } : undefined);   // F2 : coalesce num
-      };
-      const input = makeInput(kind, c[key], commit);
-      if (kind === 'color') input.addEventListener('input', () => previewProp?.(ref, { [key]: input.value.toUpperCase() }));
-      const displayLabel = key === 'bind' ? '⛓ ' + t('field.bind') : t(label);
-      const row = fieldRow(displayLabel, input, { charset: kind === 'idtext' ? 'id' : kind === 'latintext' ? 'latin1' : undefined });
-      if (key === 'bind') row.classList.add('insp-source');
-      rows[key] = { input, row, enableWhen };
-      propBody.appendChild(row);
-    }
-    body.appendChild(propSec);
-    // Grise les champs non pertinents dans l'état courant (ex : couleur/police du centre si center_pct off).
-    // En direct, sans rebuild : le garde-focus de render() bloquerait une reconstruction juste après le clic.
-    const syncEnabled = () => {
-      const cc = comp(); if (!cc) return;
-      for (const { input, row, enableWhen } of Object.values(rows)) {
-        if (!enableWhen) continue;
-        const ok = enableWhen(cc);
-        input.disabled = !ok;
-        row.classList.toggle('disabled', !ok);
+    if (COMPONENTS[c.type].compFields.length) {   // sound n'a aucun champ → pas de rubrique vide
+      const { sec: propSec, body: propBody } = section(t('inspector.sec.props'));
+      const rows = {};
+      for (const [key, label, kind, enableWhen] of COMPONENTS[c.type].compFields) {
+        if (kind === 'image') { propBody.appendChild(imageField(label, c)); continue; }   // picker bespoke
+        if (kind === 'image_anim') { propBody.appendChild(imageAnimField(label, c)); continue; }   // editeur bespoke
+        if (kind === 'fill') { propBody.appendChild(fillField(label, c)); continue; }   // forme : fond optionnel (bespoke : enableWhen non supporté, comme image/image_anim)
+        // Color picker : aperçu live sur 'input' (canvas seul, hors modèle → pas de flood undo) ; commit
+        // unique sur 'change' (makeInput), précédé d'un clearPreview pour que le commit re-rende l'état réel.
+        // ref figée au rendu : le color picker émet son 'change' en DIFFÉRÉ (après qu'un clic ailleurs a
+        // déjà déplacé `sel`) ; sans figer, le commit atterrirait sur la sélection courante (mauvais
+        // composant). On committe donc toujours sur le composant qu'on éditait. (cf. bug picker couleur)
+        const ref = sel.ref;
+        const placeIndex = sel.placeIndex;   // figé au rendu comme ref (orientation barre → swap W/H du placement)
+        const commit = v => {
+          if (kind === 'color') clearPreview?.();
+          // Orientation barre : bascule + échange Largeur/Hauteur du placement en UN seul commit (1 undo).
+          if (key === 'orientation' && c.type === 'bar') { model.commit(s => setBarOrientation(s, ref, getActivePage(), placeIndex, v)); return; }
+          model.commit(s => setComponentProp(s, ref, key, v), kind === 'num' ? { coalesce: 'num' } : undefined);   // F2 : coalesce num
+        };
+        const input = makeInput(kind, c[key], commit);
+        if (kind === 'color') input.addEventListener('input', () => previewProp?.(ref, { [key]: input.value.toUpperCase() }));
+        const displayLabel = key === 'bind' ? '⛓ ' + t('field.bind') : t(label);
+        const row = fieldRow(displayLabel, input, { charset: kind === 'idtext' ? 'id' : kind === 'latintext' ? 'latin1' : undefined });
+        if (key === 'bind') row.classList.add('insp-source');
+        rows[key] = { input, row, enableWhen };
+        propBody.appendChild(row);
       }
-    };
-    syncEnabled();
-    body.addEventListener('change', syncEnabled); // un toggle (ex: center_pct) re-évalue les dépendants
+      body.appendChild(propSec);
+      // Grise les champs non pertinents dans l'état courant (ex : couleur/police du centre si center_pct off).
+      // En direct, sans rebuild : le garde-focus de render() bloquerait une reconstruction juste après le clic.
+      const syncEnabled = () => {
+        const cc = comp(); if (!cc) return;
+        for (const { input, row, enableWhen } of Object.values(rows)) {
+          if (!enableWhen) continue;
+          const ok = enableWhen(cc);
+          input.disabled = !ok;
+          row.classList.toggle('disabled', !ok);
+        }
+      };
+      syncEnabled();
+      body.addEventListener('change', syncEnabled); // un toggle (ex: center_pct) re-évalue les dépendants
+    }
 
     renderExtras(body, c); // Task 6
+
+    if (c.type === 'led_ring') {
+      const ref = sel.ref;                                   // figé au rendu (cf. invariant inspecteur)
+      const liveComp = () => model.state.components[ref] || c;
+      const mini = document.createElement('div'); mini.className = 'led-ring-mini';
+      paintRing(mini, ledFrame(liveComp(), getMock(ref, 'led_ring')));
+      body.appendChild(mini);
+
+      const play = document.createElement('button'); play.className = 'src-add'; play.textContent = t('device.preview');
+      play.addEventListener('click', () => {
+        if (ledPreviewRaf) { stopLedPreview(); play.blur(); play.textContent = t('device.preview'); paintRing(mini, ledFrame(liveComp(), getMock(ref, 'led_ring'))); return; }   // blur : libère le focus → render() peut reconstruire (cf. œil)
+        play.textContent = t('device.preview_stop');
+        const loop = () => { paintRing(mini, ledFrameAt(liveComp(), getMock(ref, 'led_ring'), performance.now())); ledPreviewRaf = requestAnimationFrame(loop); };
+        loop();
+      });
+      body.appendChild(play);
+
+      // Repeint le mini (frame statique) sur tout 'change' de l'inspecteur (mode/couleur/luminosité/valeur mock),
+      // sauf pendant l'animation ▶. Sans rebuild → reste à jour même quand le garde-focus bloque render().
+      body.addEventListener('change', () => { if (!ledPreviewRaf) paintRing(mini, ledFrame(liveComp(), getMock(ref, 'led_ring'))); });
+    }
 
     if (!COMPONENTS[c.type].physical && pushVisible) {
       const ref = sel.ref;
@@ -651,14 +679,16 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
       body.appendChild(dev);
     }
 
-    const del = document.createElement('button'); del.className = 'insp-del'; del.textContent = t('inspector.btn.remove_from_page');
-    del.addEventListener('click', () => {
-      const i = sel.placeIndex;
-      sel = null;
-      clearSelection && clearSelection();                 // désélectionne AVANT le commit (évite le flash, note C1-c)
-      model.commit(s => removePlacementAndOrphan(s, getActivePage(), i));
-    });
-    body.appendChild(del);
+    if (!COMPONENTS[c.type].physical) {                    // physique : permanent, pas de retrait
+      const del = document.createElement('button'); del.className = 'insp-del'; del.textContent = t('inspector.btn.remove_from_page');
+      del.addEventListener('click', () => {
+        const i = sel.placeIndex;
+        sel = null;
+        clearSelection && clearSelection();                 // désélectionne AVANT le commit (évite le flash, note C1-c)
+        model.commit(s => removePlacementAndOrphan(s, getActivePage(), i));
+      });
+      body.appendChild(del);
+    }
   }
 
   function render() {
@@ -666,11 +696,12 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     if (root.contains(document.activeElement) && document.activeElement !== document.body) return;
     sel = currentSel();   // null sauf composant valide (le `ref` se DÉRIVE — cf. spec §1)
     if (_aimgPreviewTimer) { clearInterval(_aimgPreviewTimer); _aimgPreviewTimer = null; }   // stoppe l'aperçu avant tout rebuild
+    stopLedPreview();   // un aperçu LED en cours pointerait un nœud bientôt détaché
     root.querySelectorAll('.insp-body').forEach(n => n.remove());
     placementInputs = {};   // les anciens champs viennent d'être retirés
     const body = document.createElement('div'); body.className = 'insp-body';
     const s = selection.get();
-    const c = sel ? comp() : null;   // composant vivant (sel non-null ⇒ kind comp ; null si ref orpheline)
+    const c = sel ? comp() : null;   // composant vivant (sel non-null ⇒ kind comp ou physical ; null si ref orpheline)
     if (c) {                                             // composant valide → vue Composant
       renderComp(body, c);
     } else if (s && s.kind === 'doc') {                  // nœud Document → globales
