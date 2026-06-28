@@ -338,4 +338,23 @@ export default {
   'console.copy_failed': 'Copy failed',
   // --- Carousel de pages ---
   'carousel.add_page': 'Add a page',
+  // --- Garde-fou de confirmation (double-clic) ---
+  'confirm.prompt': 'Confirm?',
+  // --- Réglages (hors sélecteur de langue, déjà au pilote) ---
+  'settings.theme': 'Theme',
+  'settings.theme.amber': 'Amber',
+  'settings.theme.green': 'Green',
+  'settings.theme.blue': 'Blue',
+  'settings.theme.violet': 'Violet',
+  'settings.theme.red': 'Red',
+  'settings.theme.yellow': 'Yellow',
+  'settings.ghost_opacity': 'Invisible opacity',
+  'settings.grid_show': 'Show grid',
+  'settings.grid_snap': 'Snap to grid',
+  'settings.grid_step': 'Grid step',
+  'settings.log_activity': 'Activity log',
+  'settings.log_js': 'JS log (browser console)',
+  'settings.log_net': 'Network log (device)',
+  'settings.new_layout': 'New (blank layout)',
+  'settings.reset': 'Reset settings',
 };

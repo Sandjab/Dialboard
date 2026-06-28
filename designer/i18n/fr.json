@@ -319,5 +319,22 @@
   "console.no_entries": "Aucune entrée.",
   "console.copied": "Copié ✓",
   "console.copy_failed": "Échec copie",
-  "carousel.add_page": "Ajouter une page"
+  "carousel.add_page": "Ajouter une page",
+  "confirm.prompt": "Confirmer ?",
+  "settings.theme": "Thème",
+  "settings.theme.amber": "Ambre",
+  "settings.theme.green": "Vert",
+  "settings.theme.blue": "Bleu",
+  "settings.theme.violet": "Violet",
+  "settings.theme.red": "Rouge",
+  "settings.theme.yellow": "Jaune",
+  "settings.ghost_opacity": "Transparence des invisibles",
+  "settings.grid_show": "Afficher la grille",
+  "settings.grid_snap": "Aimanter au pas (snap)",
+  "settings.grid_step": "Pas de la grille",
+  "settings.log_activity": "Journal d’activité",
+  "settings.log_js": "Journal JS (console navigateur)",
+  "settings.log_net": "Journal réseau (device)",
+  "settings.new_layout": "Nouveau (layout vierge)",
+  "settings.reset": "Réinitialiser les réglages"
 }
