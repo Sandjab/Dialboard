@@ -3,6 +3,7 @@
 //   { kind: 'doc' }                       → le nœud Document (params globaux)
 //   { kind: 'page', page }                → une page (index dans pages[])
 //   { kind: 'comp', page, index }         → un placement (index dans pages[page].place[])
+//   { kind: 'physical', ref }             → un composant global (led_ring/sound), sans placement
 //   null                                  → rien de sélectionné
 // (cf. spec 2026-06-21-designer-refonte-ihm-design.md §1/§2).
 
@@ -14,6 +15,7 @@ export function sameSelection(a, b) {
   if (a.kind !== b.kind) return false;
   if (a.kind === 'page') return a.page === b.page;
   if (a.kind === 'comp') return a.page === b.page && a.index === b.index;
+  if (a.kind === 'physical') return a.ref === b.ref;
   return true;                       // 'doc' (pas d'autre champ discriminant)
 }
 
@@ -40,6 +42,7 @@ export function createSelection(initial = null) {
 export function isSelectionValid(state, sel) {
   if (!sel) return false;
   if (sel.kind === 'doc') return true;
+  if (sel.kind === 'physical') return !!state.components?.[sel.ref];
   const page = state.pages?.[sel.page];
   if (!page) return false;
   if (sel.kind === 'page') return true;

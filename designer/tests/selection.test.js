@@ -122,3 +122,19 @@ test('placementSelection : doc / page / null → null', () => {
 test('placementSelection : index 0 sur la page affichée → 0 (pas confondu avec null)', () => {
   assert.equal(placementSelection({ kind: 'comp', page: 2, index: 0 }, 2), 0);
 });
+
+test('sameSelection : physiques par ref (intent : un physique = son id, pas de page/index)', () => {
+  assert.equal(sameSelection({ kind: 'physical', ref: 'led' }, { kind: 'physical', ref: 'led' }), true);
+  assert.equal(sameSelection({ kind: 'physical', ref: 'led' }, { kind: 'physical', ref: 'buzz' }), false);
+  assert.equal(sameSelection({ kind: 'physical', ref: 'led' }, { kind: 'comp', page: 0, index: 0 }), false);
+});
+
+test('isSelectionValid : physique valide ssi le composant existe (intent : ne pas éditer un id supprimé)', () => {
+  const state = { components: { led: { type: 'led_ring' } }, pages: [] };
+  assert.equal(isSelectionValid(state, { kind: 'physical', ref: 'led' }), true);
+  assert.equal(isSelectionValid(state, { kind: 'physical', ref: 'absent' }), false);
+});
+
+test('placementSelection : un physique ne se surligne pas sur le canvas (intent : pas de placement)', () => {
+  assert.equal(placementSelection({ kind: 'physical', ref: 'led' }, 0), null);
+});
