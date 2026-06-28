@@ -89,5 +89,9 @@
   "status.hidden": "masqué",
   "status.visible": "visible",
   "status.comp": "{type} · {ref} · page « {name} » · {anchor} ({dx}, {dy}) · {vis}",
-  "status.problems_tip": "Voir les problèmes"
+  "status.problems_tip": "Voir les problèmes",
+  "menu.file": "Fichier",
+  "menu.open": "Ouvrir…",
+  "menu.save": "Enregistrer",
+  "menu.save_as": "Enregistrer sous…"
 }

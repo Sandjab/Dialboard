@@ -206,6 +206,9 @@ async function main() {
     const baseName = (p) => (p ? p.replace(/^.*[\\/]/, '') : 'Sans titre');
     const refreshTitle = () => window.desktop.setTitle(baseName(currentPath) + (dirty ? ' •' : ''));
     refreshTitle();
+    window.desktop.setMenuLabels({
+      file: t('menu.file'), open: t('menu.open'), save: t('menu.save'), saveAs: t('menu.save_as'),
+    });
     model.subscribe(() => { dirty = true; refreshTitle(); });
     window.desktop.onMenu(async (action) => {
       try {

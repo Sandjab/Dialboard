@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('desktop', {
   saveBundleAs: (text) => ipcRenderer.invoke('file:saveAs', { text }),
   onMenu: (cb) => { ipcRenderer.removeAllListeners('menu'); ipcRenderer.on('menu', (_e, action) => cb(action)); },
   setTitle: (name) => ipcRenderer.invoke('window:setTitle', name),
+  setMenuLabels: (labels) => ipcRenderer.invoke('menu:setLabels', labels),
 });
 
 window.addEventListener('DOMContentLoaded', () => {

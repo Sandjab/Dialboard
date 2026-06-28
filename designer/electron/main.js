@@ -104,20 +104,26 @@ app.whenReady().then(() => {
 
   // Menu natif : raccourcis fichier → relayés au renderer (qui détient model + caches).
   const send = (action) => () => win.webContents.send('menu', action);
-  const fileMenu = {
-    label: 'Fichier',
-    submenu: [
-      { label: 'Ouvrir…', accelerator: 'CmdOrCtrl+O', click: send('open') },
-      { label: 'Enregistrer', accelerator: 'CmdOrCtrl+S', click: send('save') },
-      { label: 'Enregistrer sous…', accelerator: 'CmdOrCtrl+Shift+S', click: send('saveAs') },
-      { type: 'separator' },
-      process.platform === 'darwin' ? { role: 'close' } : { role: 'quit' },
-    ],
+  const DEFAULT_MENU = { file: 'File', open: 'Open…', save: 'Save', saveAs: 'Save As…' };
+  const buildMenu = (labels) => {
+    const L = { ...DEFAULT_MENU, ...(labels || {}) };
+    const fileMenu = {
+      label: L.file,
+      submenu: [
+        { label: L.open, accelerator: 'CmdOrCtrl+O', click: send('open') },
+        { label: L.save, accelerator: 'CmdOrCtrl+S', click: send('save') },
+        { label: L.saveAs, accelerator: 'CmdOrCtrl+Shift+S', click: send('saveAs') },
+        { type: 'separator' },
+        process.platform === 'darwin' ? { role: 'close' } : { role: 'quit' },
+      ],
+    };
+    const template = process.platform === 'darwin'
+      ? [{ role: 'appMenu' }, fileMenu, { role: 'editMenu' }, { role: 'viewMenu' }]
+      : [fileMenu, { role: 'editMenu' }, { role: 'viewMenu' }];
+    Menu.setApplicationMenu(Menu.buildFromTemplate(template));
   };
-  const template = process.platform === 'darwin'
-    ? [{ role: 'appMenu' }, fileMenu, { role: 'editMenu' }, { role: 'viewMenu' }]
-    : [fileMenu, { role: 'editMenu' }, { role: 'viewMenu' }];
-  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+  buildMenu();   // menu initial (EN) ; le renderer le réémet dans la langue active au boot
+  ipcMain.handle('menu:setLabels', (_e, labels) => buildMenu(labels));
 
   const DBOARD = [{ name: 'Dialboard', extensions: ['dboard'] }];
   ipcMain.handle('file:open', async () => {
