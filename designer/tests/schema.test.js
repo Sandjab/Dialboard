@@ -349,6 +349,12 @@ test('schema : clé de vars invalide rejetée', () => {
   assert.equal(validate(l).valid, false);
 });
 
+test('schema : clé de vars valide acceptée', () => {
+  const l = base();
+  l.sources = [{ url: 'https://x', vars: { cpu_temp: '/main/temp' } }];
+  assert.equal(validate(l).valid, true);
+});
+
 test('schema : label accentué (Latin-1) accepté', () => {
   const l = base();
   l.components.t.label = 'Mémoire';

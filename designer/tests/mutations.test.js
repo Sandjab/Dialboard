@@ -26,25 +26,25 @@ test('uniqueId incrémente par type', () => {
   assert.equal(uniqueId(s, 'label'), 'label2');
 });
 
-test('uniquePageName : aucune collision « Page N » → Page 1', () => {
-  assert.equal(uniquePageName({ pages: [{ name: 'Accueil' }] }), 'Page 1');
+test('uniquePageName : aucune collision « Page_N » → Page_1', () => {
+  assert.equal(uniquePageName({ pages: [{ name: 'Accueil' }] }), 'Page_1');
 });
 
-test('uniquePageName : incrémente au-delà des « Page N » existants', () => {
-  assert.equal(uniquePageName({ pages: [{ name: 'Page 1' }, { name: 'Page 2' }] }), 'Page 3');
+test('uniquePageName : incrémente au-delà des « Page_N » existants', () => {
+  assert.equal(uniquePageName({ pages: [{ name: 'Page_1' }, { name: 'Page_2' }] }), 'Page_3');
 });
 
-test('uniquePageName : réutilise un trou (Page 2 libre)', () => {
-  assert.equal(uniquePageName({ pages: [{ name: 'Page 1' }, { name: 'Page 3' }] }), 'Page 2');
+test('uniquePageName : réutilise un trou (Page_2 libre)', () => {
+  assert.equal(uniquePageName({ pages: [{ name: 'Page_1' }, { name: 'Page_3' }] }), 'Page_2');
 });
 
 test('uniquePageName : évite un nom auto saisi à la main au renommage', () => {
   // renommage manuel libre, mais la création suivante ne doit pas entrer en collision
-  assert.equal(uniquePageName({ pages: [{ name: 'Page 1' }, { name: 'Page 1' }] }), 'Page 2');
+  assert.equal(uniquePageName({ pages: [{ name: 'Page_1' }, { name: 'Page_1' }] }), 'Page_2');
 });
 
-test('uniquePageName : state sans pages → Page 1', () => {
-  assert.equal(uniquePageName({}), 'Page 1');
+test('uniquePageName : state sans pages → Page_1', () => {
+  assert.equal(uniquePageName({}), 'Page_1');
 });
 
 test('pageNameTaken : nom porté par une autre page → true', () => {
@@ -557,26 +557,26 @@ test('renameComponent : nouveau nom vide ou identique → false (no-op)', () => 
   assert.deepEqual(Object.keys(s.components), ['a']);
 });
 
-test('uniqueCopyName : base libre → « X (copie) »', () => {
+test('uniqueCopyName : base libre → « X_copie »', () => {
   const s = { pages: [{ name: 'Accueil', place: [] }] };
-  assert.equal(uniqueCopyName(s, 'Accueil'), 'Accueil (copie)');
+  assert.equal(uniqueCopyName(s, 'Accueil'), 'Accueil_copie');
 });
 
-test('uniqueCopyName : « X (copie) » pris → « X (copie 2) »', () => {
-  const s = { pages: [{ name: 'A', place: [] }, { name: 'A (copie)', place: [] }] };
-  assert.equal(uniqueCopyName(s, 'A'), 'A (copie 2)');
+test('uniqueCopyName : « X_copie » pris → « X_copie2 »', () => {
+  const s = { pages: [{ name: 'A', place: [] }, { name: 'A_copie', place: [] }] };
+  assert.equal(uniqueCopyName(s, 'A'), 'A_copie2');
 });
 
-test('uniqueCopyName : « X (copie) » et « X (copie 2) » pris → « X (copie 3) »', () => {
-  const s = { pages: [{ name: 'A' }, { name: 'A (copie)' }, { name: 'A (copie 2)' }] };
-  assert.equal(uniqueCopyName(s, 'A'), 'A (copie 3)');
+test('uniqueCopyName : « X_copie » et « X_copie2 » pris → « X_copie3 »', () => {
+  const s = { pages: [{ name: 'A' }, { name: 'A_copie' }, { name: 'A_copie2' }] };
+  assert.equal(uniqueCopyName(s, 'A'), 'A_copie3');
 });
 
 test('duplicatePage : insère la copie juste après la source et renvoie son index', () => {
   const s = { pages: [{ name: 'P1', place: [] }, { name: 'P2', place: [] }], components: {} };
   const idx = duplicatePage(s, 0);
   assert.equal(idx, 1);
-  assert.deepEqual(s.pages.map(p => p.name), ['P1', 'P1 (copie)', 'P2']);
+  assert.deepEqual(s.pages.map(p => p.name), ['P1', 'P1_copie', 'P2']);
 });
 
 test('duplicatePage : composants copiés en ids indépendants (modèle 1:1)', () => {
