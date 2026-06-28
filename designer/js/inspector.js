@@ -131,7 +131,7 @@ function fieldRow(label, input, { charset } = {}) {
 
 export function createInspector(root, model, { selection, rerenderCanvas, clearSelection, getActivePage = () => 0, previewProp, clearPreview, pushVisible, openDrawer } = {}) {
   numDragBreak = () => model.breakCoalesce();
-  let sel = null; // { placeIndex, page, ref } ou null — RECALCULÉ depuis le store à chaque render()
+  let sel = null; // { placeIndex, page, ref } | { ref, physical:true } ou null — RECALCULÉ depuis le store à chaque render()
   let placementInputs = {}; // { anchor, dx, dy } → <input>/<select> de la rubrique Placement, pour la MAJ live au drag
 
   // La sélection courante, dérivée du store : un composant existant, ou null (doc/page/null/périmé).
@@ -655,14 +655,16 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
       body.appendChild(dev);
     }
 
-    const del = document.createElement('button'); del.className = 'insp-del'; del.textContent = t('inspector.btn.remove_from_page');
-    del.addEventListener('click', () => {
-      const i = sel.placeIndex;
-      sel = null;
-      clearSelection && clearSelection();                 // désélectionne AVANT le commit (évite le flash, note C1-c)
-      model.commit(s => removePlacementAndOrphan(s, getActivePage(), i));
-    });
-    body.appendChild(del);
+    if (!COMPONENTS[c.type].physical) {                    // physique : permanent, pas de retrait
+      const del = document.createElement('button'); del.className = 'insp-del'; del.textContent = t('inspector.btn.remove_from_page');
+      del.addEventListener('click', () => {
+        const i = sel.placeIndex;
+        sel = null;
+        clearSelection && clearSelection();                 // désélectionne AVANT le commit (évite le flash, note C1-c)
+        model.commit(s => removePlacementAndOrphan(s, getActivePage(), i));
+      });
+      body.appendChild(del);
+    }
   }
 
   function render() {
@@ -674,7 +676,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     placementInputs = {};   // les anciens champs viennent d'être retirés
     const body = document.createElement('div'); body.className = 'insp-body';
     const s = selection.get();
-    const c = sel ? comp() : null;   // composant vivant (sel non-null ⇒ kind comp ; null si ref orpheline)
+    const c = sel ? comp() : null;   // composant vivant (sel non-null ⇒ kind comp ou physical ; null si ref orpheline)
     if (c) {                                             // composant valide → vue Composant
       renderComp(body, c);
     } else if (s && s.kind === 'doc') {                  // nœud Document → globales
