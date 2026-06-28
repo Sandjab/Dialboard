@@ -646,7 +646,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
 
       const play = document.createElement('button'); play.className = 'src-add'; play.textContent = t('device.preview');
       play.addEventListener('click', () => {
-        if (ledPreviewRaf) { stopLedPreview(); play.textContent = t('device.preview'); paintRing(mini, ledFrame(liveComp(), getMock(ref, 'led_ring'))); return; }
+        if (ledPreviewRaf) { stopLedPreview(); play.blur(); play.textContent = t('device.preview'); paintRing(mini, ledFrame(liveComp(), getMock(ref, 'led_ring'))); return; }   // blur : libère le focus → render() peut reconstruire (cf. œil)
         play.textContent = t('device.preview_stop');
         const loop = () => { paintRing(mini, ledFrameAt(liveComp(), getMock(ref, 'led_ring'), performance.now())); ledPreviewRaf = requestAnimationFrame(loop); };
         loop();
