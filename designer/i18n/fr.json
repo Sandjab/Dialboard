@@ -336,5 +336,10 @@
   "settings.log_js": "Journal JS (console navigateur)",
   "settings.log_net": "Journal réseau (device)",
   "settings.new_layout": "Nouveau (layout vierge)",
-  "settings.reset": "Réinitialiser les réglages"
+  "settings.reset": "Réinitialiser les réglages",
+  "desktop.untitled": "Sans titre",
+  "mdns.picker_title": "Devices détectés (mDNS)",
+  "mdns.rescan_title": "Re-scanner le réseau (mDNS)",
+  "mdns.picker_placeholder": "{count} devices…",
+  "mdns.device_default_name": "dialboard"
 }

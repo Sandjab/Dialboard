@@ -357,4 +357,10 @@ export default {
   'settings.log_net': 'Network log (device)',
   'settings.new_layout': 'New (blank layout)',
   'settings.reset': 'Reset settings',
+  // --- Desktop (Electron) : titre de fenêtre + picker mDNS (poussés au preload CommonJS) ---
+  'desktop.untitled': 'Untitled',
+  'mdns.picker_title': 'Detected devices (mDNS)',
+  'mdns.rescan_title': 'Rescan the network (mDNS)',
+  'mdns.picker_placeholder': '{count} devices…',
+  'mdns.device_default_name': 'dialboard',
 };

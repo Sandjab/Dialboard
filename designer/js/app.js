@@ -204,11 +204,16 @@ async function main() {
   // Mode desktop (Electron) : workflow fichier .dboard (layout + assets). Inactif en web (window.desktop absent).
   if (window.desktop) {
     let currentPath = null, dirty = false;
-    const baseName = (p) => (p ? p.replace(/^.*[\\/]/, '') : 'Sans titre');
+    const baseName = (p) => (p ? p.replace(/^.*[\\/]/, '') : t('desktop.untitled'));
     const refreshTitle = () => window.desktop.setTitle(baseName(currentPath) + (dirty ? ' •' : ''));
     refreshTitle();
     window.desktop.setMenuLabels({
       file: t('menu.file'), open: t('menu.open'), save: t('menu.save'), saveAs: t('menu.save_as'),
+    });
+    // Picker mDNS (preload CommonJS, sans accès à t()) : on lui pousse ses libellés traduits.
+    window.desktop.setMdnsLabels?.({
+      picker_title: t('mdns.picker_title'), rescan_title: t('mdns.rescan_title'),
+      picker_placeholder: t('mdns.picker_placeholder'), device_default_name: t('mdns.device_default_name'),
     });
     model.subscribe(() => { dirty = true; refreshTitle(); });
     window.desktop.onMenu(async (action) => {
