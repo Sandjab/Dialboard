@@ -12,7 +12,7 @@ export const DEFAULT_LAYOUT = {
     buzz:  { type: "sound" }
   },
   pages: [
-    { name: "Page 1", place: [
+    { name: "Page_1", place: [
       { ref: "jauge", radius: 160, thickness: 16, gap_deg: 70 },
       { ref: "titre", anchor: "TOP_MID", dy: 40 },
       { ref: "cpu", anchor: "CENTER", dy: -20 },
