@@ -59,7 +59,7 @@ async function main() {
     if (!r.ok) throw new Error(`HTTP ${r.status} — servir depuis Dialboard/, pas designer/`);
     schema = await r.json();
   } catch (e) {
-    showToast('Erreur init schema : ' + e.message, { kind: 'err', ms: 6000 });
+    showToast(t('toast.schema_error', { msg: e.message }), { kind: 'err', ms: 6000 });
     return;
   }
   const validate = createValidator(schema);
@@ -122,11 +122,11 @@ async function main() {
     openDrawer: () => drawer.open(),
     pushVisible: async (id, visible) => {
       const base = $('base').value;
-      if (!base) { showToast('URL device ?'); return false; }
+      if (!base) { showToast(t('toast.device_url_q')); return false; }
       // withBusy renvoie le texte de succès (truthy) ou undefined (échec/ré-entrée) → booléen pour l'inspecteur.
-      const r = await withBusy(visible ? 'Affichage…' : 'Masquage…', async () => {
+      const r = await withBusy(visible ? t('toast.showing') : t('toast.hiding'), async () => {
         await pushValues(base, { [id]: { visible } });
-        return visible ? 'Affiché sur le device' : 'Caché sur le device';
+        return visible ? t('toast.shown') : t('toast.hidden');
       });
       return r !== undefined;
     }
@@ -157,21 +157,21 @@ async function main() {
       if (!clipboard) return;
       let ni = -1;
       model.commit(s => { ni = placeComponentCopy(s, canvas.getActivePage(), clipboard.compDef, clipboard.placement); });
-      if (ni >= 0) { canvas.selectPlacement(ni); logs.logActivity('Composant collé : ' + clipboard.compDef.type); }
+      if (ni >= 0) { canvas.selectPlacement(ni); logs.logActivity(t('activity.comp_pasted', { type: clipboard.compDef.type })); }
     },
     duplicate() {
       const sel = canvas.getSelected();
       if (sel == null) return;
       let ni = -1;
       model.commit(s => { ni = duplicateComponent(s, canvas.getActivePage(), sel); });
-      if (ni >= 0) { canvas.selectPlacement(ni); logs.logActivity('Composant dupliqué'); }
+      if (ni >= 0) { canvas.selectPlacement(ni); logs.logActivity(t('activity.comp_duplicated')); }
     },
     remove() {
       const sel = canvas.getSelected();
       if (sel == null) return;
       canvas.selectPlacement(null);
       model.commit(s => removePlacementAndOrphan(s, canvas.getActivePage(), sel));
-      logs.logActivity('Composant supprimé');
+      logs.logActivity(t('activity.comp_removed'));
     },
     cut() { compActions.copy(); compActions.remove(); },
   };
@@ -215,7 +215,7 @@ async function main() {
           loadBundle(model, r.text);
           onLoad();
           currentPath = r.path; dirty = false; refreshTitle();
-          logs.logActivity('Bundle ouvert : ' + baseName(r.path));
+          logs.logActivity(t('activity.bundle_opened', { name: baseName(r.path) }));
         } else {                                   // 'save' | 'saveAs'
           const text = serializeBundle(model);
           const r = (action === 'save' && currentPath)
@@ -223,10 +223,10 @@ async function main() {
             : await window.desktop.saveBundleAs(text);
           if (!r) return;                          // dialogue annulé → ne pas marquer propre
           currentPath = r.path; dirty = false; refreshTitle();
-          logs.logActivity('Bundle enregistré : ' + baseName(r.path));
+          logs.logActivity(t('activity.bundle_saved', { name: baseName(r.path) }));
         }
       } catch (e) {
-        showToast('Fichier : ' + e.message, { kind: 'err' });
+        showToast(t('toast.file_error', { msg: e.message }), { kind: 'err' });
       }
     });
   }
@@ -244,7 +244,7 @@ async function main() {
     onNewLayout: () => {                           // layout vierge (undoable : loadJSON snapshot)
       model.loadJSON(JSON.stringify(DEFAULT_LAYOUT));
       canvas.setPage(0); tree.render(); setSelection(null);
-      logs.logActivity('Nouveau layout');
+      logs.logActivity(t('activity.new_layout'));
     },
   });
 
@@ -254,8 +254,8 @@ async function main() {
   const syncUndo = () => { $('undo').disabled = !model.canUndo(); $('redo').disabled = !model.canRedo(); };
   model.subscribe(syncUndo); syncUndo();
   // Annuler/Rétablir journalisés seulement s'ils ont un effet (pile non vide). Partagés boutons + raccourcis.
-  const doUndo = () => { if (model.canUndo()) { model.undo(); logs.logActivity('Annuler'); } };
-  const doRedo = () => { if (model.canRedo()) { model.redo(); logs.logActivity('Rétablir'); } };
+  const doUndo = () => { if (model.canUndo()) { model.undo(); logs.logActivity(t('activity.undo')); } };
+  const doRedo = () => { if (model.canRedo()) { model.redo(); logs.logActivity(t('activity.redo')); } };
   $('undo').onclick = doUndo;
   $('redo').onclick = doRedo;
 
@@ -360,19 +360,19 @@ async function main() {
   async function withBusy(progressMsg, fn) {
     // Ré-entrée bloquée. Les boutons device principaux sont déjà grisés ; mais le bouton « visibilité »
     // de l'inspecteur n'en fait pas partie → un toast donne le retour qui manquerait sinon (no-op muet).
-    if (busy) { showToast('Opération device en cours…'); return undefined; }
-    const t = makeToast(progressMsg);
+    if (busy) { showToast(t('toast.device_busy')); return undefined; }
+    const toastHandle = makeToast(progressMsg);
     setDeviceBusy(true);
     try {
       const okMsg = await fn();
-      t.morph(typeof okMsg === 'string' ? okMsg : 'Terminé', 'ok');
-      logs.logActivity(typeof okMsg === 'string' ? okMsg : 'Opération device');
+      toastHandle.morph(typeof okMsg === 'string' ? okMsg : t('toast.done'), 'ok');
+      logs.logActivity(typeof okMsg === 'string' ? okMsg : t('activity.device_op'));
       markReachable();                                       // op réussie → device joignable
       return okMsg;
     } catch (e) {
-      const hint = e instanceof TypeError ? ' (réseau/CORS ? cf. README)' : '';
-      t.morph('Échec : ' + e.message + hint, 'err');
-      logs.logActivity('Échec device : ' + e.message);
+      const hint = e instanceof TypeError ? t('toast.network_hint') : '';
+      toastHandle.morph(t('toast.failure', { msg: e.message }) + hint, 'err');
+      logs.logActivity(t('activity.device_failure', { msg: e.message }));
       if (e instanceof TypeError) markUnreachable(e.message);   // fetch rejeté = device injoignable
       else markReachable();                                     // HTTP/validation : le device a répondu
       return undefined;
@@ -382,7 +382,7 @@ async function main() {
   }
   withConfirm($('load'), () => {
     const base = $('base').value;
-    withBusy('Chargement…', async () => {
+    withBusy(t('toast.loading'), async () => {
       const lay = await loadLayout(base);
       stripPhysicalPlacements(lay); ensurePhysicals(lay); pruneOrphans(lay);   // migration avant chargement dans le modèle
       model.loadJSON(JSON.stringify(lay));
@@ -399,15 +399,15 @@ async function main() {
         const b = await fetchImage(base, ic.src);
         if (b) rehydrateImage(ic.src, id, b, ic.w, ic.h);
       }
-      return 'Chargé';
+      return t('toast.loaded');
     });
-  }, { label: 'Confirmer le chargement ?', guard: () => {
-    if (!$('base').value) { showToast('URL device ?'); return false; }
+  }, { label: t('confirm.load'), guard: () => {
+    if (!$('base').value) { showToast(t('toast.device_url_q')); return false; }
     return true;
   } });
   withConfirm($('push'), () => {
     const base = $('base').value;
-    withBusy('Envoi…', async () => {
+    withBusy(t('toast.sending'), async () => {
       for (const k of referencedKeys(model.state)) {
         const bytes = cacheBytes(k);
         if (bytes) await uploadBgImage(base, k, bytes);   // avant pushLayout (le sweep tourne au POST /layout)
@@ -421,11 +421,11 @@ async function main() {
         if (bytes) await uploadAimg(base, k, bytes);   // avant pushLayout (le sweep tourne au POST /layout)
       }
       await pushLayout(base, model.toJSON());
-      return 'Poussé et persisté';
+      return t('toast.pushed');
     });
-  }, { label: 'Confirmer le push ?', guard: () => {
-    if (!$('base').value) { showToast('URL device ?'); return false; }
-    if (!validate(model.state).valid) { showToast('Layout invalide'); return false; }
+  }, { label: t('confirm.push'), guard: () => {
+    if (!$('base').value) { showToast(t('toast.device_url_q')); return false; }
+    if (!validate(model.state).valid) { showToast(t('toast.layout_invalid')); return false; }
     return true;
   } });
   // --- Boucle device : santé (/status), valeurs de test (/update), capture + navigation (/page + /screenshot) ---
@@ -442,8 +442,8 @@ async function main() {
   const devHost = () => { const b = $('base').value; try { return new URL(b).host || b; } catch (e) { return b || 'device'; } };
   // Déclarations de fonction (hoisted), référencées plus haut → pas de TDZ : withBusy pour markReachable/
   // markUnreachable, le listener « change » (URL device) pour probeConnection.
-  function markReachable() { if (!devPill.classList.contains('ok')) setDevicePill('ok', '● ' + devHost(), 'Device joignable — « Statut » pour le détail'); }
-  function markUnreachable(msg) { setDevicePill('err', '○ injoignable', msg); }
+  function markReachable() { if (!devPill.classList.contains('ok')) setDevicePill('ok', '● ' + devHost(), t('pill.reachable.tip')); }
+  function markUnreachable(msg) { setDevicePill('err', t('pill.unreachable'), msg); }
   // probeConnection : check de connexion silencieux (hors withBusy → ni toast « Statut… » ni verrou busy).
   // Appelé au 1er lancement ET à chaque saisie d'URL (change). Embarqué : location.origin ; sinon URL saisie.
   async function probeConnection() {
@@ -455,21 +455,21 @@ async function main() {
   probeConnection();   // 1er lancement
   $('statusbtn').onclick = () => {
     const base = $('base').value;
-    if (!base) return void showToast('URL device ?');
-    withBusy('Statut…', async () => {
+    if (!base) return void showToast(t('toast.device_url_q'));
+    withBusy(t('toast.status'), async () => {
       const f = formatDeviceStatus(await getStatus(base));
       setDevicePill('ok', f.label, f.tooltip);   // détail riche ; markReachable ne l'écrase pas, withBusy gère l'échec
-      return 'Statut OK';
+      return t('toast.status_ok');
     });
   };
   $('values').onclick = () => {
     const base = $('base').value;
-    if (!base) return void showToast('URL device ?');
+    if (!base) return void showToast(t('toast.device_url_q'));
     const payload = buildUpdatePayload(model.state);
-    if (!Object.keys(payload).length) return void showToast('Aucune valeur de test à pousser');
-    withBusy('Valeurs…', async () => {
+    if (!Object.keys(payload).length) return void showToast(t('toast.no_test_values'));
+    withBusy(t('toast.values'), async () => {
       const r = await pushValues(base, payload);
-      return `Valeurs poussées (${r.updated ?? '?'})`;
+      return t('toast.values_pushed', { n: r.updated ?? '?' });
     });
   };
 
@@ -481,25 +481,25 @@ async function main() {
     shot.dataset.url = url; shot.src = url;
   };
   const refreshShotPage = async () => {
-    try { const s = await getStatus($('base').value); $('shot-page').textContent = `page ${(+s.page) + 1}/${s.pages}`; }
+    try { const s = await getStatus($('base').value); $('shot-page').textContent = t('shot.page', { cur: (+s.page) + 1, total: s.pages }); }
     catch (e) { $('shot-page').textContent = ''; }
   };
   $('capture').onclick = () => {
     const base = $('base').value;
-    if (!base) return void showToast('URL device ?');
-    withBusy('Capture…', async () => {
+    if (!base) return void showToast(t('toast.device_url_q'));
+    withBusy(t('toast.capturing'), async () => {
       await doCapture(); await refreshShotPage(); $('shot-overlay').hidden = false;
-      return 'Capturé';
+      return t('toast.captured');
     });
   };
   const navAndCapture = (dir) => {
     const base = $('base').value;
     if (!base) return;
-    withBusy('Navigation…', async () => {
+    withBusy(t('toast.navigating'), async () => {
       await setDevicePage(base, { dir });
       await new Promise(r => setTimeout(r, 350));   // laisse le device basculer + sync avant la capture
       await doCapture(); await refreshShotPage();
-      return 'Capturé';
+      return t('toast.captured');
     });
   };
   $('shot-prev').onclick = () => navAndCapture('prev');

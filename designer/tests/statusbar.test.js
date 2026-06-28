@@ -2,26 +2,26 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { formatValidationSummary } from '../js/statusbar.js';
 
-test("formatValidationSummary : 0 erreur 0 avert → ✓ valide, niveau ok (intent : feu vert, push possible)", () => {
+test("formatValidationSummary : 0 erreur 0 avert → ✓ valid, niveau ok (intent : feu vert, push possible)", () => {
   const r = formatValidationSummary({ valid: true, errors: [], warnings: [] });
-  assert.equal(r.text, '✓ valide');
+  assert.equal(r.text, '✓ valid');
   assert.equal(r.level, 'ok');
 });
 
-test("formatValidationSummary : erreurs → ✗ N erreurs au pluriel, niveau err (intent : push bloqué, compte visible)", () => {
+test("formatValidationSummary : erreurs → ✗ N error(s), niveau err (intent : push bloqué, compte visible)", () => {
   const r = formatValidationSummary({ valid: false, errors: ['a', 'b'], warnings: [] });
-  assert.equal(r.text, '✗ 2 erreurs');
+  assert.equal(r.text, '✗ 2 error(s)');
   assert.equal(r.level, 'err');
 });
 
-test("formatValidationSummary : une seule erreur → singulier « erreur »", () => {
+test("formatValidationSummary : une seule erreur → ✗ 1 error(s)", () => {
   const r = formatValidationSummary({ valid: false, errors: ['a'], warnings: [] });
-  assert.equal(r.text, '✗ 1 erreur');
+  assert.equal(r.text, '✗ 1 error(s)');
 });
 
-test("formatValidationSummary : 0 erreur + warnings → reste « ✓ valide » + compte avert, niveau warn (intent : un warning ne bloque PAS le push, sémantique validate.js)", () => {
+test("formatValidationSummary : 0 erreur + warnings → reste « ✓ valid » + compte avert, niveau warn (intent : un warning ne bloque PAS le push, sémantique validate.js)", () => {
   const r = formatValidationSummary({ valid: true, errors: [], warnings: ['x', 'y'] });
-  assert.equal(r.text, '✓ valide · 2 avert.');
+  assert.equal(r.text, '✓ valid · 2 warning(s)');
   assert.equal(r.level, 'warn');
 });
 
@@ -46,19 +46,19 @@ const ST = {
   },
 };
 
-test('formatSelectionContext : null → « Rien de sélectionné »', () => {
-  assert.equal(formatSelectionContext(ST, null), 'Rien de sélectionné');
+test('formatSelectionContext : null → « Nothing selected »', () => {
+  assert.equal(formatSelectionContext(ST, null), 'Nothing selected');
 });
 
-test('formatSelectionContext : doc → N pages · M composants (M = somme des placements, pas la map ; intent : compter le visuel, pas les physiques)', () => {
-  assert.equal(formatSelectionContext(ST, { kind: 'doc' }), '2 pages · 3 composants');
+test('formatSelectionContext : doc → N page(s) · M component(s) (M = somme des placements, pas la map ; intent : compter le visuel, pas les physiques)', () => {
+  assert.equal(formatSelectionContext(ST, { kind: 'doc' }), '2 page(s) · 3 component(s)');
 });
 
 test("formatSelectionContext : page → nom + index base 1 + nb placements de CETTE page", () => {
   const s = formatSelectionContext(ST, { kind: 'page', page: 0 });
   assert.match(s, /Accueil/);
   assert.match(s, /1\/2/);
-  assert.match(s, /2 composants/);
+  assert.match(s, /2 component\(s\)/);
 });
 
 test("formatSelectionContext : comp → libellé de type + ref + page + visible (intent : identifier l'élément édité d'un coup d'œil)", () => {
@@ -72,7 +72,7 @@ test("formatSelectionContext : comp → libellé de type + ref + page + visible 
 test("formatSelectionContext : comp masqué → « masqué »", () => {
   const s = formatSelectionContext(ST, { kind: 'comp', page: 1, index: 0 });
   assert.match(s, /Image/);      // COMPONENTS.image.label
-  assert.match(s, /masqué/);
+  assert.match(s, /hidden/);
 });
 
 test("formatSelectionContext : comp à ref orpheline → repli « ? » sans throw (intent : robustesse, ne pas casser la barre)", () => {
