@@ -4,6 +4,9 @@
 
 import { COMPONENTS } from './registry.js';
 
+// Identifiant (poignée de référence) : lettres ASCII, chiffres, underscore. Cf. $defs/id du schéma.
+export const isValidId = s => /^[A-Za-z0-9_]+$/.test(s ?? '');
+
 // id unique pour un nouveau composant : <type><n>, n = 1er entier libre.
 export function uniqueId(state, type) {
   const comps = state.components || {};
@@ -194,7 +197,9 @@ export function setPageBackgroundImage(state, pageIndex, key) {
 
 export function renamePage(state, pageIndex, name) {
   const page = state.pages?.[pageIndex];
-  if (page) page.name = name;
+  if (!page || !isValidId(name)) return false;
+  page.name = name;
+  return true;
 }
 
 // Déplace la page d'index `from` vers `to`. No-op si index hors bornes ou identiques.
@@ -270,13 +275,12 @@ export function movePlacementToPage(state, fromPage, placeIndex, toPage, toIndex
 }
 
 // Renomme l'id d'un composant : la clé dans `components` ET tous les place[].ref qui la pointent (toutes
-// pages). Retourne false (no-op) si oldId absent, newId vide, identique, ou DÉJÀ pris (garde d'unicité →
-// pas d'écrasement). Retourne true si renommé. L'id n'est PAS du texte d'affichage device (≠ text/label/
-// unit) → pas de contrainte ASCII ici.
+// pages). Retourne false (no-op) si oldId absent, newId vide/invalide/identique/déjà pris.
+// Retourne true si renommé. newId doit respecter isValidId (lettres ASCII, chiffres, underscore).
 export function renameComponent(state, oldId, newId) {
   const comps = state.components;
   if (!comps || !comps[oldId]) return false;
-  if (!newId || newId === oldId || comps[newId]) return false;
+  if (!newId || newId === oldId || comps[newId] || !isValidId(newId)) return false;
   comps[newId] = comps[oldId];
   delete comps[oldId];
   for (const page of state.pages || [])

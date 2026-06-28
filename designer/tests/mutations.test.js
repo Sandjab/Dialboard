@@ -14,7 +14,8 @@ import {
   renameComponent,
   uniqueCopyName,
   duplicatePage,
-  setIconStates
+  setIconStates,
+  isValidId
 } from '../js/mutations.js';
 
 const fresh = () => ({ components: {}, pages: [{ name: 'P1', place: [] }] });
@@ -670,4 +671,32 @@ test('setIconStates : pose le tableau, vide => supprime la clé', () => {
   assert.deepEqual(st.components.i1.states, [{ at: 1, symbol: 'close' }]);
   setIconStates(st, 'i1', []);
   assert.equal('states' in st.components.i1, false);
+});
+
+test('isValidId : accepte lettres/chiffres/underscore, refuse le reste', () => {
+  assert.equal(isValidId('cpu_load2'), true);
+  assert.equal(isValidId('Page_1'), true);
+  assert.equal(isValidId('cpu load'), false);   // espace
+  assert.equal(isValidId('cpu-load'), false);   // tiret
+  assert.equal(isValidId('café'), false);       // accent
+  assert.equal(isValidId(''), false);           // vide
+});
+
+test('renameComponent : refuse un id invalide (state intact)', () => {
+  const s = { components: { a: { type: 'readout' } }, pages: [] };
+  assert.equal(renameComponent(s, 'a', 'bad id'), false);
+  assert.ok(s.components.a);                     // pas renommé
+  assert.equal(s.components['bad id'], undefined);
+});
+
+test('renamePage : refuse un nom invalide (state intact, retourne false)', () => {
+  const s = { pages: [{ name: 'P1', place: [] }] };
+  assert.equal(renamePage(s, 0, 'P 1'), false);
+  assert.equal(s.pages[0].name, 'P1');
+});
+
+test('renamePage : accepte un nom valide (retourne true)', () => {
+  const s = { pages: [{ name: 'P1', place: [] }] };
+  assert.equal(renamePage(s, 0, 'P2'), true);
+  assert.equal(s.pages[0].name, 'P2');
 });
