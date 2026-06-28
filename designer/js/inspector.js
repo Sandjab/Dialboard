@@ -1,7 +1,7 @@
 // Inspecteur : édite le composant + le placement sélectionnés. Pilote les champs par des tables de
 // descripteurs (DRY). Chaque édition committée = UN commit (sur 'change', pas par frappe → pas de
 // flood undo). Le signalement ASCII est live (sur 'input'). S'abonne au modèle pour se rafraîchir.
-import { setComponentProp, setPlacementProp, setBarOrientation, setThresholds, setIconStates, removePlacementAndOrphan, setPageBackground, setPageBackgroundImage, setNavWrap, renamePage, pageNameTaken } from './mutations.js';
+import { setComponentProp, setPlacementProp, setBarOrientation, setThresholds, setIconStates, removePlacementAndOrphan, setPageBackground, setPageBackgroundImage, setNavWrap, renamePage, pageNameTaken, isValidId } from './mutations.js';
 import { showToast } from './toast.js';
 import { imageFileToBg, previewUrl } from './bg-image.js';
 import { imageFileToAsset, previewUrl as imagePreviewUrl } from './image-asset.js';
@@ -22,7 +22,8 @@ const SELECTS = {
   symbol:     Object.keys(ICON_SVG).map(n => [n, n]),
   fontfamily: [['montserrat', 'Montserrat'], ['jetbrains_mono', 'JetBrains Mono'], ['lora', 'Lora'], ['inter', 'Inter']],
 };
-const nonAscii = v => /[^\x00-\x7F]/.test(v ?? '');
+const nonLatin1 = v => /[^\x20-\x7E\xA0-\xFF]/.test(v ?? '');
+const nonId = v => (v ?? '') !== '' && !/^[A-Za-z0-9_]+$/.test(v);
 
 const deviceHidden = new Set();   // refs poussées cachées sur le device (état de bascule du bouton)
 
@@ -109,16 +110,18 @@ function makeInput(kind, value, onChange, placeholder) {
   return el;
 }
 
-// Ligne libellé + champ (+ avertissement ASCII live pour les champs asciitext).
-function fieldRow(label, input, { ascii } = {}) {
+// Ligne libellé + champ (+ avertissement live selon le charset : 'latin1' ou 'id').
+function fieldRow(label, input, { charset } = {}) {
   const row = document.createElement('label');
   row.className = 'insp-row';
   const span = document.createElement('span'); span.className = 'insp-label'; span.textContent = label;
   row.appendChild(span); row.appendChild(input);
-  if (ascii) {
-    const warn = document.createElement('span'); warn.className = 'insp-warn'; warn.textContent = '⚠ ASCII';
-    warn.style.display = nonAscii(input.value) ? '' : 'none';
-    input.addEventListener('input', () => { warn.style.display = nonAscii(input.value) ? '' : 'none'; });
+  const bad = charset === 'id' ? nonId : charset === 'latin1' ? nonLatin1 : null;
+  if (bad) {
+    const warn = document.createElement('span'); warn.className = 'insp-warn';
+    warn.textContent = charset === 'id' ? '⚠ id' : '⚠ Latin-1';
+    warn.style.display = bad(input.value) ? '' : 'none';
+    input.addEventListener('input', () => { warn.style.display = bad(input.value) ? '' : 'none'; });
     row.appendChild(warn);
   }
   return row;
@@ -432,7 +435,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     body.appendChild(head);
 
     const titleInput = makeInput('text', s.title ?? '', v => model.commit(st => { st.title = v; }));
-    body.appendChild(fieldRow('Titre', titleInput, { ascii: true }));          // texte affiché par le device = ASCII
+    body.appendChild(fieldRow('Titre', titleInput, { charset: 'latin1' }));     // texte affiché par le device = Latin-1
     const bg = makeInput('color', s.background || '#000000', v => model.commit(st => { st.background = v; }));
     body.appendChild(fieldRow('Fond', bg));
 
@@ -468,14 +471,15 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     head.appendChild(htitle);
     body.appendChild(head);
 
-    // Nom : commit sur change ; vide/inchangé → resync l'input ; doublon → toast + re-render (revient à pg.name).
+    // Nom : commit sur change ; vide/inchangé → resync l'input ; id invalide ou doublon → toast + re-render.
     const name = makeInput('text', pg.name ?? '', v => {
       const nv = (v || '').trim();
       if (!nv || nv === (pg.name || '')) { render(); return; }
+      if (!isValidId(nv)) { showToast('nom de page invalide : lettres, chiffres, _ uniquement'); render(); return; }
       if (pageNameTaken(s, nv, pi)) { showToast(`« ${nv} » est déjà utilisé`); render(); return; }
       model.commit(st => renamePage(st, pi, nv));
     });
-    body.appendChild(fieldRow('Nom', name));
+    body.appendChild(fieldRow('Nom', name, { charset: 'id' }));
 
     // Fond de la page : override optionnel. (hérité) si absent (= fond global) ; ↺ pour réhériter sinon.
     const hasBgImg = !!pg.background_image;   // image présente → la couleur de page n'est plus qu'un repli
@@ -602,7 +606,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
       const input = makeInput(kind, c[key], commit);
       if (kind === 'color') input.addEventListener('input', () => previewProp?.(ref, { [key]: input.value.toUpperCase() }));
       const displayLabel = key === 'bind' ? '⛓ Variable (pull)' : label;
-      const row = fieldRow(displayLabel, input, { ascii: kind === 'asciitext' });
+      const row = fieldRow(displayLabel, input, { charset: kind === 'idtext' ? 'id' : kind === 'latintext' ? 'latin1' : undefined });
       if (key === 'bind') row.classList.add('insp-source');
       rows[key] = { input, row, enableWhen };
       propBody.appendChild(row);
