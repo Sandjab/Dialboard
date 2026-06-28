@@ -103,7 +103,7 @@ function makeInput(kind, value, onChange, placeholder) {
     const opts = SELECTS[kind];
     for (const [val, txt] of opts) { const o = document.createElement('option'); o.value = val; o.textContent = txt; if (val === (value ?? opts[0][0])) o.selected = true; el.appendChild(o); }
     el.addEventListener('change', () => onChange(el.value));
-  } else { // text / asciitext
+  } else { // text / latintext / idtext
     el = document.createElement('input'); el.type = 'text'; el.value = value ?? '';
     el.addEventListener('change', () => onChange(el.value));
   }

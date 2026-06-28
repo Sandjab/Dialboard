@@ -5,7 +5,7 @@
 import { COMPONENTS } from './registry.js';
 import { placeAt, SCREEN } from './geometry.js';
 import { getMock } from './mocks.js';
-import { addPage, uniquePageName, reorderPages, duplicatePage, removePage, renamePage, pageNameTaken, effectivePageBg, effectivePageBgImage } from './mutations.js';
+import { addPage, uniquePageName, reorderPages, duplicatePage, removePage, renamePage, pageNameTaken, effectivePageBg, effectivePageBgImage, isValidId } from './mutations.js';
 import { previewUrl } from './bg-image.js';
 import { contextMenuItems, openContextMenu } from './contextmenu.js';
 import { showToast } from './toast.js';
@@ -109,6 +109,7 @@ export function createCarousel({ host }, model, { selection, setSelection, getAc
       const tryCommit = () => {
         const v = inp.value.trim() || uniquePageName(model.state);
         if (v === page.name) { renaming = null; render(); return true; }
+        if (!isValidId(v)) { showToast('nom de page invalide : lettres, chiffres, _ uniquement'); return false; }
         if (pageNameTaken(model.state, v, i)) { showToast(`« ${v} » est déjà utilisé`); return false; }
         renaming = null;
         model.commit(s => renamePage(s, i, v));
