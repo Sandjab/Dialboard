@@ -44,7 +44,7 @@
     "ascii": {
       "type": "string",
       "pattern": "^[\\x00-\\x7F]*$",
-      "description": "ASCII uniquement : les polices Montserrat embarquees ne couvrent pas les accents/symboles non-ASCII."
+      "description": "Cle de contenu (hash d'asset) : ASCII pur. Utilisee par background_image et les src d'image/animation. (Le texte d'affichage a migre vers $defs/display, Latin-1.)"
     },
     "id": {
       "type": "string",

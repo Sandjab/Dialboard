@@ -700,3 +700,8 @@ test('renamePage : accepte un nom valide (retourne true)', () => {
   assert.equal(renamePage(s, 0, 'P2'), true);
   assert.equal(s.pages[0].name, 'P2');
 });
+
+test('uniqueCopyName : produit toujours un id valide', () => {
+  const s = { pages: [{ name: 'A' }, { name: 'A_copie' }] };
+  assert.equal(isValidId(uniqueCopyName(s, 'A')), true);
+});

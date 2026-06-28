@@ -386,3 +386,21 @@ test('schema : contenu hors Latin-1 (CJK) rejeté', () => {
   l.components.t.label = '天気';
   assert.equal(validate(l).valid, false);
 });
+
+test('schema : text de label accentué (Latin-1) accepté', () => {
+  const l = base();
+  l.components.lbl = { type: 'label', text: 'Été' };
+  assert.equal(validate(l).valid, true);
+});
+
+test('schema : name de source accentué (Latin-1) accepté', () => {
+  const l = base();
+  l.sources = [{ url: 'https://x', name: 'Système' }];
+  assert.equal(validate(l).valid, true);
+});
+
+test('schema : name de source hors Latin-1 (emoji) rejeté', () => {
+  const l = base();
+  l.sources = [{ url: 'https://x', name: 'source 🔥' }];
+  assert.equal(validate(l).valid, false);
+});
