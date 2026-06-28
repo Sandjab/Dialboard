@@ -106,7 +106,7 @@ export function createCanvas({ stage }, model, { selection, setSelection, onLive
       if (!comp) return;                         // ref inconnue : la validation le signale déjà
       const def = COMPONENTS[comp.type];
       if (!def) return;                          // type inconnu : signalé par la validation, on ne le dessine pas (repli défini, pas un buildLabel silencieux)
-      if (def.physical) return;   // physiques édités dans le panneau « Device » ; jamais rendus sur une page
+      if (def.physical) return;   // physiques édités dans l'inspecteur (sélection depuis l'arbre) ; jamais rendus sur une page
       // Aperçu live d'une propriété (ex. color picker) : surcharge transitoire, hors modèle (undo intact).
       const rcomp = (preview && preview.ref === pl.ref) ? { ...comp, ...preview.patch } : comp;
       const node = buildNode(pl, rcomp);

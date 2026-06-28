@@ -194,7 +194,7 @@ export const COMPONENTS = {
     ],
     placeFields: [],
     mockFields: [['value', 'field.mock_pct']],
-    build: null,   // physique : édité dans le panneau « Device », l'aperçu passe par led-ring-preview.js
+    build: null,   // physique : édité dans l'inspecteur (sélection depuis l'arbre), aperçu via led-ring-preview.js
   },
   sound: {
     label: 'comp.sound',
