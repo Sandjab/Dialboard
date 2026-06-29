@@ -3,9 +3,9 @@
   "background": "#0B0B0F",
   "nav": { "wrap": true },
   "components": {
-    "w5h": {"type":"ring","color":"#38BDF8","countdown":true,
+    "w5h": {"type":"ring","color":"#38BDF8","countdown":true,"cap_font":14,
             "thresholds":[[70,"#22C55E"],[90,"#F59E0B"],[100,"#EF4444"]]},
-    "w7d": {"type":"ring","color":"#A78BFA","countdown":true},
+    "w7d": {"type":"ring","color":"#A78BFA","countdown":true,"cap_font":14},
     "led": {"type":"led_ring"},
     "buzz":{"type":"sound"}
   },

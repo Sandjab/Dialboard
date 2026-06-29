@@ -36,6 +36,9 @@ struct Component {
     bool     center_pct, countdown, center_color_set;
     bool     visible;                // commande universelle montre/cache (defaut true) ; pilotable via /update
     char     cap_prefix[CAPTION_LEN];  // ring : prefixe statique de la legende courbe (cap_prefix + caption)
+    uint16_t cap_font;               // ring : taille de la legende courbe (defaut 14)
+    uint8_t  cap_family;             // ring : famille de la legende (defaut FAMILY_MONTSERRAT)
+    bool     cap_bold, cap_italic;   // ring : legende grasse / italique
     Threshold thresholds[MAX_THRESHOLDS];
     int      threshold_count;
     uint16_t font;

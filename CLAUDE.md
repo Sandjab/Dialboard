@@ -44,9 +44,9 @@ Le projet est en **LVGL 9.5** (épinglé dans `platformio.ini`). La migration de
 
 ### Fontes (Tiny TTF)
 
-Le **texte** des composants (label, readout, centre d'anneau, label de barre) est rendu par **Tiny TTF** (`LV_USE_TINY_TTF`) : `get_font(famille, px, gras, italique)` (`src/fonts.{h,cpp}`) crée/cache une `lv_font_t*` par combinaison via `lv_tiny_ttf_create_data`, à n'importe quelle taille. 4 familles (Montserrat, JetBrains Mono, Lora, Inter) × 4 styles, embarquées en tableaux C dans `src/fonts/*.c`.
+Le **texte** des composants (label, readout, centre d'anneau, légende courbe d'anneau, label de barre) est rendu par **Tiny TTF** (`LV_USE_TINY_TTF`) : `get_font(famille, px, gras, italique)` (`src/fonts.{h,cpp}`) crée/cache une `lv_font_t*` par combinaison via `lv_tiny_ttf_create_data`, à n'importe quelle taille. 4 familles (Montserrat, JetBrains Mono, Lora, Inter) × 4 styles, embarquées en tableaux C dans `src/fonts/*.c`.
 
-**Les Montserrat bitmap (`LV_FONT_MONTSERRAT_*`) restent** : `pick_font()` les sert pour les **glyphes de symbole** (icône) + le cap d'anneau, qui n'existent pas dans les TTF réels. Donc deux Montserrat coexistent : bitmap (symboles) et TTF (texte).
+**Les Montserrat bitmap (`LV_FONT_MONTSERRAT_*`) restent** : `pick_font()` les sert pour les **glyphes de symbole** (icône), qui n'existent pas dans les TTF réels. Donc deux Montserrat coexistent : bitmap (symboles) et TTF (texte).
 
 Génération (maintenance) : `python3 tools/gen_fonts.py` télécharge les fontes variables google/fonts, les instancie en 16 cuts (wght 400/700 × roman/italique), subset Latin, et émet `src/fonts/*.c` (firmware) **et** `designer/vendor/fonts/*.woff2` (parité designer). Dépend de `fonttools`+`brotli` **uniquement pour régénérer** ; les `.c`/woff2 produits sont committés. Le designer rend en parité via les `@font-face` correspondants (`render.js::font()`).
 

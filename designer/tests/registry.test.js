@@ -49,9 +49,19 @@ test('chaque entrée a les clés requises et un defaults() cohérent', () => {
   }
 });
 
-test('registre : ring expose cap_prefix (légende courbe)', () => {
+test('registre : ring expose cap_prefix + style de police de la légende', () => {
   const keys = COMPONENTS.ring.compFields.map(f => f[0]);
-  assert.ok(keys.includes('cap_prefix'), 'cap_prefix absent des compFields du ring');
+  for (const k of ['cap_prefix', 'cap_font', 'cap_family', 'cap_bold', 'cap_italic']) {
+    assert.ok(keys.includes(k), `${k} absent des compFields du ring`);
+  }
+  // défaut 14 px (parité avec le défaut firmware get_font, look actuel préservé)
+  assert.equal(COMPONENTS.ring.defaults().cap_font, 14);
+  // les champs de police du cap ne s'affichent que quand le cap est visible (countdown ou cap_prefix)
+  const capFont = COMPONENTS.ring.compFields.find(f => f[0] === 'cap_font');
+  assert.equal(typeof capFont[3], 'function');
+  assert.equal(capFont[3]({}), false);
+  assert.equal(capFont[3]({ countdown: true }), true);
+  assert.equal(capFont[3]({ cap_prefix: 'Réf ' }), true);
 });
 
 test('registre : ring n’expose plus de pill (pastille supprimée)', () => {

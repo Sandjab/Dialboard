@@ -216,9 +216,28 @@ void test_bar_ring_option_defaults(void) {
 }
 void test_ring_cap_prefix_default_empty(void) {
     Dashboard d{}; char err[80];
-    dash_set_layout(&d, LAYOUT_OK, err, sizeof(err));   // LAYOUT_OK ne définit pas cap_prefix
+    dash_set_layout(&d, LAYOUT_OK, err, sizeof(err));   // LAYOUT_OK ne définit pas cap_prefix ni style de cap
     int iw = dash_find(&d, "w5h");
     TEST_ASSERT_EQUAL_STRING("", d.components[iw].cap_prefix);
+    TEST_ASSERT_EQUAL_INT(14, d.components[iw].cap_font);          // defaut = look actuel
+    TEST_ASSERT_EQUAL_INT(FAMILY_MONTSERRAT, d.components[iw].cap_family);
+    TEST_ASSERT_FALSE(d.components[iw].cap_bold);
+    TEST_ASSERT_FALSE(d.components[iw].cap_italic);
+}
+
+static const char* LAYOUT_RING_CAP_FONT =
+  "{\"components\":{\"g\":{\"type\":\"ring\",\"countdown\":true,"
+    "\"cap_font\":24,\"cap_family\":\"lora\",\"cap_bold\":true,\"cap_italic\":true}},"
+  "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"g\",\"radius\":120}]}]}";
+
+void test_ring_cap_font_parsed(void) {
+    Dashboard d{}; char err[80];
+    TEST_ASSERT_TRUE(dash_set_layout(&d, LAYOUT_RING_CAP_FONT, err, sizeof(err)));
+    int ig = dash_find(&d, "g");
+    TEST_ASSERT_EQUAL_INT(24, d.components[ig].cap_font);
+    TEST_ASSERT_EQUAL_INT(FAMILY_LORA, d.components[ig].cap_family);
+    TEST_ASSERT_TRUE(d.components[ig].cap_bold);
+    TEST_ASSERT_TRUE(d.components[ig].cap_italic);
 }
 static const char* LAYOUT_RING_CENTER =
   "{\"components\":{\"g\":{\"type\":\"ring\",\"center_pct\":true}},"
@@ -1087,6 +1106,7 @@ int main(int, char**) {
     RUN_TEST(test_ring_center_color_defaults_to_color);
     RUN_TEST(test_ring_cap_prefix_parsed);
     RUN_TEST(test_ring_cap_prefix_default_empty);
+    RUN_TEST(test_ring_cap_font_parsed);
     RUN_TEST(test_bar_options_parsed);
     RUN_TEST(test_ring_mode_rounded_parsed);
     RUN_TEST(test_bar_ring_option_defaults);

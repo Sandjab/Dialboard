@@ -181,6 +181,28 @@ test('schema : comp_ring accepte cap_prefix ASCII', () => {
   assert.equal(r.valid, true, JSON.stringify(r.errors));
 });
 
+test('schema : comp_ring accepte le style de police de la légende (cap)', () => {
+  const l = base();
+  l.components = { g: { type: 'ring', countdown: true, cap_font: 24, cap_family: 'lora', cap_bold: true, cap_italic: true } };
+  l.pages = [{ name: 'P1', place: [{ ref: 'g', radius: 140 }] }];
+  const r = validate(l);
+  assert.equal(r.valid, true, JSON.stringify(r.errors));
+});
+
+test('schema : comp_ring cap_font hors domaine 8-120 rejeté', () => {
+  const l = base();
+  l.components = { g: { type: 'ring', cap_font: 200 } };
+  l.pages = [{ name: 'P1', place: [{ ref: 'g', radius: 140 }] }];
+  assert.equal(validate(l).valid, false);
+});
+
+test('schema : comp_ring cap_family inconnue rejetée', () => {
+  const l = base();
+  l.components = { g: { type: 'ring', cap_family: 'comic_sans' } };
+  l.pages = [{ name: 'P1', place: [{ ref: 'g', radius: 140 }] }];
+  assert.equal(validate(l).valid, false);
+});
+
 test('schema : comp_ring cap_prefix hors Latin-1 (emoji) rejeté', () => {
   const l = base();
   l.components = { g: { type: 'ring', cap_prefix: '🔥' } };

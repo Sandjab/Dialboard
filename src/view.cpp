@@ -129,7 +129,7 @@ static void build_ring(lv_obj_t* parent, Component& c, Placement& q,
     *cap = lv_arclabel_create(parent);
     lv_obj_set_size(*cap, q.radius * 2, q.radius * 2);
     lv_obj_center(*cap);
-    lv_obj_set_style_text_font(*cap, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(*cap, get_font(c.cap_family, c.cap_font, c.cap_bold, c.cap_italic), 0);
     lv_obj_set_style_text_color(*cap, lv_color_hex(c.color), 0);
     lv_arclabel_set_radius(*cap, q.radius - q.thickness / 2);   // arc médian de la bande
     lv_arclabel_set_angle_start(*cap, 90 + q.start_angle - q.gap_deg / 2);  // COUNTER_CW : bord gauche de l'ouverture (symétrique CW)

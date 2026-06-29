@@ -296,8 +296,7 @@ export function buildRing(comp, placement, mock = MOCKS.ring) {
     const text = document.createElementNS(SVGNS, 'text');
     text.setAttribute('class', 'w-ring-cap');
     text.setAttribute('fill', comp.color || '#38BDF8');
-    text.setAttribute('font-size', '14');
-    text.setAttribute('font-family', 'Montserrat, system-ui, sans-serif');
+    text.style.font = font(comp.cap_family, comp.cap_bold, comp.cap_italic, pickFontPx(comp.cap_font ?? 14));
     const tp = document.createElementNS(SVGNS, 'textPath');
     tp.setAttribute('href', `#${capId}`);
     tp.setAttribute('startOffset', '50%');

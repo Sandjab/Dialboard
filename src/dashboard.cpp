@@ -140,6 +140,10 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
         c.countdown   = o["countdown"] | false;
         c.visible     = o["visible"] | true;   // config-time : caché par défaut possible (visible:false). Aussi pilotable via /update.
         strlcpy(c.cap_prefix, o["cap_prefix"] | "", sizeof(c.cap_prefix));
+        c.cap_font   = o["cap_font"] | 14;
+        c.cap_family = parse_font_family(o["cap_family"] | "montserrat");
+        c.cap_bold   = o["cap_bold"]   | false;
+        c.cap_italic = o["cap_italic"] | false;
         c.font        = o["font"] | 20;
         c.font_family = parse_font_family(o["font_family"] | "montserrat");
         c.bold        = o["bold"]   | false;

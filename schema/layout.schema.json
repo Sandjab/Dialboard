@@ -200,6 +200,10 @@
         "center_pct": { "type": "boolean", "description": "Affiche value+unit au centre de l'anneau, en grand (police = font du composant). La couleur suit le seuil par defaut. Unites non-ASCII (degre, micro) non rendues." },
         "center_color": { "$ref": "#/$defs/hexColor", "description": "Couleur du chiffre central (center_pct). Surcharge la couleur deduite du seuil. Absent = suit le seuil (ou color)." },
         "cap_prefix": { "$ref": "#/$defs/display", "description": "Préfixe statique de la légende courbe (texte courbe = cap_prefix + caption). Latin-1, défaut \"\"." },
+        "cap_font": { "$ref": "#/$defs/font", "description": "Taille de police de la légende courbe (cap). Defaut 14." },
+        "cap_family": { "$ref": "#/$defs/fontFamily", "description": "Famille de police de la légende courbe. Defaut montserrat." },
+        "cap_bold": { "type": "boolean", "description": "Légende courbe en gras (vrai cut). Defaut false." },
+        "cap_italic": { "type": "boolean", "description": "Légende courbe en italique (vrai cut). Defaut false." },
         "mode": { "enum": ["normal", "symmetrical", "reverse"], "description": "Sens de remplissage de l'indicateur. normal = horaire ; reverse = anti-horaire ; symmetrical = depuis le milieu. Defaut normal. (lv_arc_set_mode)" },
         "rounded": { "type": "boolean", "description": "Extremites de l'indicateur arrondies. Defaut true (rendu actuel). (style arc_rounded)" }
       }

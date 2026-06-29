@@ -6,7 +6,7 @@ export const DEFAULT_LAYOUT = {
     titre: { type: "label", text: "Dashboard", font: 20, color: "#FFFFFF" },
     cpu:   { type: "readout", label: "CPU", unit: "%", font: 20, color: "#38BDF8" },
     ram:   { type: "bar", label: "RAM", min: 0, max: 100, color: "#38BDF8" },
-    jauge: { type: "ring", color: "#A78BFA", countdown: true,
+    jauge: { type: "ring", color: "#A78BFA", countdown: true, cap_font: 14,
              thresholds: [[20, "#F87171"], [50, "#FBBF24"]] },
     led:   { type: "led_ring" },
     buzz:  { type: "sound" }
