@@ -156,7 +156,6 @@ export default {
   'field.width': 'Width',
   'field.height': 'Height',
   'field.rounded': 'Rounded ends',
-  'field.pill': 'Pill %',
   'field.center_pct': 'Center %',
   'field.font_center': 'Center font',
   'field.family_center': 'Center family',

@@ -54,9 +54,10 @@ test('registre : ring expose cap_prefix (légende courbe)', () => {
   assert.ok(keys.includes('cap_prefix'), 'cap_prefix absent des compFields du ring');
 });
 
-test('registre : ring pill est un toggle indépendant (plus d’exclusivité avec center_pct)', () => {
-  const pill = COMPONENTS.ring.compFields.find(f => f[0] === 'pill');
-  assert.equal(pill.length, 3, 'pill ne doit plus porter de garde enableWhen (4e élément) : il coexiste avec center_pct');
+test('registre : ring n’expose plus de pill (pastille supprimée)', () => {
+  const keys = COMPONENTS.ring.compFields.map(f => f[0]);
+  assert.ok(!keys.includes('pill'), 'pill ne doit plus figurer dans les compFields du ring');
+  assert.equal(COMPONENTS.ring.defaults().pill, undefined, 'un ring neuf ne doit plus porter pill');
 });
 
 test('registre : rect/circle/line déclarés, statiques, non physiques', () => {

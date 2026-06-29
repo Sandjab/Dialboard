@@ -220,15 +220,14 @@ void test_ring_cap_prefix_default_empty(void) {
     int iw = dash_find(&d, "w5h");
     TEST_ASSERT_EQUAL_STRING("", d.components[iw].cap_prefix);
 }
-static const char* LAYOUT_RING_BOTH =
-  "{\"components\":{\"g\":{\"type\":\"ring\",\"pill\":true,\"center_pct\":true}},"
+static const char* LAYOUT_RING_CENTER =
+  "{\"components\":{\"g\":{\"type\":\"ring\",\"center_pct\":true}},"
   "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"g\",\"radius\":120}]}]}";
 
-void test_ring_pill_and_center_coexist(void) {
+void test_ring_center_parsed(void) {                  // pastille (pill) supprimee : seul center_pct subsiste
     Dashboard d{}; char err[80];
-    TEST_ASSERT_TRUE(dash_set_layout(&d, LAYOUT_RING_BOTH, err, sizeof(err)));
+    TEST_ASSERT_TRUE(dash_set_layout(&d, LAYOUT_RING_CENTER, err, sizeof(err)));
     int ig = dash_find(&d, "g");
-    TEST_ASSERT_TRUE(d.components[ig].pill);          // plus d'exclusivite : les deux flags coexistent
     TEST_ASSERT_TRUE(d.components[ig].center_pct);
 }
 void test_layout_unknown_type_rejected(void) {
@@ -1091,7 +1090,7 @@ int main(int, char**) {
     RUN_TEST(test_bar_options_parsed);
     RUN_TEST(test_ring_mode_rounded_parsed);
     RUN_TEST(test_bar_ring_option_defaults);
-    RUN_TEST(test_ring_pill_and_center_coexist);
+    RUN_TEST(test_ring_center_parsed);
     RUN_TEST(test_layout_unknown_type_rejected);
     RUN_TEST(test_schema_types_all_resolve);
     RUN_TEST(test_icon_resolve);

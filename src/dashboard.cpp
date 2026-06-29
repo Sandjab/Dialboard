@@ -134,7 +134,6 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
         c.led_bezel     = o["bezel"]     | true;
         c.led_specular  = o["specular"]  | true;
         c.led_off_glass = o["off_glass"] | true;
-        c.pill        = o["pill"] | false;
         c.center_pct  = o["center_pct"] | false;
         c.center_color_set = o["center_color"].is<const char*>();
         c.center_color     = c.center_color_set ? parse_hex_color(o["center_color"], c.color) : c.color;

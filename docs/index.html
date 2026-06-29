@@ -313,19 +313,18 @@ sont <b>physiques</b>. La colonne « <code>/update</code> » donne la forme de l
 </div>
 
 <div class="comp">
-  <div class="screenshot"><img src="assets/manual-0005.png" alt="ring"><div class="screenshot-caption"><span>rendu device · pill + countdown</span><span class="filename">ring</span></div></div>
+  <div class="screenshot"><img src="assets/manual-0005.png" alt="ring"><div class="screenshot-caption"><span>rendu device · countdown</span><span class="filename">ring</span></div></div>
   <div>
     <h3 id="c-ring">ring — anneau</h3>
-    <p>Anneau avec ouverture en bas (orientable). Trois habillages du centre/bande :</p>
+    <p>Anneau avec ouverture en bas (orientable). Deux habillages du centre/bande :</p>
     <ul>
-      <li><code class="fieldname">pill</code> : pastille de pourcentage sur le haut de la bande.</li>
-      <li><code class="fieldname">center_pct</code> : grande valeur au centre (taille = <code>font</code>). <b>Prioritaire sur</b> <code>pill</code>.</li>
+      <li><code class="fieldname">center_pct</code> : grande valeur au centre (taille = <code>font</code>).</li>
       <li><code class="fieldname">countdown</code> : décrémente <code>reset_in_s</code> (1/s) et l'affiche (<code>1h50</code>, <code>5j6h</code>, <code>45s</code>).</li>
     </ul>
   </div>
 </div>
 <table><tbody>
-  <tr><th>Config</th><td><code class="fieldname">color</code>, <code class="fieldname">font</code>, <code class="fieldname">pill</code>, <code class="fieldname">center_pct</code>, <code class="fieldname">center_color</code>, <code class="fieldname">countdown</code>, <code class="fieldname">min</code>, <code class="fieldname">max</code>, <code class="fieldname">thresholds</code>, <code class="fieldname">bind</code></td></tr>
+  <tr><th>Config</th><td><code class="fieldname">color</code>, <code class="fieldname">font</code>, <code class="fieldname">center_pct</code>, <code class="fieldname">center_color</code>, <code class="fieldname">countdown</code>, <code class="fieldname">min</code>, <code class="fieldname">max</code>, <code class="fieldname">thresholds</code>, <code class="fieldname">bind</code></td></tr>
   <tr><th>Géométrie</th><td><code>radius</code>, <code>thickness</code>, <code>gap_deg</code>, <code>start_angle</code></td></tr>
   <tr><th><code>/update</code></th><td><code>{ "pct": 0-100, "reset_in_s": N, "caption": "…" }</code> — chaque champ optionnel</td></tr>
 </tbody></table>

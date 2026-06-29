@@ -55,12 +55,11 @@ export const COMPONENTS = {
   },
   ring: {
     label: 'comp.ring',
-    defaults: () => ({ type: 'ring', color: '#38BDF8', pill: true, min: 0, max: 100 }),
+    defaults: () => ({ type: 'ring', color: '#38BDF8', min: 0, max: 100 }),
     makePlacement: (id) => ({ ref: id, radius: 80, thickness: 16, gap_deg: 70 }),
     centered: true, physical: false,
     compFields: [['color', 'field.color', 'color'],
                  ['mode', 'field.mode', 'arcmode'], ['rounded', 'field.rounded', 'bool'],
-                 ['pill', 'field.pill', 'bool'],                             // indépendant du centre (les deux coexistent)
                  ['center_pct', 'field.center_pct', 'bool'],
                  ['font', 'field.font_center', 'font', c => !!c.center_pct],     // dimensionne le chiffre central
                  ['font_family', 'field.family_center', 'fontfamily', c => !!c.center_pct],

@@ -367,7 +367,6 @@ export function createCanvas({ stage }, model, { selection, setSelection, onLive
     const t = svg.querySelector('.ring-track'), ind = svg.querySelector('.ring-ind');
     t.setAttribute('d', p.track); t.setAttribute('stroke-width', g.th);
     ind.setAttribute('d', p.indicator); ind.setAttribute('stroke-width', g.th); ind.setAttribute('stroke', col);
-    const pill = node.querySelector('.w-ring-pill'); if (pill) pill.style.top = (g.th / 2) + 'px';
     const capArc = svg.querySelector('.cap-arc'); if (capArc) capArc.setAttribute('d', capArcPath(g.r, g.th, g.gap));
     positionRingHandles(node, g);
   }

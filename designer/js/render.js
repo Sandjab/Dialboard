@@ -277,15 +277,7 @@ export function buildRing(comp, placement, mock = MOCKS.ring) {
   svg.appendChild(mk('ring-track', track, '#1F2937')); // fond firmware (view.cpp:58)
   svg.appendChild(mk('ring-ind', indicator, col));
   wrap.appendChild(svg);
-  if (comp.pill) {                              // pastille % en haut de bande (coexiste avec le centre)
-    const pill = document.createElement('div');
-    pill.className = 'w-ring-pill';
-    pill.textContent = `${Math.trunc(mock.value)}%`; // tronque comme (long)c.value, view.cpp:220
-    pill.style.background = col;
-    pill.style.top = (th / 2) + 'px';           // centre de la pill sur le milieu de la bande (view.cpp:60)
-    wrap.appendChild(pill);
-  }
-  if (comp.center_pct) {                        // lecture centrale (coexiste avec la pastille)
+  if (comp.center_pct) {                        // lecture centrale (value+unit)
     const ctr = document.createElement('div');
     ctr.className = 'w-ring-center';
     ctr.style.font = font(comp.font_family, comp.bold, comp.italic, pickFontPx(comp.font ?? 20));

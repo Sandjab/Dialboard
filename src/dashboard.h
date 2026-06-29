@@ -33,7 +33,7 @@ struct Component {
     int32_t  vmin, vmax;
     int32_t  off_below;              // led : value < off_below -> eteint (defaut 1)
     bool     led_glow, led_bezel, led_specular, led_off_glass;   // led : effets de look (defaut true)
-    bool     pill, center_pct, countdown, center_color_set;
+    bool     center_pct, countdown, center_color_set;
     bool     visible;                // commande universelle montre/cache (defaut true) ; pilotable via /update
     char     cap_prefix[CAPTION_LEN];  // ring : prefixe statique de la legende courbe (cap_prefix + caption)
     Threshold thresholds[MAX_THRESHOLDS];

@@ -82,31 +82,23 @@ const char* view_default_layout() {
     return
       "{\"title\":\"Claude\",\"background\":\"#0B0B0F\",\"nav\":{\"wrap\":true},"
       "\"components\":{"
-        "\"w5h\":{\"type\":\"ring\",\"color\":\"#38BDF8\",\"pill\":true,\"countdown\":true},"
-        "\"w7d\":{\"type\":\"ring\",\"color\":\"#A78BFA\",\"pill\":true,\"countdown\":true},"
+        "\"w5h\":{\"type\":\"ring\",\"color\":\"#38BDF8\",\"countdown\":true},"
+        "\"w7d\":{\"type\":\"ring\",\"color\":\"#A78BFA\",\"countdown\":true},"
         "\"led\":{\"type\":\"led_ring\"},\"buzz\":{\"type\":\"sound\"}},"
       "\"pages\":[{\"name\":\"usage\",\"place\":["
         "{\"ref\":\"w5h\",\"radius\":176,\"thickness\":16,\"gap_deg\":70},"
         "{\"ref\":\"w7d\",\"radius\":141,\"thickness\":16,\"gap_deg\":70}]}]}";
 }
 
-// Positionne la pastille et/ou la lecture centrale, enfants du conteneur grp (slot sub2) dans l'ordre
-// [pill?, center?]. grp partage la géométrie de l'arc (centré, taille 2r) → l'alignement CENTER relatif
-// au conteneur est le même repère que l'arc. Pastille à l'opposé de l'ouverture, lecture centrale au
-// centre. Le cap (légende courbe) a sa géométrie propre (build_ring). À rappeler après chaque set_text
+// Positionne la lecture centrale (value+unit), unique enfant du conteneur grp (slot sub2). grp partage
+// la géométrie de l'arc (centré, taille 2r) → l'alignement CENTER relatif au conteneur est le même repère
+// que l'arc. Le cap (légende courbe) a sa géométrie propre (build_ring). À rappeler après chaque set_text
 // (LVGL recentre sur la taille réelle).
 static void ring_place_labels(lv_obj_t* grp, const Component& c, const Placement& q) {
     if (!grp) return;
-    const float DEG2RAD = 0.01745329252f;
-    lv_obj_t* pill   = c.pill       ? lv_obj_get_child(grp, 0)              : nullptr;
-    lv_obj_t* center = c.center_pct ? lv_obj_get_child(grp, c.pill ? 1 : 0) : nullptr;
+    (void)q;
+    lv_obj_t* center = c.center_pct ? lv_obj_get_child(grp, 0) : nullptr;
     if (center) lv_obj_align(center, LV_ALIGN_CENTER, 0, 0);
-    if (pill) {
-        int rp = q.radius - q.thickness / 2;           // pill centrée sur l'épaisseur de la bande
-        float a = (270 + q.start_angle) * DEG2RAD;     // opposé de l'ouverture
-        lv_obj_align(pill, LV_ALIGN_CENTER,
-                     (int)roundf(rp * cosf(a)), (int)roundf(rp * sinf(a)));
-    }
 }
 
 static void build_ring(lv_obj_t* parent, Component& c, Placement& q,
@@ -122,7 +114,7 @@ static void build_ring(lv_obj_t* parent, Component& c, Placement& q,
     lv_obj_set_style_arc_width(arc, q.thickness, LV_PART_MAIN);
     lv_obj_set_style_arc_width(arc, q.thickness, LV_PART_INDICATOR);
     lv_obj_set_style_arc_color(arc, lv_color_hex(0x1F2937), LV_PART_MAIN);
-    lv_obj_set_style_pad_all(arc, 0, LV_PART_MAIN);   // bord externe de la bande au bord du widget → milieu exact = radius - thickness/2 (sinon le padding par défaut décale la pill)
+    lv_obj_set_style_pad_all(arc, 0, LV_PART_MAIN);   // bord externe de la bande au bord du widget → milieu exact = radius - thickness/2 (sinon le padding par défaut décale le cap)
     lv_arc_set_mode(arc, c.arc_mode == ARC_SYMMETRICAL ? LV_ARC_MODE_SYMMETRICAL
                        : c.arc_mode == ARC_REVERSE     ? LV_ARC_MODE_REVERSE
                                                        : LV_ARC_MODE_NORMAL);
@@ -139,7 +131,7 @@ static void build_ring(lv_obj_t* parent, Component& c, Placement& q,
     lv_obj_center(*cap);
     lv_obj_set_style_text_font(*cap, &lv_font_montserrat_14, 0);
     lv_obj_set_style_text_color(*cap, lv_color_hex(c.color), 0);
-    lv_arclabel_set_radius(*cap, q.radius - q.thickness / 2);   // arc médian de la bande (comme la pill)
+    lv_arclabel_set_radius(*cap, q.radius - q.thickness / 2);   // arc médian de la bande
     lv_arclabel_set_angle_start(*cap, 90 + q.start_angle - q.gap_deg / 2);  // COUNTER_CW : bord gauche de l'ouverture (symétrique CW)
     lv_arclabel_set_angle_size(*cap, q.gap_deg);
     lv_arclabel_set_dir(*cap, LV_ARCLABEL_DIR_COUNTER_CLOCKWISE);           // texte lisible (sourire) dans l'ouverture du bas
@@ -147,40 +139,19 @@ static void build_ring(lv_obj_t* parent, Component& c, Placement& q,
     lv_arclabel_set_text_vertical_align(*cap, LV_ARCLABEL_TEXT_ALIGN_CENTER);   // milieu des lettres sur le rayon (cercle médian de la bande)
     lv_arclabel_set_text(*cap, "");
 
-    // Pastille (%) et/ou lecture centrale (value+unit) : enfants d'un conteneur transparent (slot sub2),
-    // créés dans l'ordre [pill, center] — les deux peuvent coexister (l'exclusivité a été levée).
+    // Lecture centrale (value+unit) : unique enfant d'un conteneur transparent (slot sub2).
     lv_obj_t* grp = nullptr;
-    if (c.pill || c.center_pct) {
+    if (c.center_pct) {
         grp = lv_obj_create(parent);
         lv_obj_remove_style_all(grp);                 // conteneur transparent (ni fond, ni bord, ni padding)
         lv_obj_set_size(grp, q.radius * 2, q.radius * 2);
         lv_obj_center(grp);
         lv_obj_clear_flag(grp, LV_OBJ_FLAG_SCROLLABLE);
         lv_obj_clear_flag(grp, LV_OBJ_FLAG_CLICKABLE);
-        if (c.pill) {                                 // pastille de pourcentage (sur la bande)
-            lv_obj_t* pl = lv_label_create(grp);
-            lv_obj_set_style_text_font(pl, &lv_font_montserrat_14, 0);
-            lv_obj_set_style_bg_opa(pl, LV_OPA_COVER, 0);
-            lv_obj_set_style_bg_color(pl, lv_color_hex(c.color), 0);
-            lv_obj_set_style_text_color(pl, lv_color_hex(0x04121A), 0);
-            lv_obj_set_style_radius(pl, 13, 0);
-            lv_obj_set_style_border_width(pl, 1, 0);                       // contour noir 1px : détache la pill d'un anneau plein de même couleur
-            lv_obj_set_style_border_color(pl, lv_color_hex(0x000000), 0);
-            lv_obj_set_style_border_opa(pl, LV_OPA_COVER, 0);
-            // Hauteur de la pill = max(hauteur actuelle, thickness+4) → déborde la bande de ≥2px en haut/bas.
-            // Obtenue par padding vertical symétrique (garde le % centré) ; plancher 3 = hauteur actuelle.
-            int lh = lv_font_get_line_height(&lv_font_montserrat_14);
-            int pv = (q.thickness + 4 - lh) / 2;
-            if (pv < 3) pv = 3;
-            lv_obj_set_style_pad_hor(pl, 8, 0); lv_obj_set_style_pad_ver(pl, pv, 0);
-            lv_label_set_text(pl, "0%");
-        }
-        if (c.center_pct) {                           // lecture centrale (grand chiffre)
-            lv_obj_t* ct = lv_label_create(grp);
-            lv_obj_set_style_text_font(ct, get_font(c.font_family, c.font, c.bold, c.italic), 0);
-            lv_obj_set_style_text_color(ct, lv_color_hex(c.color), 0);
-            lv_label_set_text(ct, "");
-        }
+        lv_obj_t* ct = lv_label_create(grp);          // lecture centrale (grand chiffre)
+        lv_obj_set_style_text_font(ct, get_font(c.font_family, c.font, c.bold, c.italic), 0);
+        lv_obj_set_style_text_color(ct, lv_color_hex(c.color), 0);
+        lv_label_set_text(ct, "");
     }
     *sub2 = grp;
     ring_place_labels(grp, c, q);
@@ -263,14 +234,8 @@ static void sync_ring(Component& c, Placement& q, lv_obj_t* w, lv_obj_t* sub1, l
         snprintf(cap_buf, sizeof(cap_buf), "%s%s", c.cap_prefix, c.caption);
         lv_arclabel_set_text(sub1, cap_buf);
     }
-    if (sub2) {                                   // conteneur : enfants [pill?, center?]
-        lv_obj_t* pill   = c.pill       ? lv_obj_get_child(sub2, 0)              : nullptr;
-        lv_obj_t* center = c.center_pct ? lv_obj_get_child(sub2, c.pill ? 1 : 0) : nullptr;
-        if (pill) {
-            char pb[8]; snprintf(pb, sizeof(pb), "%ld%%", (long)c.value);
-            lv_label_set_text(pill, pb);
-            lv_obj_set_style_bg_color(pill, lv_color_hex(col), 0);
-        }
+    if (sub2) {                                   // conteneur : enfant [center?]
+        lv_obj_t* center = c.center_pct ? lv_obj_get_child(sub2, 0) : nullptr;
         if (center) {
             char cb[24]; format_value((double)c.value, c.unit, cb, sizeof(cb));
             lv_label_set_text(center, cb);
@@ -890,7 +855,7 @@ void view_sync(Dashboard* d) {
             lv_obj_t* w = s_widget[p][i];
             if (!w) continue;
             // Commande universelle visible : montre/cache le composant ENTIER. Les sous-objets frères de w
-            // (cap + pill/centre du ring, libellé de la barre) sont suivis dans sub1/sub2 -> on bascule les
+            // (cap + centre du ring, libellé de la barre) sont suivis dans sub1/sub2 -> on bascule les
             // trois. (led_ring/sound : w == nullptr, déjà sautés ci-dessus ; le specular du led, enfant dans
             // sub1, est ré-affirmé par sync_led appelé juste après -> il a le dernier mot.)
             lv_obj_t* objs[3] = { w, s_sub1[p][i], s_sub2[p][i] };

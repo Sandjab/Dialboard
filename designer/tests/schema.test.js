@@ -188,12 +188,19 @@ test('schema : comp_ring cap_prefix hors Latin-1 (emoji) rejeté', () => {
   assert.equal(validate(l).valid, false);
 });
 
-test('schema : ring accepte pill ET center_pct ensemble (plus d’exclusivité)', () => {
+test('schema : ring center_pct seul valide (pill supprimé)', () => {
   const l = base();
-  l.components.g = { type: 'ring', pill: true, center_pct: true };
+  l.components.g = { type: 'ring', center_pct: true };
   l.pages[0].place.push({ ref: 'g', radius: 140 });
   const r = validate(l);
   assert.equal(r.valid, true, JSON.stringify(r.errors));
+});
+
+test('schema : ring pill rejeté (pastille supprimée, additionalProperties:false)', () => {
+  const l = base();
+  l.components.g = { type: 'ring', pill: true };
+  l.pages[0].place.push({ ref: 'g', radius: 140 });
+  assert.equal(validate(l).valid, false);
 });
 
 test('schema : composant led valide (off_below + thresholds + bind)', () => {

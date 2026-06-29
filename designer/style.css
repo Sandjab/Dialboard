@@ -313,16 +313,8 @@ main > .col:last-child { border-right: 0; }
    vide » désélectionne au lieu de re-sélectionner l'anneau. La sélection de l'anneau marche toujours :
    le pointerdown du wrapper se déclenche par bubbling depuis un enfant peint cliqué. */
 .w-ring, .w-ring svg { pointer-events: none; }
-.w-ring .ring-track, .w-ring .ring-ind, .w-ring .w-ring-pill,
+.w-ring .ring-track, .w-ring .ring-ind,
 .w-ring .w-ring-center, .w-ring .w-ring-cap, .w-ring .handle { pointer-events: auto; }
-/* Pastille seule (pas le cap) : le cap est un <g> SVG aux glyphes déjà centrés en absolu ;
-   lui appliquer translateX(-50%) le décalerait de -50% de la viewBox = -r (cap rogné à gauche). */
-.w-ring-pill {
-  position: absolute; left: 50%; transform: translateX(-50%);
-  font: 12px Montserrat, system-ui, sans-serif;
-}
-.w-ring-pill { color: #04121A; border-radius: 13px; padding: 2px 8px;
-  transform: translate(-50%, -50%); border: 1px solid #000; }   /* centrée sur la bande + liseré (view.cpp:60,101) */
 .w-ring-center {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
   white-space: nowrap;                                          /* lecture centrale center_pct (view.cpp:89) */
