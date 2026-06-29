@@ -27,14 +27,13 @@
   --err: #E06C5A;
 
   --font-ui: 'Inter', system-ui, sans-serif;
-  --font-display: 'Space Grotesk', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
   --scale: 1.15;             /* échelle de densité du chrome (figée, pas de réglage runtime) */
 
   --pal-w: 44px;             /* colonne palette icône */
   --layers-w: 220px;         /* colonne calques */
-  --insp-w: 300px;           /* colonne inspecteur */
+  --insp-w: 242px;           /* colonne inspecteur — resserrée (recentre le poids visuel sur le disque) */
 }
 :root[data-theme="green"]  { --accent:#22C55E; --accent-strong:#22C55E; --accent-hover:#4ADE80; --accent-dim:rgba(34,197,94,.10);  --accent-soft:rgba(34,197,94,.18); }
 :root[data-theme="blue"]   { --accent:#3B82F6; --accent-strong:#3B82F6; --accent-hover:#60A5FA; --accent-dim:rgba(59,130,246,.10); --accent-soft:rgba(59,130,246,.18); }
@@ -42,8 +41,12 @@
 :root[data-theme="red"]    { --accent:#EF4444; --accent-strong:#EF4444; --accent-hover:#F87171; --accent-dim:rgba(239,68,68,.10);  --accent-soft:rgba(239,68,68,.18); }
 :root[data-theme="yellow"] { --accent:#EAB308; --accent-strong:#EAB308; --accent-hover:#FACC15; --accent-dim:rgba(234,179,8,.10);  --accent-soft:rgba(234,179,8,.18); }
 * { box-sizing: border-box; }
-body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: var(--bg); color: var(--ink); }
-header { display: flex; align-items: center; gap: 0; padding: 0 10px; height: 42px; border-bottom: 1px solid var(--line); background: var(--panel); }
+html { height: 100%; }
+/* Colonne pleine hauteur : main (canvas) absorbe la place restante et POUSSE la barre d'état au bas du
+   viewport → plus de « vide noir » résiduel, et le board grandit (app.js fit borné par availH). */
+body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: var(--bg); color: var(--ink);
+  min-height: 100vh; display: flex; flex-direction: column; }
+header { display: flex; align-items: center; gap: 0; padding: 0 10px; height: 42px; flex: none; border-bottom: 1px solid var(--line); background: var(--panel); }
 header .grow { flex: 1; }
 /* --- Top bar : brand --- */
 /* Lockup de marque (titre + icône) coloré par var(--accent) : il suit donc le thème actif.
@@ -55,11 +58,11 @@ header .grow { flex: 1; }
 .tb-group { display: flex; gap: 1px; padding: 0 6px; height: 100%; align-items: center; }
 .tb-group + .tb-group { border-left: 1px solid var(--line); }
 /* --- Bouton icône toolbar --- */
-.tb-btn { background: transparent; border: 1px solid transparent; border-radius: 2px; height: 28px; min-width: 28px; padding: 0 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: var(--text-dim); position: relative; }
+.tb-btn { background: transparent; border: 1px solid transparent; border-radius: 2px; height: 30px; min-width: 30px; padding: 0 7px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: var(--text-dim); position: relative; }
 .tb-btn:hover:not(:disabled) { background: var(--panel-2); border-color: var(--border-2); color: var(--ink); }
 .tb-btn:active:not(:disabled) { background: var(--accent-soft); color: var(--accent); }
 .tb-btn:disabled { opacity: .4; cursor: default; }
-.tb-btn svg { width: 14px; height: 14px; }
+.tb-btn svg { width: 17px; height: 17px; }
 /* Tooltip */
 .tb-btn[data-tip]:hover::after { content: attr(data-tip); position: absolute; top: 100%; left: 50%; transform: translateX(-50%) translateY(4px); background: #000; color: var(--ink); font-family: var(--font-mono); font-size: 10px; letter-spacing: .05em; padding: 4px 8px; border: 1px solid var(--border-2); white-space: nowrap; z-index: 100; pointer-events: none; }
 /* Bouton primaire (Pousser) */
@@ -97,11 +100,11 @@ input[type="checkbox"]:checked::after {
   content: ""; position: absolute; left: 4px; top: 1px;
   width: 4px; height: 8px; border: solid var(--bg); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg);
 }
-main { display: grid; grid-template-columns: var(--layers-w) 1fr var(--insp-w); gap: 0; padding: 0; min-height: 0; }
+main { display: grid; grid-template-columns: var(--layers-w) 1fr var(--insp-w); gap: 0; padding: 0; min-height: 0; flex: 1 1 auto; }
 main > .col { border-radius: 0; border: 0; border-right: 1px solid var(--line); overflow: auto; min-height: 0; }
 main > .col:last-child { border-right: 0; }
 .col { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
-.col h2 { font-family: var(--font-ui); font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+.col h2 { font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
 .todo { color: #55525e; font-style: italic; }
 
 #layers { min-height: 0; }
@@ -147,7 +150,7 @@ main > .col:last-child { border-right: 0; }
 .tree-menu-item.has-sub:hover > .tree-submenu { display: block; }
 
 /* --- Barre d'état (Phase 6) : contexte de sélection (gauche) · validation cliquable (droite) --- */
-.statusbar { display: flex; align-items: center; gap: 12px; padding: 0 14px;
+.statusbar { display: flex; align-items: center; gap: 12px; padding: 0 14px; flex: none;
   height: 24px; border-top: 1px solid var(--line); background: var(--panel);
   font-family: var(--font-mono); font-size: 10px; letter-spacing: .06em; color: var(--muted); }
 .sb-context { color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -159,7 +162,12 @@ main > .col:last-child { border-right: 0; }
 .sb-valid.sb-err { color: var(--err); }
 
 /* --- Console bas repliable (Phase 6) : [Problèmes | Source], corps replié par défaut --- */
-.console { border-top: 1px solid var(--line); background: var(--panel); }
+.console { border-top: 1px solid var(--line); background: var(--panel); flex: none; }
+/* Console logée dans la colonne canvas (sous le carousel) : pleine largeur de colonne, calée en bas.
+   Le board étant borné par la largeur (ratio large), il ne remplit pas la hauteur : les deux margin-top:auto
+   (board-fit + console) répartissent le vide → disque centré verticalement, console ancrée au bas. */
+#canvas-col > .board-fit { margin-top: auto; }
+#canvas-col > .console { align-self: stretch; width: 100%; margin-top: auto; }
 .console-head { display: flex; align-items: center; gap: 4px; padding: 2px 10px; border-bottom: 1px solid transparent; }
 .console.open .console-head { border-bottom-color: var(--line); }
 .console-tab { font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; padding: 3px 10px; color: var(--muted); border-color: transparent; }
@@ -193,7 +201,6 @@ main > .col:last-child { border-right: 0; }
   font-display: swap;
 }
 /* Inter et JetBrains Mono sont des polices variables : un seul fichier sert tous les poids. */
-@font-face { font-family: 'Space Grotesk'; src: url('vendor/fonts/space-grotesk-500.woff2') format('woff2'); font-weight: 500; font-display: swap; }
 @font-face { font-family: 'Inter'; src: url('vendor/fonts/inter.woff2') format('woff2'); font-weight: 400; font-display: swap; }
 @font-face { font-family: 'Inter'; src: url('vendor/fonts/inter.woff2') format('woff2'); font-weight: 500; font-display: swap; }
 @font-face { font-family: 'Inter'; src: url('vendor/fonts/inter.woff2') format('woff2'); font-weight: 600; font-display: swap; }
@@ -347,24 +354,33 @@ main > .col:last-child { border-right: 0; }
   pointer-events: none; z-index: 2; }                          /* vide non interactif → laisse passer la désélection */
 .palette-item {
   display: flex; flex-direction: column; align-items: center; gap: 4px; direction: ltr;
-  cursor: grab; pointer-events: auto; user-select: none;
+  cursor: grab; pointer-events: auto; user-select: none; transition: transform .12s;
 }
-.palette-item:active { cursor: grabbing; }
+.palette-item:hover { transform: translateY(-2px); }          /* lift : affordance « déposable » au survol */
+.palette-item:active { cursor: grabbing; transform: none; }
+/* Au repos : présent (text-label), pas « désactivé » ; le survol l'illumine et le détache (ombre + halo). */
 .palette-chip {
   display: flex; align-items: center; justify-content: center; border-radius: 50%;
-  background: var(--panel-2); border: 1px solid var(--line); color: var(--text-dim);
+  background: var(--panel-2); border: 1px solid var(--line); color: var(--text-label);
+  transition: border-color .12s, color .12s, box-shadow .12s;
 }
-.palette-item:hover .palette-chip { border-color: var(--accent); color: var(--ink); }
+.palette-item:hover .palette-chip { border-color: var(--accent); color: var(--accent);
+  box-shadow: 0 4px 12px rgba(0,0,0,.45), 0 0 0 1px var(--accent-soft); }
 .palette-icon { width: 22px; height: 22px; flex: none; }       /* monochrome : suit currentColor */
-.palette-label { font-size: 9px; line-height: 1; color: var(--muted); text-align: center;
+.palette-label { font-size: 9px; line-height: 1; color: var(--text-dim); text-align: center;
   max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* En-tête de famille d'une zone (canvas-zones.js) : nomme le regroupement implicite des 4 quadrants. */
+.zone-family { grid-column: 1 / -1; direction: ltr; pointer-events: none; margin-bottom: 3px;
+  font: 600 9px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+/* Indice de découvrabilité sous le titre Canvas : que faire d'un composant de la palette. */
+.canvas-hint { font: 11px var(--font-mono); letter-spacing: .03em; color: var(--muted); margin: -4px 0 6px; }
 
 /* --- Plan C1 : inspecteur --- */
 .insp-head { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
 .insp-eye, .insp-iconbtn { background: none; border: 0; padding: 2px; line-height: 0; cursor: pointer; border-radius: 4px; opacity: .85; }
 .insp-eye:hover, .insp-iconbtn:hover { opacity: 1; background: var(--panel-2); }
 .insp-head-kind { font-family: var(--font-mono); font-size: 10px; color: var(--accent); letter-spacing: .12em; }
-.insp-head-name { font-family: var(--font-display); font-weight: 500; font-size: 13px; color: var(--ink); text-transform: none; letter-spacing: 0; }
+.insp-head-name { font-family: var(--font-mono); font-weight: 500; font-size: 12.5px; color: var(--ink); text-transform: none; letter-spacing: .02em; }
 .insp-eye { margin-left: auto; }
 .insp-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 12.5px; }
 .insp-label { flex: 0 0 96px; color: #9aa0aa; }
@@ -477,10 +493,11 @@ main > .col:last-child { border-right: 0; }
 .shot-nav span { font-size: 12.5px; color: var(--muted); min-width: 78px; text-align: center; }
 
 /* Pastille device (toolbar, cf. app.js setDevicePill) : état de connexion permanent (modèle A). */
-.dev-pill { font: 12.5px/1 ui-monospace, monospace; color: var(--muted);
-  padding: 4px 9px; border: 1px solid var(--line); border-radius: 999px; white-space: nowrap; }
-.dev-pill.ok { color: var(--ok); border-color: var(--ok); }
-.dev-pill.err { color: var(--err); border-color: var(--err); }
+.dev-pill { font: 12.5px/1 ui-monospace, monospace; color: var(--text-dim);
+  padding: 4px 10px; border: 1px solid var(--border-2); border-radius: 999px; white-space: nowrap;
+  background: var(--panel-2); }
+.dev-pill.ok { color: var(--ok); border-color: var(--ok); background: rgba(111,207,151,.12); }
+.dev-pill.err { color: var(--err); border-color: var(--err); background: rgba(224,108,90,.12); }
 
 /* Toasts unifiés (cf. toast.js, modèle A) : pile haut-droite, non bloquante. Un toast progress (spinner)
    se mue en verdict EN PLACE. top:62px = sous la toolbar (header = 52px) pour ne pas masquer Zoom/pastille. */
@@ -532,4 +549,5 @@ main > .col:last-child { border-right: 0; }
 
 /* Champs numeriques : affordance "drag" (barre ambre a gauche + curseur ew-resize). */
 .insp-row input[type="number"] { cursor: ew-resize; border-left: 3px solid var(--accent); }
-.insp-row input[type="number"]:focus { cursor: text; }
+/* Focus net : le liseré ambre = affordance « glisser pour ajuster » (numdrag) ; en édition, anneau franc. */
+.insp-row input[type="number"]:focus { cursor: text; outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }

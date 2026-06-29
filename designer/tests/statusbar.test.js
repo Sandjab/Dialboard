@@ -50,8 +50,8 @@ test('formatSelectionContext : null → « Nothing selected »', () => {
   assert.equal(formatSelectionContext(ST, null), 'Nothing selected');
 });
 
-test('formatSelectionContext : doc → N page(s) · M component(s) (M = somme des placements, pas la map ; intent : compter le visuel, pas les physiques)', () => {
-  assert.equal(formatSelectionContext(ST, { kind: 'doc' }), '2 page(s) · 3 component(s)');
+test('formatSelectionContext : doc → N page(s) · M placed (M = somme des placements, pas la map ; intent : compter le visuel placé, pas les physiques)', () => {
+  assert.equal(formatSelectionContext(ST, { kind: 'doc' }), '2 page(s) · 3 placed');
 });
 
 test("formatSelectionContext : page → nom + index base 1 + nb placements de CETTE page", () => {

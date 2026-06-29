@@ -329,10 +329,13 @@ async function main() {
   // Échelle d'affichage du canvas = fit (board entier visible dans la colonne). Le board (écran + zones)
   // est scalé d'un bloc → les zones épousent l'écran à toute échelle ; le rect live du #stage (÷360) reste
   // la source du facteur pour le DnD et les interactions (palette/canvas).
-  const board = $('board'), boardFit = $('board-fit'), canvasCol = $('canvas-col');
+  const board = $('board'), boardFit = $('board-fit'), canvasCol = $('canvas-col'), consoleEl = $('console');
   const applyScale = () => {
+    // Réserve = titre + indice + carousel (~170) + hauteur RÉELLE de la console (logée dans la colonne,
+    // repliée ~30 px / dépliée jusqu'à 30vh) → le board occupe le reste, au-dessus de la console.
+    const reserve = 170 + (consoleEl ? consoleEl.offsetHeight : 0);
     const availW = Math.max(120, canvasCol.clientWidth - 24);
-    const availH = Math.max(120, canvasCol.clientHeight - 150);   // réserve pour le titre + le carousel
+    const availH = Math.max(120, canvasCol.clientHeight - reserve);
     const fit = Math.min(availW / BOARD_W, availH / BOARD_H, 1.5);
     const s = Math.max(0.2, fit);
     board.style.transform = `scale(${s})`;
@@ -340,6 +343,7 @@ async function main() {
     boardFit.style.height = (BOARD_H * s) + 'px';
   };
   new ResizeObserver(applyScale).observe(canvasCol);
+  if (consoleEl) new ResizeObserver(applyScale).observe(consoleEl);   // (dé)pliage de la console → re-fit du board
   applyScale();
 
   // URL du device : pré-remplie pour éviter le piège « URL device ? » dès la 1re action. Quand le designer
