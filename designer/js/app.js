@@ -342,9 +342,10 @@ async function main() {
     boardFit.style.width = (BOARD_W * s) + 'px';
     boardFit.style.height = (BOARD_H * s) + 'px';
   };
-  new ResizeObserver(applyScale).observe(canvasCol);
-  if (consoleEl) new ResizeObserver(applyScale).observe(consoleEl);   // (dé)pliage de la console → re-fit du board
-  applyScale();
+  const ro = new ResizeObserver(applyScale);
+  ro.observe(canvasCol);
+  if (consoleEl) ro.observe(consoleEl);   // (dé)pliage de la console → re-fit du board (même observer)
+  applyScale();                            // appel sync initial (le 1er callback de l'observer est asynchrone)
 
   // URL du device : pré-remplie pour éviter le piège « URL device ? » dès la 1re action. Quand le designer
   // est servi PAR le device (embarqué : http://<ip>/designer/), location.origin EST le device. En dev local

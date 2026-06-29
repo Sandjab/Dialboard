@@ -453,7 +453,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
 
     const np = s.pages?.length ?? 0;
     const nc = Object.keys(s.components || {}).length;                                  // total (inclut les sorties physiques)
-    const placed = (s.pages || []).reduce((n, p) => n + (p.place?.length || 0), 0);     // placés sur les pages (= compte de la statusbar)
+    const placed = (Array.isArray(s.pages) ? s.pages : []).reduce((n, p) => n + (Array.isArray(p?.place) ? p.place.length : 0), 0);   // placés (Array.isArray défensif, cf. statusbar.js / import robuste)
     note(body, t('inspector.note.doc_counts', { np, placed, nc }));
     if (openDrawer) {
       const link = document.createElement('button');
