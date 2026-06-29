@@ -128,7 +128,12 @@
         "font_family": { "$ref": "#/$defs/fontFamily" },
         "bold": { "type": "boolean", "description": "Gras (vrai cut). Defaut false." },
         "italic": { "type": "boolean", "description": "Italique (vrai cut). Defaut false." },
-        "color": { "$ref": "#/$defs/hexColor" }
+        "color": { "$ref": "#/$defs/hexColor" },
+        "fill": { "$ref": "#/$defs/hexColor", "description": "Couleur de fond (bg_color) derriere le texte. Absent = pas de fond (transparent). Rayon de coin via placement.radius." },
+        "border_color": { "$ref": "#/$defs/hexColor", "description": "Couleur du contour. Ignorée si border_width 0. Defaut #FFFFFF." },
+        "border_width": { "type": "integer", "minimum": 0, "description": "Épaisseur du contour en px. 0 = pas de contour. Defaut 0." },
+        "pad_x": { "type": "integer", "minimum": 0, "description": "Marge interne horizontale (pad_hor) entre le texte et le bord du fond/contour, en px. Defaut 0." },
+        "pad_y": { "type": "integer", "minimum": 0, "description": "Marge interne verticale (pad_ver) entre le texte et le bord du fond/contour, en px. Defaut 0." }
       }
     },
     "comp_readout": {
@@ -405,7 +410,7 @@
         "dy": { "type": "integer", "description": "Offset vertical depuis l'ancrage (defaut 0)." },
         "width": { "type": "integer", "description": "Largeur (bar) ou longueur (line). Defaut 0." },
         "height": { "type": "integer", "description": "Hauteur (bar). Defaut 0." },
-        "radius": { "type": "integer", "description": "Rayon (ring). Anneaux concentriques = meme centre, radius differents. Rayon de coin (rect). Defaut 0." },
+        "radius": { "type": "integer", "description": "Rayon (ring). Anneaux concentriques = meme centre, radius differents. Rayon de coin (rect, label). Defaut 0." },
         "thickness": { "type": "integer", "description": "Epaisseur de bande (ring) ou epaisseur de trait (line). Defaut 16 (le designer emet 2 pour line)." },
         "gap_deg": { "type": "integer", "description": "Angle d'ouverture (ring). Position determinee par start_angle. Defaut 70." },
         "start_angle": { "type": "integer", "description": "Oriente l'ouverture : offset en degres, horaire, depuis le bas. 0=bas, 90=gauche, 180=haut, 270=droite. Defaut 0." },

@@ -28,10 +28,10 @@ export const COMPONENTS = {
     defaults: () => ({ type: 'label', text: t('default.label.text'), font: 20, color: '#FFFFFF' }),
     makePlacement: screenPlacement,
     centered: false, physical: false,
-    compFields: [['text', 'field.text', 'latintext'], ['font', 'field.font', 'font'], ['font_family', 'field.font_family', 'fontfamily'], ['bold', 'field.bold', 'bool'], ['italic', 'field.italic', 'bool'], ['color', 'field.color', 'color'], ['bind', 'field.bind', 'idtext']],
-    placeFields: [['anchor', 'field.anchor', 'anchor'], ['dx', 'field.dx', 'num'], ['dy', 'field.dy', 'num']],
+    compFields: [['text', 'field.text', 'latintext'], ['font', 'field.font', 'font'], ['font_family', 'field.font_family', 'fontfamily'], ['bold', 'field.bold', 'bool'], ['italic', 'field.italic', 'bool'], ['color', 'field.color', 'color'], ['fill', 'field.fill', 'fill'], ['border_width', 'field.border_width', 'num'], ['border_color', 'field.border_color', 'color', c => (c.border_width || 0) > 0], ['pad_x', 'field.pad_x', 'num'], ['pad_y', 'field.pad_y', 'num'], ['bind', 'field.bind', 'idtext']],
+    placeFields: [['anchor', 'field.anchor', 'anchor'], ['dx', 'field.dx', 'num'], ['dy', 'field.dy', 'num'], ['radius', 'field.radius_corner', 'num', 0]],
     mockFields: [],
-    build: (comp) => buildLabel(comp),
+    build: (comp, pl) => buildLabel(comp, pl),
   },
   readout: {
     label: 'comp.readout',

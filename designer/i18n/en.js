@@ -189,6 +189,8 @@ export default {
   'field.fill': 'Fill',
   'field.border_width': 'Border width',
   'field.border_color': 'Border color',
+  'field.pad_x': 'Padding X',
+  'field.pad_y': 'Padding Y',
   'field.radius_corner': 'Corner radius',
   'field.dash': 'Pattern',
   'field.length': 'Length',

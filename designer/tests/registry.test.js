@@ -79,6 +79,27 @@ test('registre : rect/circle exposent fill + contour', () => {
   assert.ok(COMPONENTS.circle.placeFields.map(f => f[0]).includes('size'));
 });
 
+test('registre : label expose fond/contour (comp) + rayon de coin (placement)', () => {
+  const keys = COMPONENTS.label.compFields.map(f => f[0]);
+  assert.ok(keys.includes('fill'), 'label : fill manquant');
+  assert.ok(keys.includes('border_width'), 'label : border_width manquant');
+  assert.ok(keys.includes('border_color'), 'label : border_color manquant');
+  assert.ok(keys.includes('pad_x'), 'label : pad_x manquant');
+  assert.ok(keys.includes('pad_y'), 'label : pad_y manquant');
+  // border_color n'est éditable que si border_width > 0 (même garde que rect)
+  const bc = COMPONENTS.label.compFields.find(f => f[0] === 'border_color');
+  assert.equal(typeof bc[3], 'function');
+  assert.equal(bc[3]({ border_width: 0 }), false);
+  assert.equal(bc[3]({ border_width: 2 }), true);
+  assert.ok(COMPONENTS.label.placeFields.map(f => f[0]).includes('radius'), 'label : radius manquant');
+  // Opt-in : un nouveau label reste sans fond, contour ni marge (transparent par défaut).
+  const d = COMPONENTS.label.defaults();
+  assert.equal(d.fill, undefined, 'un label neuf ne doit pas avoir de fond');
+  assert.equal(d.border_width, undefined, 'un label neuf ne doit pas avoir de contour');
+  assert.equal(d.pad_x, undefined, 'un label neuf ne doit pas avoir de marge interne');
+  assert.equal(d.pad_y, undefined, 'un label neuf ne doit pas avoir de marge interne');
+});
+
 test('registre : line expose color/orientation/dash/rounded et longueur/épaisseur', () => {
   const cf = COMPONENTS.line.compFields.map(f => f[0]);
   for (const k of ['color', 'orientation', 'dash', 'rounded']) assert.ok(cf.includes(k), `line : ${k} manquant`);

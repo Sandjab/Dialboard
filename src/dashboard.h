@@ -70,6 +70,8 @@ struct Component {
     uint32_t fill;            // rect/circle : couleur de fond
     uint32_t border_color;    // rect/circle : couleur du contour (defaut 0xFFFFFF)
     int      border_width;    // rect/circle : epaisseur du contour (0 = aucun)
+    int      pad_x;           // label : marge interne horizontale autour du texte (pad_hor ; defaut 0)
+    int      pad_y;           // label : marge interne verticale (pad_ver ; defaut 0)
     LineDash line_dash;       // line : motif (plein/tirets/pointille)
     bool     line_rounded;    // line : bouts arrondis. NB: l'orientation reutilise bar_vertical (parse generique)
 

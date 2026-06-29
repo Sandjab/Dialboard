@@ -193,6 +193,18 @@ static void build_text(lv_obj_t* parent, Component& c, Placement& q,
     lv_obj_t* l = lv_label_create(parent);
     lv_obj_set_style_text_font(l, get_font(c.font_family, c.font, c.bold, c.italic), 0);
     lv_obj_set_style_text_color(l, lv_color_hex(c.color), 0);
+    if (q.radius > 0) lv_obj_set_style_radius(l, q.radius, 0);
+    if (c.fill_set) {
+        lv_obj_set_style_bg_color(l, lv_color_hex(c.fill), 0);
+        lv_obj_set_style_bg_opa(l, LV_OPA_COVER, 0);
+    }
+    if (c.border_width > 0) {
+        lv_obj_set_style_border_width(l, c.border_width, 0);
+        lv_obj_set_style_border_color(l, lv_color_hex(c.border_color), 0);
+        lv_obj_set_style_border_opa(l, LV_OPA_COVER, 0);
+    }
+    if (c.pad_x > 0) lv_obj_set_style_pad_hor(l, c.pad_x, 0);
+    if (c.pad_y > 0) lv_obj_set_style_pad_ver(l, c.pad_y, 0);
     lv_label_set_text(l, "");
     lv_obj_align(l, ALIGN_MAP[q.anchor], q.dx, q.dy);
     *main = l;

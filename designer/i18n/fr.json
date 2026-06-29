@@ -182,6 +182,8 @@
   "field.fill": "Fond",
   "field.border_width": "Épaisseur contour",
   "field.border_color": "Couleur contour",
+  "field.pad_x": "Marge interne X",
+  "field.pad_y": "Marge interne Y",
   "field.radius_corner": "Rayon coin",
   "field.dash": "Motif",
   "field.length": "Longueur",

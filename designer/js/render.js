@@ -191,11 +191,17 @@ const SVGNS = 'http://www.w3.org/2000/svg';
 
 let capSeq = 0;   // ids uniques pour les <textPath> de cap (un par rendu de ring)
 
-export function buildLabel(comp) {
+export function buildLabel(comp, placement = {}) {
   const n = document.createElement('div');
   n.className = 'w w-label';
   n.style.font = font(comp.font_family, comp.bold, comp.italic, pickFontPx(comp.font ?? 20));
   n.style.color = comp.color || '#FFFFFF';
+  if (comp.fill != null) n.style.background = comp.fill;          // absent = transparent
+  const bw = comp.border_width || 0;
+  if (bw > 0) { n.style.boxSizing = 'border-box'; n.style.border = `${bw}px solid ${comp.border_color || '#FFFFFF'}`; }
+  if ((placement.radius || 0) > 0) n.style.borderRadius = placement.radius + 'px';
+  const px = comp.pad_x || 0, py = comp.pad_y || 0;               // marge interne autour du texte (pad_hor/pad_ver côté firmware)
+  if (px > 0 || py > 0) n.style.padding = `${py}px ${px}px`;
   n.textContent = comp.text || 'Label';
   return n;
 }

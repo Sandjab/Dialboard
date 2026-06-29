@@ -162,6 +162,10 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
         c.border_color = parse_hex_color(o["border_color"] | "#FFFFFF", 0xFFFFFF);
         c.border_width = o["border_width"] | 0;
         if (c.border_width < 0) c.border_width = 0;
+        c.pad_x        = o["pad_x"] | 0;
+        if (c.pad_x < 0) c.pad_x = 0;
+        c.pad_y        = o["pad_y"] | 0;
+        if (c.pad_y < 0) c.pad_y = 0;
         c.line_dash    = parse_line_dash(o["dash"] | "solid");
         c.line_rounded = o["rounded"] | false;   // line : defaut false (ring lit aussi "rounded" -> arc_rounded, defaut true)
         c.led_brightness_cfg = o["brightness"] | 64;

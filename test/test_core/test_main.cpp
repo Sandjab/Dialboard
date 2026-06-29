@@ -560,6 +560,34 @@ void test_shapes_parsed(void) {
     TEST_ASSERT_EQUAL_INT(2, d.pages[0].places[2].thickness);
 }
 
+// Le label porte desormais un style de boite (fond/contour/marge), parse comme rect + pad_x/pad_y.
+static const char* LAYOUT_LABEL_BOX =
+  "{\"components\":{"
+    "\"b\":{\"type\":\"label\",\"text\":\"CPU\",\"fill\":\"#1E293B\",\"border_width\":2,\"border_color\":\"#38BDF8\",\"pad_x\":8,\"pad_y\":4},"
+    "\"p\":{\"type\":\"label\",\"text\":\"plain\"}},"
+  "\"pages\":[{\"name\":\"p\",\"place\":["
+    "{\"ref\":\"b\",\"anchor\":\"CENTER\",\"radius\":6},"
+    "{\"ref\":\"p\",\"anchor\":\"CENTER\"}]}]}";
+
+void test_label_box_parsed(void) {
+    Dashboard d{}; char err[80];
+    TEST_ASSERT_TRUE_MESSAGE(dash_set_layout(&d, LAYOUT_LABEL_BOX, err, sizeof(err)), err);
+    int ib = dash_find(&d, "b"), ip = dash_find(&d, "p");
+    TEST_ASSERT_TRUE(ib >= 0 && ip >= 0);
+    TEST_ASSERT_TRUE(d.components[ib].fill_set);
+    TEST_ASSERT_EQUAL_HEX32(0x1E293B, d.components[ib].fill);
+    TEST_ASSERT_EQUAL_INT(2, d.components[ib].border_width);
+    TEST_ASSERT_EQUAL_HEX32(0x38BDF8, d.components[ib].border_color);
+    TEST_ASSERT_EQUAL_INT(8, d.components[ib].pad_x);
+    TEST_ASSERT_EQUAL_INT(4, d.components[ib].pad_y);
+    TEST_ASSERT_EQUAL_INT(6, d.pages[0].places[0].radius);
+    // Opt-in : un label sans style de boite reste a zero (pas de fond, pas de marge).
+    TEST_ASSERT_FALSE(d.components[ip].fill_set);
+    TEST_ASSERT_EQUAL_INT(0, d.components[ip].border_width);
+    TEST_ASSERT_EQUAL_INT(0, d.components[ip].pad_x);
+    TEST_ASSERT_EQUAL_INT(0, d.components[ip].pad_y);
+}
+
 static const char* LAYOUT_LED =
     "{\"components\":{\"d\":{\"type\":\"led\",\"color\":\"#22C55E\",\"off_below\":3,"
     "\"thresholds\":[[1,\"#EF4444\"]]}},"
@@ -1069,6 +1097,7 @@ int main(int, char**) {
     RUN_TEST(test_icon_resolve);
     RUN_TEST(test_icon_parsed);
     RUN_TEST(test_shapes_parsed);
+    RUN_TEST(test_label_box_parsed);
     RUN_TEST(test_ctx_set_find_num);
     RUN_TEST(test_ctx_overwrite_keeps_one_slot);
     RUN_TEST(test_ctx_full_rejects);

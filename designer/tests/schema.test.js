@@ -298,6 +298,28 @@ test('schema : famille inconnue rejetée', () => {
   assert.equal(validate(l).valid, false);
 });
 
+test('schema : label avec fond/contour + marge interne + rayon de coin valide', () => {
+  const l = base();
+  l.components.lbl = { type: 'label', text: 'CPU', fill: '#1E293B', border_width: 2, border_color: '#38BDF8', pad_x: 8, pad_y: 4 };
+  l.pages[0].place.push({ ref: 'lbl', anchor: 'CENTER', radius: 8 });
+  const r = validate(l);
+  assert.equal(r.valid, true, JSON.stringify(r.errors));
+});
+
+test('schema : label border_width négatif rejeté', () => {
+  const l = base();
+  l.components.lbl = { type: 'label', text: 'x', border_width: -1 };
+  l.pages[0].place.push({ ref: 'lbl', anchor: 'CENTER' });
+  assert.equal(validate(l).valid, false);
+});
+
+test('schema : label pad_x négatif rejeté', () => {
+  const l = base();
+  l.components.lbl = { type: 'label', text: 'x', pad_x: -2 };
+  l.pages[0].place.push({ ref: 'lbl', anchor: 'CENTER' });
+  assert.equal(validate(l).valid, false);
+});
+
 test('schema : bar accepte label_family/label_bold/label_italic', () => {
   const l = base();
   l.components.t = { type: 'bar', label: 'B', label_family: 'inter', label_bold: true, label_italic: false };
