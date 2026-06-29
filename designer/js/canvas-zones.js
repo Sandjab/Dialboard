@@ -28,12 +28,15 @@ const VY = Math.sqrt(Math.max(0, INNER * INNER - GX * GX));   // intersection ce
 const HX = Math.sqrt(Math.max(0, INNER * INNER - GY * GY));   // intersection cercle / médiane horizontale
 const W = BOARD_W, H = BOARD_H;
 
-// 4 quadrants : bande de pose des icônes (hors écran) + côté d'ancrage.
+// 4 quadrants : bande de pose des icônes (hors écran) + côté d'ancrage + clé i18n de famille.
+// `family` nomme le regroupement implicite : distribute() remplit les zones DANS L'ORDRE du registre,
+// qui est curé thématiquement (texte/données → riche → spécial → primitives). Si l'ordre du registre
+// change matériellement, ajuster ces libellés (ou passer à un mapping type→famille explicite).
 const ZONES = [
-  { id: 'TL', bandX0: 0,        bandX1: CX - INNER, y0: 0,       y1: CY - GY, side: 'left'  },
-  { id: 'TR', bandX0: CX + INNER, bandX1: W,        y0: 0,       y1: CY - GY, side: 'right' },
-  { id: 'BL', bandX0: 0,        bandX1: CX - INNER, y0: CY + GY, y1: H,       side: 'left'  },
-  { id: 'BR', bandX0: CX + INNER, bandX1: W,        y0: CY + GY, y1: H,       side: 'right' },
+  { id: 'TL', bandX0: 0,        bandX1: CX - INNER, y0: 0,       y1: CY - GY, side: 'left',  family: 'palette.family.data'    },
+  { id: 'TR', bandX0: CX + INNER, bandX1: W,        y0: 0,       y1: CY - GY, side: 'right', family: 'palette.family.rich'    },
+  { id: 'BL', bandX0: 0,        bandX1: CX - INNER, y0: CY + GY, y1: H,       side: 'left',  family: 'palette.family.special' },
+  { id: 'BR', bandX0: CX + INNER, bandX1: W,        y0: CY + GY, y1: H,       side: 'right', family: 'palette.family.shapes'  },
 ];
 
 // Sommets (sens horaire) ; un sommet `arc` = arête entrante tracée en arc de l'écran (rayon INNER).
@@ -112,6 +115,12 @@ export function renderZones(board) {
     grid.style.gridTemplateColumns = `repeat(${COLS}, ${CHIP}px)`;
     grid.style.gap = ICON_GAP + 'px';
     grid.style.direction = z.side === 'right' ? 'rtl' : 'ltr';   // panneaux droits : plaqués à droite (rangée incomplète comprise)
+    if (slices[zi].length) {   // en-tête de famille (span pleine largeur ; côté = côté d'ancrage de la zone)
+      const fam = document.createElement('div'); fam.className = 'zone-family';
+      fam.textContent = t(z.family);
+      fam.style.textAlign = z.side === 'right' ? 'right' : 'left';
+      grid.appendChild(fam);
+    }
     for (const [type, label] of slices[zi]) {
       const cell = document.createElement('div');
       cell.className = 'palette-item'; cell.draggable = true; cell.dataset.type = type; cell.title = t(label);

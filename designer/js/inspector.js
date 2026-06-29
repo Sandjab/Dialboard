@@ -452,8 +452,9 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     body.appendChild(fieldRow(t('inspector.field.nav_wrap'), cb));
 
     const np = s.pages?.length ?? 0;
-    const nc = Object.keys(s.components || {}).length;
-    note(body, t('inspector.note.doc_counts', { np, nc }));
+    const nc = Object.keys(s.components || {}).length;                                  // total (inclut les sorties physiques)
+    const placed = (Array.isArray(s.pages) ? s.pages : []).reduce((n, p) => n + (Array.isArray(p?.place) ? p.place.length : 0), 0);   // placés (Array.isArray défensif, cf. statusbar.js / import robuste)
+    note(body, t('inspector.note.doc_counts', { np, placed, nc }));
     if (openDrawer) {
       const link = document.createElement('button');
       link.type = 'button';
