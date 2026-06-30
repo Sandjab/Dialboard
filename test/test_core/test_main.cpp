@@ -811,6 +811,31 @@ void test_no_sinks_is_zero(void) {
     TEST_ASSERT_EQUAL_INT(0, d.sink_count);
 }
 
+// --- origine d'écriture : dash_ctx_write_ui_* arme les sinks ---
+static const char* LAYOUT_SINK_LAMP =
+  "{\"sinks\":[{\"watch\":\"lamp\",\"url\":\"http://h/\"}],\"components\":{},\"pages\":[]}";
+
+void test_ui_write_arms_sink(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, LAYOUT_SINK_LAMP, err, sizeof(err));
+    TEST_ASSERT_EQUAL_UINT32(0, d.sinks[0].pending_since);
+    dash_ctx_write_ui_num(&d, "lamp", 1, 5000);
+    TEST_ASSERT_EQUAL_UINT32(5000, d.sinks[0].pending_since);
+    TEST_ASSERT_EQUAL_INT(1, (int)d.ctx.vars[ctx_find(&d.ctx,"lamp")].num);
+}
+void test_external_write_does_not_arm(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, LAYOUT_SINK_LAMP, err, sizeof(err));
+    dash_set_context(&d, "{\"lamp\":1}", 5000);
+    TEST_ASSERT_EQUAL_UINT32(0, d.sinks[0].pending_since);
+}
+void test_ui_write_arms_only_matching_watch(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, LAYOUT_SINK_LAMP, err, sizeof(err));
+    dash_ctx_write_ui_num(&d, "volume", 30, 5000);
+    TEST_ASSERT_EQUAL_UINT32(0, d.sinks[0].pending_since);
+}
+
 // --- context_apply : variables liees -> composants ---
 static const char* bound_layout(const char* type, const char* extra) {
     static char b[256];
@@ -1280,5 +1305,8 @@ int main(int, char**) {
     RUN_TEST(test_sink_body_template_num_quoted);
     RUN_TEST(test_sink_body_template_num_raw);
     RUN_TEST(test_sink_body_template_missing_var);
+    RUN_TEST(test_ui_write_arms_sink);
+    RUN_TEST(test_external_write_does_not_arm);
+    RUN_TEST(test_ui_write_arms_only_matching_watch);
     return UNITY_END();
 }

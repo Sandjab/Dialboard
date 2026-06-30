@@ -476,6 +476,19 @@ void dash_set_context(Dashboard* d, const char* json, uint32_t now) {
     ctx_apply_json(&d->ctx, doc.as<JsonObjectConst>(), now);
 }
 
+// Arme (pending_since = now) chaque sink dont watch == var. now==0 -> 1 (0 = "non armé").
+static void arm_sinks(Dashboard* d, const char* var, uint32_t now) {
+    for (int i = 0; i < d->sink_count; i++)
+        if (strncmp(d->sinks[i].watch, var, ID_LEN) == 0)
+            d->sinks[i].pending_since = now ? now : 1;
+}
+void dash_ctx_write_ui_num(Dashboard* d, const char* var, double v, uint32_t now) {
+    if (ctx_set_num(&d->ctx, var, v, now)) arm_sinks(d, var, now);
+}
+void dash_ctx_write_ui_str(Dashboard* d, const char* var, const char* v, uint32_t now) {
+    if (ctx_set_str(&d->ctx, var, v, now)) arm_sinks(d, var, now);
+}
+
 void context_apply(Dashboard* d) {
     for (int i = 0; i < d->comp_count; i++) {
         Component& c = d->components[i];
