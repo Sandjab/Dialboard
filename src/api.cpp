@@ -13,6 +13,7 @@
 #include "esp_heap_caps.h"
 #include <LittleFS.h>
 #include "asset_fs.h"
+#include "context.h"
 
 extern String g_layout_json;
 extern SemaphoreHandle_t g_ctx_mutex;
@@ -29,6 +30,16 @@ static void h_update() {
     if (unk[0]) res["unknown"] = unk;
     String out; serializeJson(res, out); out += "\n";
     S->send(200, "application/json", out);
+}
+
+static void h_get_context() {
+    String filter = S->hasArg("vars") ? S->arg("vars") : String();
+    char out[2048];                                  // 32 vars max * ~60 o
+    if (g_ctx_mutex) xSemaphoreTake(g_ctx_mutex, portMAX_DELAY);
+    ctx_to_json(&D->ctx, filter.length() ? filter.c_str() : nullptr, out, sizeof(out));
+    if (g_ctx_mutex) xSemaphoreGive(g_ctx_mutex);
+    String body = out; body += "\n";
+    S->send(200, "application/json", body);
 }
 
 static void h_set_context() {
@@ -421,6 +432,7 @@ void api_register(WebServer& server, Dashboard* d) {
     S = &server; D = d;
     server.enableCORS(true);   // Allow-Origin/Methods/Headers: * sur toutes les réponses (outil de dev LAN mono-utilisateur)
     server.on("/update", HTTP_POST, h_update);
+    server.on("/context", HTTP_GET,  h_get_context);
     server.on("/context", HTTP_POST, h_set_context);
     server.on("/secrets", HTTP_POST, h_set_secrets);   // pas de route GET : write-only par conception
     server.on("/status", HTTP_GET,  h_status);
