@@ -13,6 +13,7 @@
 #include "esp_heap_caps.h"
 #include <LittleFS.h>
 #include "asset_fs.h"
+#include "context.h"
 
 extern String g_layout_json;
 extern SemaphoreHandle_t g_ctx_mutex;
@@ -29,6 +30,22 @@ static void h_update() {
     if (unk[0]) res["unknown"] = unk;
     String out; serializeJson(res, out); out += "\n";
     S->send(200, "application/json", out);
+}
+
+static void h_get_context() {
+    String filter = S->hasArg("vars") ? S->arg("vars") : String();
+    // Heap, pas la pile du loop-task (~8 KB) — meme raison que le `static Dashboard t` de
+    // dash_set_layout. 3072 couvre le pire cas 32 vars (MAX_CTX_VARS) avec strings echappees ;
+    // ctx_to_json ecrit toujours (>= "{}", \0-termine), donc pas besoin d'init prealable.
+    const size_t cap = 3072;
+    char* out = (char*)malloc(cap);
+    if (!out) { S->send(503, "text/plain", "Out of memory\n"); return; }
+    if (g_ctx_mutex) xSemaphoreTake(g_ctx_mutex, portMAX_DELAY);
+    ctx_to_json(&D->ctx, filter.length() ? filter.c_str() : nullptr, out, cap);
+    if (g_ctx_mutex) xSemaphoreGive(g_ctx_mutex);
+    String body = out; body += "\n";
+    free(out);
+    S->send(200, "application/json", body);
 }
 
 static void h_set_context() {
@@ -69,6 +86,14 @@ static void h_status() {
         o["last_status"] = D->sources[i].last_status;
         o["err_count"]   = D->sources[i].err_count;
         o["updated_at"]  = D->sources[i].updated_at;
+    }
+    JsonArray sk = doc["sinks"].to<JsonArray>();
+    for (int i = 0; i < D->sink_count; i++) {
+        JsonObject o     = sk.add<JsonObject>();
+        o["name"]        = D->sinks[i].name;
+        o["last_status"] = D->sinks[i].last_status;
+        o["err_count"]   = D->sinks[i].err_count;
+        o["fired_at"]    = D->sinks[i].fired_at;
     }
     if (g_ctx_mutex) xSemaphoreGive(g_ctx_mutex);
     String out; serializeJson(doc, out); out += "\n";
@@ -421,6 +446,7 @@ void api_register(WebServer& server, Dashboard* d) {
     S = &server; D = d;
     server.enableCORS(true);   // Allow-Origin/Methods/Headers: * sur toutes les réponses (outil de dev LAN mono-utilisateur)
     server.on("/update", HTTP_POST, h_update);
+    server.on("/context", HTTP_GET,  h_get_context);
     server.on("/context", HTTP_POST, h_set_context);
     server.on("/secrets", HTTP_POST, h_set_secrets);   // pas de route GET : write-only par conception
     server.on("/status", HTTP_GET,  h_status);

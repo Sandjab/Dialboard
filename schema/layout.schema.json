@@ -33,6 +33,12 @@
       "description": "Pull reseau (P2/P3). Chaque source fetch son url a son interval et ecrit ses vars dans le contexte ; un composant bind:\"var\" lit la valeur. SECRETS NON inclus ici : poses via POST /secrets (write-only), references par $nom dans headers.",
       "maxItems": 6,
       "items": { "$ref": "#/$defs/source" }
+    },
+    "sinks": {
+      "type": "array",
+      "description": "Push reseau reactif (miroir de sources). Chaque sink observe une var et POST/PUT/GET son url quand une ecriture d'ORIGINE UI (effecteur) la modifie. Debounce de traine via debounce_ms. SECRETS via $nom dans headers.",
+      "maxItems": 6,
+      "items": { "$ref": "#/$defs/sink" }
     }
   },
   "$defs": {
@@ -440,6 +446,25 @@
           "propertyNames": { "$ref": "#/$defs/id" },
           "additionalProperties": { "type": "string" }
         }
+      }
+    },
+    "sink": {
+      "type": "object",
+      "required": ["watch", "url"],
+      "additionalProperties": false,
+      "description": "Une sortie HTTP reactive (1 sink = 1 var observee -> 1 url). url et watch requis (le firmware rejette sinon).",
+      "properties": {
+        "name": { "$ref": "#/$defs/display", "description": "Libelle (apparait dans GET /status)." },
+        "watch": { "$ref": "#/$defs/id", "description": "Var de contexte observee ; son ecriture UI arme ce sink." },
+        "method": { "enum": ["POST", "PUT", "GET"], "description": "Methode HTTP. Defaut POST." },
+        "url": { "type": "string", "description": "URL HTTP(S) cible." },
+        "headers": {
+          "type": "object",
+          "description": "En-tetes HTTP. Une valeur \"$nom\" reference un secret (resolu au fire).",
+          "additionalProperties": { "type": "string" }
+        },
+        "debounce_ms": { "type": "integer", "minimum": 0, "description": "Coalesce les ecritures : tir debounce_ms apres la derniere modif. Defaut 0 (immediat). Slider/arc : ex. 300." },
+        "body": { "description": "Gabarit du corps (objet/valeur JSON). {{var}} substitue depuis le contexte (macro textuelle ; mettre des guillemets pour une string). Absent => {\"<watch>\": <valeur>}." }
       }
     }
   }

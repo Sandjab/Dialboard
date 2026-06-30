@@ -6,6 +6,7 @@
 #include "dashboard.h"
 #include "context.h"
 #include "asset_path.h"
+#include "sink.h"
 #include <ArduinoJson.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -759,6 +760,82 @@ void test_no_sources_is_zero(void) {
     TEST_ASSERT_EQUAL_INT(0, d.source_count);           // rétro-compat
 }
 
+// --- parse des sinks (push P-A) ---
+static const char* LAYOUT_SINKS =
+  "{\"sinks\":[{"
+    "\"name\":\"Lampe\",\"watch\":\"lamp\",\"method\":\"PUT\","
+    "\"url\":\"http://ha.local/api/states/light.salon\","
+    "\"headers\":{\"Authorization\":\"$ha_token\"},"
+    "\"debounce_ms\":300,"
+    "\"body\":{\"state\":\"{{lamp}}\"}}],"
+  "\"components\":{},\"pages\":[]}";
+
+void test_sinks_parse_counts(void) {
+    Dashboard d{}; char err[80];
+    TEST_ASSERT_TRUE(dash_set_layout(&d, LAYOUT_SINKS, err, sizeof(err)));
+    TEST_ASSERT_EQUAL_INT(1, d.sink_count);
+    TEST_ASSERT_EQUAL_STRING("Lampe", d.sinks[0].name);
+    TEST_ASSERT_EQUAL_STRING("lamp",  d.sinks[0].watch);
+    TEST_ASSERT_EQUAL_STRING("http://ha.local/api/states/light.salon", d.sinks[0].url);
+    TEST_ASSERT_EQUAL_INT(SINK_PUT, d.sinks[0].method);
+    TEST_ASSERT_EQUAL_UINT32(300, d.sinks[0].debounce_ms);
+}
+void test_sinks_headers_and_body(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, LAYOUT_SINKS, err, sizeof(err));
+    TEST_ASSERT_EQUAL_INT(1, d.sinks[0].header_count);
+    TEST_ASSERT_EQUAL_STRING("Authorization", d.sinks[0].headers[0].name);
+    TEST_ASSERT_EQUAL_STRING("$ha_token",     d.sinks[0].headers[0].value);
+    TEST_ASSERT_EQUAL_STRING("{\"state\":\"{{lamp}}\"}", d.sinks[0].body);
+}
+void test_sinks_method_defaults_post(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"sinks\":[{\"watch\":\"x\",\"url\":\"http://h/\"}],\"components\":{},\"pages\":[]}";
+    TEST_ASSERT_TRUE(dash_set_layout(&d, L, err, sizeof(err)));
+    TEST_ASSERT_EQUAL_INT(SINK_POST, d.sinks[0].method);
+    TEST_ASSERT_EQUAL_STRING("", d.sinks[0].body);
+}
+void test_sinks_url_required(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"sinks\":[{\"watch\":\"x\"}],\"components\":{},\"pages\":[]}";
+    TEST_ASSERT_FALSE(dash_set_layout(&d, L, err, sizeof(err)));
+}
+void test_sinks_watch_required(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"sinks\":[{\"url\":\"http://h/\"}],\"components\":{},\"pages\":[]}";
+    TEST_ASSERT_FALSE(dash_set_layout(&d, L, err, sizeof(err)));
+}
+void test_no_sinks_is_zero(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, LAYOUT_OK, err, sizeof(err));
+    TEST_ASSERT_EQUAL_INT(0, d.sink_count);
+}
+
+// --- origine d'écriture : dash_ctx_write_ui_* arme les sinks ---
+static const char* LAYOUT_SINK_LAMP =
+  "{\"sinks\":[{\"watch\":\"lamp\",\"url\":\"http://h/\"}],\"components\":{},\"pages\":[]}";
+
+void test_ui_write_arms_sink(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, LAYOUT_SINK_LAMP, err, sizeof(err));
+    TEST_ASSERT_EQUAL_UINT32(0, d.sinks[0].pending_since);
+    dash_ctx_write_ui_num(&d, "lamp", 1, 5000);
+    TEST_ASSERT_EQUAL_UINT32(5000, d.sinks[0].pending_since);
+    TEST_ASSERT_EQUAL_INT(1, (int)d.ctx.vars[ctx_find(&d.ctx,"lamp")].num);
+}
+void test_external_write_does_not_arm(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, LAYOUT_SINK_LAMP, err, sizeof(err));
+    dash_set_context(&d, "{\"lamp\":1}", 5000);
+    TEST_ASSERT_EQUAL_UINT32(0, d.sinks[0].pending_since);
+}
+void test_ui_write_arms_only_matching_watch(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, LAYOUT_SINK_LAMP, err, sizeof(err));
+    dash_ctx_write_ui_num(&d, "volume", 30, 5000);
+    TEST_ASSERT_EQUAL_UINT32(0, d.sinks[0].pending_since);
+}
+
 // --- context_apply : variables liees -> composants ---
 static const char* bound_layout(const char* type, const char* extra) {
     static char b[256];
@@ -1053,6 +1130,70 @@ void test_font_family_default(void) {
     TEST_ASSERT_FALSE(d.components[0].italic);
 }
 
+void test_sink_should_fire_debounce(void) {
+    TEST_ASSERT_FALSE(sink_should_fire(0, 1000, 300));        // pending_since=0 -> jamais
+    TEST_ASSERT_FALSE(sink_should_fire(1000, 1200, 300));     // armé t=1000, pas encore à t=1200
+    TEST_ASSERT_TRUE (sink_should_fire(1000, 1300, 300));     // oui à t=1300
+    TEST_ASSERT_TRUE (sink_should_fire(1000, 1000, 0));       // débounce 0 -> dès armé
+}
+
+void test_sink_body_default(void) {
+    Context c{}; ctx_set_num(&c, "lamp", 1, 0);
+    char out[128];
+    sink_render_body("", "lamp", &c, out, sizeof(out));
+    TEST_ASSERT_EQUAL_STRING("{\"lamp\":1}", out);
+}
+void test_sink_body_default_str(void) {
+    Context c{}; ctx_set_str(&c, "mode", "eco", 0);
+    char out[128];
+    sink_render_body("", "mode", &c, out, sizeof(out));
+    TEST_ASSERT_EQUAL_STRING("{\"mode\":\"eco\"}", out);
+}
+void test_sink_body_template_num_quoted(void) {
+    Context c{}; ctx_set_num(&c, "lamp", 42, 0);
+    char out[128];
+    sink_render_body("{\"state\":\"{{lamp}}\"}", "lamp", &c, out, sizeof(out));
+    TEST_ASSERT_EQUAL_STRING("{\"state\":\"42\"}", out);
+}
+void test_sink_body_template_num_raw(void) {
+    Context c{}; ctx_set_num(&c, "lamp", 42, 0);
+    char out[128];
+    sink_render_body("{\"v\":{{lamp}}}", "lamp", &c, out, sizeof(out));
+    TEST_ASSERT_EQUAL_STRING("{\"v\":42}", out);
+}
+void test_sink_body_template_missing_var(void) {
+    Context c{};
+    char out[128];
+    sink_render_body("{\"v\":\"{{absent}}\"}", "absent", &c, out, sizeof(out));
+    TEST_ASSERT_EQUAL_STRING("{\"v\":\"\"}", out);
+}
+
+// --- ctx_to_json : sérialisation du contexte ---
+void test_ctx_to_json_all(void) {
+    Context c{}; ctx_set_num(&c, "lamp", 1, 0); ctx_set_num(&c, "volume", 42, 0);
+    char out[256];
+    ctx_to_json(&c, nullptr, out, sizeof(out));
+    TEST_ASSERT_EQUAL_STRING("{\"lamp\":1,\"volume\":42}", out);
+}
+void test_ctx_to_json_filter(void) {
+    Context c{}; ctx_set_num(&c, "lamp", 1, 0); ctx_set_num(&c, "volume", 42, 0);
+    char out[256];
+    ctx_to_json(&c, "volume", out, sizeof(out));
+    TEST_ASSERT_EQUAL_STRING("{\"volume\":42}", out);
+}
+void test_ctx_to_json_filter_multi(void) {
+    Context c{}; ctx_set_num(&c, "a", 1, 0); ctx_set_num(&c, "b", 2, 0); ctx_set_num(&c, "c", 3, 0);
+    char out[256];
+    ctx_to_json(&c, "a,c", out, sizeof(out));
+    TEST_ASSERT_EQUAL_STRING("{\"a\":1,\"c\":3}", out);
+}
+void test_ctx_to_json_str(void) {
+    Context c{}; ctx_set_str(&c, "host", "srv1", 0);
+    char out[256];
+    ctx_to_json(&c, nullptr, out, sizeof(out));
+    TEST_ASSERT_EQUAL_STRING("{\"host\":\"srv1\"}", out);
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_remaining_seconds);
@@ -1132,6 +1273,12 @@ int main(int, char**) {
     RUN_TEST(test_sources_interval_floor);
     RUN_TEST(test_sources_url_required);
     RUN_TEST(test_no_sources_is_zero);
+    RUN_TEST(test_sinks_parse_counts);
+    RUN_TEST(test_sinks_headers_and_body);
+    RUN_TEST(test_sinks_method_defaults_post);
+    RUN_TEST(test_sinks_url_required);
+    RUN_TEST(test_sinks_watch_required);
+    RUN_TEST(test_no_sinks_is_zero);
     RUN_TEST(test_ctxapply_readout_num_formats);
     RUN_TEST(test_ctxapply_readout_string);
     RUN_TEST(test_ctxapply_bar_value);
@@ -1178,5 +1325,18 @@ int main(int, char**) {
     RUN_TEST(test_asset_resolve_truncates_gracefully);
     RUN_TEST(test_font_family_parse);
     RUN_TEST(test_font_family_default);
+    RUN_TEST(test_sink_should_fire_debounce);
+    RUN_TEST(test_sink_body_default);
+    RUN_TEST(test_sink_body_default_str);
+    RUN_TEST(test_sink_body_template_num_quoted);
+    RUN_TEST(test_sink_body_template_num_raw);
+    RUN_TEST(test_sink_body_template_missing_var);
+    RUN_TEST(test_ui_write_arms_sink);
+    RUN_TEST(test_external_write_does_not_arm);
+    RUN_TEST(test_ui_write_arms_only_matching_watch);
+    RUN_TEST(test_ctx_to_json_all);
+    RUN_TEST(test_ctx_to_json_filter);
+    RUN_TEST(test_ctx_to_json_filter_multi);
+    RUN_TEST(test_ctx_to_json_str);
     return UNITY_END();
 }

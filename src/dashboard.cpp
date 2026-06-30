@@ -281,6 +281,28 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
         t.source_count++;
     }
 
+    JsonArrayConst snks = doc["sinks"].as<JsonArrayConst>();
+    for (JsonObjectConst sk : snks) {
+        if (t.sink_count >= MAX_SINKS) { snprintf(err, errn, "trop de sinks"); return false; }
+        Sink& s = t.sinks[t.sink_count];
+        strlcpy(s.name,  sk["name"]  | "", sizeof(s.name));
+        strlcpy(s.watch, sk["watch"] | "", sizeof(s.watch));
+        strlcpy(s.url,   sk["url"]   | "", sizeof(s.url));
+        if (s.url[0]   == '\0') { snprintf(err, errn, "sink '%s' sans url", s.name);   return false; }
+        if (s.watch[0] == '\0') { snprintf(err, errn, "sink '%s' sans watch", s.name); return false; }
+        const char* m = sk["method"] | "POST";
+        s.method = (strcmp(m, "PUT") == 0) ? SINK_PUT : (strcmp(m, "GET") == 0) ? SINK_GET : SINK_POST;
+        s.debounce_ms = sk["debounce_ms"] | 0;
+        for (JsonPairConst h : sk["headers"].as<JsonObjectConst>()) {
+            if (s.header_count >= MAX_HEADERS_PER_SINK) break;
+            strlcpy(s.headers[s.header_count].name,  h.key().c_str(), sizeof(s.headers[0].name));
+            strlcpy(s.headers[s.header_count].value, h.value() | "",  sizeof(s.headers[0].value));
+            s.header_count++;
+        }
+        if (!sk["body"].isNull()) serializeJson(sk["body"], s.body, sizeof(s.body));
+        t.sink_count++;
+    }
+
     t.active_page  = 0;
     t.layout_dirty = true;
     *d = t;
@@ -452,6 +474,19 @@ void dash_set_context(Dashboard* d, const char* json, uint32_t now) {
     JsonDocument doc;
     if (deserializeJson(doc, json)) return;          // JSON invalide : on garde le contexte
     ctx_apply_json(&d->ctx, doc.as<JsonObjectConst>(), now);
+}
+
+// Arme (pending_since = now) chaque sink dont watch == var. now==0 -> 1 (0 = "non armé").
+static void arm_sinks(Dashboard* d, const char* var, uint32_t now) {
+    for (int i = 0; i < d->sink_count; i++)
+        if (strncmp(d->sinks[i].watch, var, ID_LEN) == 0)
+            d->sinks[i].pending_since = now ? now : 1;
+}
+void dash_ctx_write_ui_num(Dashboard* d, const char* var, double v, uint32_t now) {
+    if (ctx_set_num(&d->ctx, var, v, now)) arm_sinks(d, var, now);
+}
+void dash_ctx_write_ui_str(Dashboard* d, const char* var, const char* v, uint32_t now) {
+    if (ctx_set_str(&d->ctx, var, v, now)) arm_sinks(d, var, now);
 }
 
 void context_apply(Dashboard* d) {

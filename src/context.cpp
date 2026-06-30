@@ -42,6 +42,30 @@ int ctx_apply_json(Context* c, JsonObjectConst obj, uint32_t now) {
     return n;
 }
 
+// Vrai si name figure dans le CSV "a,b,c" (correspondance de token exacte).
+static bool csv_has(const char* csv, const char* name) {
+    size_t len = strlen(name);
+    for (const char* p = csv; *p; ) {
+        const char* comma = strchr(p, ',');
+        size_t tok = comma ? (size_t)(comma - p) : strlen(p);
+        if (tok == len && strncmp(p, name, len) == 0) return true;
+        if (!comma) break;
+        p = comma + 1;
+    }
+    return false;
+}
+
+void ctx_to_json(const Context* c, const char* filter_csv, char* out, size_t n) {
+    JsonDocument doc;
+    for (int i = 0; i < c->count; i++) {
+        const CtxVar& v = c->vars[i];
+        if (filter_csv && !csv_has(filter_csv, v.name)) continue;
+        if (v.type == CTX_STR) doc[v.name] = v.str;
+        else                   doc[v.name] = v.num;
+    }
+    serializeJson(doc, out, n);
+}
+
 // JSON Pointer (RFC 6901) : "/a/b/0", avec desechappement ~1->/ et ~0->~.
 JsonVariantConst ctx_extract_pointer(JsonVariantConst root, const char* ptr) {
     if (!ptr || ptr[0] != '/') return JsonVariantConst();

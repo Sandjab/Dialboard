@@ -15,13 +15,14 @@
 #include "secret_store.h"
 #include "asset_fs.h"
 #include "net_pull.h"
+#include "net_push.h"
 #include "freertos/semphr.h"
 
 static WebServer server(HTTP_PORT);
 static Dashboard g_dash;
 static bool g_wifi_up = false;
 String g_layout_json;
-SemaphoreHandle_t g_ctx_mutex = nullptr;   // sérialise l'accès à g_dash.ctx / g_dash.sources
+SemaphoreHandle_t g_ctx_mutex = nullptr;   // sérialise l'accès à g_dash.ctx / g_dash.sources / g_dash.sinks
 
 static bool wifi_connect() {
     WiFi.mode(WIFI_STA);
@@ -43,6 +44,7 @@ static void start_services() {
     api_register(server, &g_dash);
     server.begin();
     net_pull_begin(&g_dash, g_ctx_mutex);   // garde-fou `started` au-dessus -> lancée une seule fois
+    net_push_begin(&g_dash, g_ctx_mutex);   // push réactif des sinks (même garde `started`)
     Serial.printf("[http] :%d  http://%s.local\n", HTTP_PORT, MDNS_HOST);
 }
 

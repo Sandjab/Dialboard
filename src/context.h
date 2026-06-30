@@ -25,3 +25,6 @@ bool ctx_set_num(Context* c, const char* name, double v, uint32_t now);         
 bool ctx_set_str(Context* c, const char* name, const char* v, uint32_t now);
 int  ctx_apply_json(Context* c, JsonObjectConst obj, uint32_t now);                 // {nom:val} -> nb ecrites
 JsonVariantConst ctx_extract_pointer(JsonVariantConst root, const char* ptr);       // RFC 6901 ; nul si non resolu
+// Sérialise le contexte en {"nom":valeur,...} dans out (taille n). filter_csv != NULL =>
+// ne garde que les noms listés (CSV "a,b,c", tokens exacts). NULL => tout le contexte.
+void ctx_to_json(const Context* c, const char* filter_csv, char* out, size_t n);
