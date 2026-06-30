@@ -6,6 +6,7 @@
 #include "dashboard.h"
 #include "context.h"
 #include "asset_path.h"
+#include "sink.h"
 #include <ArduinoJson.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1104,6 +1105,13 @@ void test_font_family_default(void) {
     TEST_ASSERT_FALSE(d.components[0].italic);
 }
 
+void test_sink_should_fire_debounce(void) {
+    TEST_ASSERT_FALSE(sink_should_fire(0, 1000, 300));        // pending_since=0 -> jamais
+    TEST_ASSERT_FALSE(sink_should_fire(1000, 1200, 300));     // armé t=1000, pas encore à t=1200
+    TEST_ASSERT_TRUE (sink_should_fire(1000, 1300, 300));     // oui à t=1300
+    TEST_ASSERT_TRUE (sink_should_fire(1000, 1000, 0));       // débounce 0 -> dès armé
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_remaining_seconds);
@@ -1235,5 +1243,6 @@ int main(int, char**) {
     RUN_TEST(test_asset_resolve_truncates_gracefully);
     RUN_TEST(test_font_family_parse);
     RUN_TEST(test_font_family_default);
+    RUN_TEST(test_sink_should_fire_debounce);
     return UNITY_END();
 }
