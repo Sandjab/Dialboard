@@ -81,6 +81,14 @@ static void h_status() {
         o["err_count"]   = D->sources[i].err_count;
         o["updated_at"]  = D->sources[i].updated_at;
     }
+    JsonArray sk = doc["sinks"].to<JsonArray>();
+    for (int i = 0; i < D->sink_count; i++) {
+        JsonObject o     = sk.add<JsonObject>();
+        o["name"]        = D->sinks[i].name;
+        o["last_status"] = D->sinks[i].last_status;
+        o["err_count"]   = D->sinks[i].err_count;
+        o["fired_at"]    = D->sinks[i].fired_at;
+    }
     if (g_ctx_mutex) xSemaphoreGive(g_ctx_mutex);
     String out; serializeJson(doc, out); out += "\n";
     S->send(200, "application/json", out);
