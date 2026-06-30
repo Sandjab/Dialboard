@@ -759,6 +759,57 @@ void test_no_sources_is_zero(void) {
     TEST_ASSERT_EQUAL_INT(0, d.source_count);           // rétro-compat
 }
 
+// --- parse des sinks (push P-A) ---
+static const char* LAYOUT_SINKS =
+  "{\"sinks\":[{"
+    "\"name\":\"Lampe\",\"watch\":\"lamp\",\"method\":\"PUT\","
+    "\"url\":\"http://ha.local/api/states/light.salon\","
+    "\"headers\":{\"Authorization\":\"$ha_token\"},"
+    "\"debounce_ms\":300,"
+    "\"body\":{\"state\":\"{{lamp}}\"}}],"
+  "\"components\":{},\"pages\":[]}";
+
+void test_sinks_parse_counts(void) {
+    Dashboard d{}; char err[80];
+    TEST_ASSERT_TRUE(dash_set_layout(&d, LAYOUT_SINKS, err, sizeof(err)));
+    TEST_ASSERT_EQUAL_INT(1, d.sink_count);
+    TEST_ASSERT_EQUAL_STRING("Lampe", d.sinks[0].name);
+    TEST_ASSERT_EQUAL_STRING("lamp",  d.sinks[0].watch);
+    TEST_ASSERT_EQUAL_STRING("http://ha.local/api/states/light.salon", d.sinks[0].url);
+    TEST_ASSERT_EQUAL_INT(SINK_PUT, d.sinks[0].method);
+    TEST_ASSERT_EQUAL_UINT32(300, d.sinks[0].debounce_ms);
+}
+void test_sinks_headers_and_body(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, LAYOUT_SINKS, err, sizeof(err));
+    TEST_ASSERT_EQUAL_INT(1, d.sinks[0].header_count);
+    TEST_ASSERT_EQUAL_STRING("Authorization", d.sinks[0].headers[0].name);
+    TEST_ASSERT_EQUAL_STRING("$ha_token",     d.sinks[0].headers[0].value);
+    TEST_ASSERT_EQUAL_STRING("{\"state\":\"{{lamp}}\"}", d.sinks[0].body);
+}
+void test_sinks_method_defaults_post(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"sinks\":[{\"watch\":\"x\",\"url\":\"http://h/\"}],\"components\":{},\"pages\":[]}";
+    TEST_ASSERT_TRUE(dash_set_layout(&d, L, err, sizeof(err)));
+    TEST_ASSERT_EQUAL_INT(SINK_POST, d.sinks[0].method);
+    TEST_ASSERT_EQUAL_STRING("", d.sinks[0].body);
+}
+void test_sinks_url_required(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"sinks\":[{\"watch\":\"x\"}],\"components\":{},\"pages\":[]}";
+    TEST_ASSERT_FALSE(dash_set_layout(&d, L, err, sizeof(err)));
+}
+void test_sinks_watch_required(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"sinks\":[{\"url\":\"http://h/\"}],\"components\":{},\"pages\":[]}";
+    TEST_ASSERT_FALSE(dash_set_layout(&d, L, err, sizeof(err)));
+}
+void test_no_sinks_is_zero(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, LAYOUT_OK, err, sizeof(err));
+    TEST_ASSERT_EQUAL_INT(0, d.sink_count);
+}
+
 // --- context_apply : variables liees -> composants ---
 static const char* bound_layout(const char* type, const char* extra) {
     static char b[256];
@@ -1132,6 +1183,12 @@ int main(int, char**) {
     RUN_TEST(test_sources_interval_floor);
     RUN_TEST(test_sources_url_required);
     RUN_TEST(test_no_sources_is_zero);
+    RUN_TEST(test_sinks_parse_counts);
+    RUN_TEST(test_sinks_headers_and_body);
+    RUN_TEST(test_sinks_method_defaults_post);
+    RUN_TEST(test_sinks_url_required);
+    RUN_TEST(test_sinks_watch_required);
+    RUN_TEST(test_no_sinks_is_zero);
     RUN_TEST(test_ctxapply_readout_num_formats);
     RUN_TEST(test_ctxapply_readout_string);
     RUN_TEST(test_ctxapply_bar_value);
