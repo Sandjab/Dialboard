@@ -9,6 +9,9 @@
 #define MAX_SOURCES             6
 #define MAX_HEADERS_PER_SOURCE  4
 #define MAX_VARS_PER_SOURCE     6
+#define MAX_SINKS              6
+#define MAX_HEADERS_PER_SINK   4
+#define SINK_BODY_LEN          192
 #define URL_LEN                 192
 #define HEADER_NAME_LEN         32
 #define HEADER_VAL_LEN          64

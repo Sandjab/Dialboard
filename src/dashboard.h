@@ -131,6 +131,26 @@ struct Source {
     uint32_t     updated_at;      // millis() du dernier fetch réussi
 };
 
+enum SinkMethod : uint8_t { SINK_POST = 0, SINK_PUT, SINK_GET };
+
+struct SinkHeader { char name[HEADER_NAME_LEN]; char value[HEADER_VAL_LEN]; };  // value: littéral ou "$secret"
+
+struct Sink {
+    char        name[ID_LEN];           // libellé (miroir de Source.name)
+    char        watch[ID_LEN];          // var observée ; son écriture UI arme ce sink
+    SinkMethod  method;                 // POST par défaut
+    char        url[URL_LEN];
+    SinkHeader  headers[MAX_HEADERS_PER_SINK];
+    int         header_count;
+    char        body[SINK_BODY_LEN];    // gabarit ("" => corps par défaut {"<watch>": <val>})
+    uint32_t    debounce_ms;
+    // --- runtime (rempli par push_task en Plan A, armé par l'UI en Plan B) ---
+    uint32_t    pending_since;          // 0 = non armé ; sinon millis() de la dernière écriture UI
+    int         last_status;            // dernier code HTTP, <=0 sur erreur transport
+    uint32_t    err_count;
+    uint32_t    fired_at;               // millis() du dernier tir réussi
+};
+
 struct Dashboard {
     char      title[TEXT_LEN];
     uint32_t  background;
@@ -145,6 +165,8 @@ struct Dashboard {
     Context   ctx;                   // blackboard alimente par /context (push) et le pull (P2)
     Source    sources[MAX_SOURCES];
     int       source_count;
+    Sink      sinks[MAX_SINKS];
+    int       sink_count;
 };
 
 bool bg_key_valid(const char* key);   // clé d'asset image de fond : 1..16 hex minuscules (garde de chemin)
@@ -154,4 +176,7 @@ int  dash_apply_update(Dashboard* d, const char* json, char* unknown_csv, size_t
 void dash_tick_countdown(Dashboard* d, uint32_t elapsed_s);
 void dash_tick_aimg(Dashboard* d, uint32_t now_ms);   // image_anim : avance la frame des composants en lecture
 void dash_set_context(Dashboard* d, const char* json, uint32_t now);
+// Écriture du contexte d'ORIGINE UI (effecteur) : écrit la var ET arme les sinks qui l'observent.
+void dash_ctx_write_ui_num(Dashboard* d, const char* var, double v, uint32_t now);
+void dash_ctx_write_ui_str(Dashboard* d, const char* var, const char* v, uint32_t now);
 void context_apply(Dashboard* d);
