@@ -1112,6 +1112,37 @@ void test_sink_should_fire_debounce(void) {
     TEST_ASSERT_TRUE (sink_should_fire(1000, 1000, 0));       // débounce 0 -> dès armé
 }
 
+void test_sink_body_default(void) {
+    Context c{}; ctx_set_num(&c, "lamp", 1, 0);
+    char out[128];
+    sink_render_body("", "lamp", &c, out, sizeof(out));
+    TEST_ASSERT_EQUAL_STRING("{\"lamp\":1}", out);
+}
+void test_sink_body_default_str(void) {
+    Context c{}; ctx_set_str(&c, "mode", "eco", 0);
+    char out[128];
+    sink_render_body("", "mode", &c, out, sizeof(out));
+    TEST_ASSERT_EQUAL_STRING("{\"mode\":\"eco\"}", out);
+}
+void test_sink_body_template_num_quoted(void) {
+    Context c{}; ctx_set_num(&c, "lamp", 42, 0);
+    char out[128];
+    sink_render_body("{\"state\":\"{{lamp}}\"}", "lamp", &c, out, sizeof(out));
+    TEST_ASSERT_EQUAL_STRING("{\"state\":\"42\"}", out);
+}
+void test_sink_body_template_num_raw(void) {
+    Context c{}; ctx_set_num(&c, "lamp", 42, 0);
+    char out[128];
+    sink_render_body("{\"v\":{{lamp}}}", "lamp", &c, out, sizeof(out));
+    TEST_ASSERT_EQUAL_STRING("{\"v\":42}", out);
+}
+void test_sink_body_template_missing_var(void) {
+    Context c{};
+    char out[128];
+    sink_render_body("{\"v\":\"{{absent}}\"}", "absent", &c, out, sizeof(out));
+    TEST_ASSERT_EQUAL_STRING("{\"v\":\"\"}", out);
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_remaining_seconds);
@@ -1244,5 +1275,10 @@ int main(int, char**) {
     RUN_TEST(test_font_family_parse);
     RUN_TEST(test_font_family_default);
     RUN_TEST(test_sink_should_fire_debounce);
+    RUN_TEST(test_sink_body_default);
+    RUN_TEST(test_sink_body_default_str);
+    RUN_TEST(test_sink_body_template_num_quoted);
+    RUN_TEST(test_sink_body_template_num_raw);
+    RUN_TEST(test_sink_body_template_missing_var);
     return UNITY_END();
 }
