@@ -1168,6 +1168,32 @@ void test_sink_body_template_missing_var(void) {
     TEST_ASSERT_EQUAL_STRING("{\"v\":\"\"}", out);
 }
 
+// --- ctx_to_json : sérialisation du contexte ---
+void test_ctx_to_json_all(void) {
+    Context c{}; ctx_set_num(&c, "lamp", 1, 0); ctx_set_num(&c, "volume", 42, 0);
+    char out[256];
+    ctx_to_json(&c, nullptr, out, sizeof(out));
+    TEST_ASSERT_EQUAL_STRING("{\"lamp\":1,\"volume\":42}", out);
+}
+void test_ctx_to_json_filter(void) {
+    Context c{}; ctx_set_num(&c, "lamp", 1, 0); ctx_set_num(&c, "volume", 42, 0);
+    char out[256];
+    ctx_to_json(&c, "volume", out, sizeof(out));
+    TEST_ASSERT_EQUAL_STRING("{\"volume\":42}", out);
+}
+void test_ctx_to_json_filter_multi(void) {
+    Context c{}; ctx_set_num(&c, "a", 1, 0); ctx_set_num(&c, "b", 2, 0); ctx_set_num(&c, "c", 3, 0);
+    char out[256];
+    ctx_to_json(&c, "a,c", out, sizeof(out));
+    TEST_ASSERT_EQUAL_STRING("{\"a\":1,\"c\":3}", out);
+}
+void test_ctx_to_json_str(void) {
+    Context c{}; ctx_set_str(&c, "host", "srv1", 0);
+    char out[256];
+    ctx_to_json(&c, nullptr, out, sizeof(out));
+    TEST_ASSERT_EQUAL_STRING("{\"host\":\"srv1\"}", out);
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_remaining_seconds);
@@ -1308,5 +1334,9 @@ int main(int, char**) {
     RUN_TEST(test_ui_write_arms_sink);
     RUN_TEST(test_external_write_does_not_arm);
     RUN_TEST(test_ui_write_arms_only_matching_watch);
+    RUN_TEST(test_ctx_to_json_all);
+    RUN_TEST(test_ctx_to_json_filter);
+    RUN_TEST(test_ctx_to_json_filter_multi);
+    RUN_TEST(test_ctx_to_json_str);
     return UNITY_END();
 }
