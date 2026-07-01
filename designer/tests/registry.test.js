@@ -172,3 +172,28 @@ test('registre : led_ring expose mode/period_ms + value (mock), défaut mode off
   assert.deepEqual(COMPONENTS.led_ring.mockFields, [['value', 'field.mock_pct']]);
   assert.equal(COMPONENTS.led_ring.defaults().mode, 'off');
 });
+
+test('registre : switch expose bind seul + defaults()', () => {
+  const keys = COMPONENTS.switch.compFields.map(f => f[0]);
+  assert.deepEqual(keys, ['bind']);
+  const d = COMPONENTS.switch.defaults();
+  assert.equal(d.type, 'switch');
+  assert.equal(COMPONENTS.switch.physical, false);
+  assert.equal(COMPONENTS.switch.centered, false);
+});
+
+test('registre : button expose text/value/bind + defaults() (value string, radio set)', () => {
+  const keys = COMPONENTS.button.compFields.map(f => f[0]);
+  assert.deepEqual(keys, ['text', 'value', 'bind']);
+  const d = COMPONENTS.button.defaults();
+  assert.equal(d.type, 'button');
+  assert.equal(typeof d.value, 'string');          // défaut string (set_is_num=false côté firmware)
+  assert.equal(COMPONENTS.button.compFields.find(f => f[0] === 'value')[2], 'value');
+});
+
+test('registre : switch/button émettent width/height au placement (parité taille firmware)', () => {
+  const sw = COMPONENTS.switch.makePlacement('sw1', 180, 180);
+  assert.equal(sw.width, 60); assert.equal(sw.height, 30);
+  const bt = COMPONENTS.button.makePlacement('bt1', 180, 180);
+  assert.equal(bt.width, 100); assert.equal(bt.height, 44);
+});

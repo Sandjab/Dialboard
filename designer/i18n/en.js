@@ -112,6 +112,8 @@ export default {
   'comp.image_anim': 'Animated image',
   'comp.led': 'LED',
   'comp.icon': 'Icon',
+  'comp.switch': 'Switch',
+  'comp.button': 'Button',
   'comp.rect': 'Rectangle',
   'comp.circle': 'Circle',
   'comp.line': 'Line',
@@ -128,6 +130,7 @@ export default {
   'default.label.text': 'Text',
   'default.readout.label': 'Label',
   'default.bar.label': 'Bar',
+  'default.button.text': 'Button',
   // --- Libellés de champs d'inspecteur / panneau Device (registre) ---
   'field.text': 'Text',
   'field.font': 'Font',
@@ -197,6 +200,7 @@ export default {
   'field.radius_corner': 'Corner radius',
   'field.dash': 'Pattern',
   'field.length': 'Length',
+  'field.value': 'Value (set)',
   'field.brightness': 'Brightness (0-255)',
   // --- Messages partagés id/page (arbre + carousel) ---
   'id.invalid': 'Invalid id: letters, digits, _ only',
