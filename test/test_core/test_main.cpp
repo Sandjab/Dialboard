@@ -836,6 +836,55 @@ void test_ui_write_arms_only_matching_watch(void) {
     TEST_ASSERT_EQUAL_UINT32(0, d.sinks[0].pending_since);
 }
 
+// --- momentary : capture à l'armement ---
+static const char* LAYOUT_SINK_BELL =
+  "{\"sinks\":[{\"watch\":\"bell\",\"url\":\"http://h/\",\"body\":{\"v\":\"{{bell}}\"}}],"
+  "\"components\":{},\"pages\":[]}";
+
+void test_pulse_arms_and_captures_num(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, LAYOUT_SINK_BELL, err, sizeof(err));
+    dash_ctx_pulse_num(&d, "bell", 1, 5000);
+    TEST_ASSERT_EQUAL_UINT32(5000, d.sinks[0].pending_since);              // armé
+    TEST_ASSERT_TRUE(d.sinks[0].has_capture);                             // capturé
+    TEST_ASSERT_EQUAL_STRING("{\"v\":\"1\"}", d.sinks[0].captured_body);  // impulsion figée
+    TEST_ASSERT_EQUAL_INT(0, (int)d.ctx.vars[ctx_find(&d.ctx,"bell")].num); // ctx retombé à 0
+}
+void test_pulse_captures_and_resets_str(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, "{\"sinks\":[{\"watch\":\"scene\",\"url\":\"http://h/\"}],"
+                        "\"components\":{},\"pages\":[]}", err, sizeof(err));
+    dash_ctx_pulse_str(&d, "scene", "ring", 7000);
+    TEST_ASSERT_TRUE(d.sinks[0].has_capture);
+    TEST_ASSERT_EQUAL_STRING("{\"scene\":\"ring\"}", d.sinks[0].captured_body);  // corps défaut typé
+    TEST_ASSERT_EQUAL_STRING("", d.ctx.vars[ctx_find(&d.ctx,"scene")].str);      // retombé à ""
+}
+void test_live_write_clears_stale_capture(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, LAYOUT_SINK_BELL, err, sizeof(err));
+    dash_ctx_pulse_num(&d, "bell", 1, 5000);
+    TEST_ASSERT_TRUE(d.sinks[0].has_capture);
+    dash_ctx_write_ui_num(&d, "bell", 2, 6000);          // write live sur la même var
+    TEST_ASSERT_FALSE(d.sinks[0].has_capture);           // capture effacée
+    TEST_ASSERT_EQUAL_UINT32(6000, d.sinks[0].pending_since);
+}
+void test_pulse_arms_only_matching_watch(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, LAYOUT_SINK_BELL, err, sizeof(err));
+    dash_ctx_pulse_num(&d, "other", 1, 5000);
+    TEST_ASSERT_EQUAL_UINT32(0, d.sinks[0].pending_since);
+    TEST_ASSERT_FALSE(d.sinks[0].has_capture);
+}
+void test_repeated_pulse_rearms_same_value(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, LAYOUT_SINK_BELL, err, sizeof(err));
+    dash_ctx_pulse_num(&d, "bell", 1, 5000);
+    d.sinks[0].pending_since = 0; d.sinks[0].has_capture = false;   // simule un tir consommé
+    dash_ctx_pulse_num(&d, "bell", 1, 8000);                        // même valeur
+    TEST_ASSERT_EQUAL_UINT32(8000, d.sinks[0].pending_since);       // ré-armé malgré valeur inchangée
+    TEST_ASSERT_TRUE(d.sinks[0].has_capture);
+}
+
 // --- context_apply : variables liees -> composants ---
 static const char* bound_layout(const char* type, const char* extra) {
     static char b[256];
@@ -866,6 +915,29 @@ void test_ctxapply_bar_value(void) {
     dash_set_context(&d, "{\"v\":63}", 1);
     context_apply(&d);
     TEST_ASSERT_EQUAL_INT(63, d.components[dash_find(&d,"x")].value);
+}
+void test_ctxapply_slider_value(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, bound_layout("slider", ",\"min\":0,\"max\":100"), err, sizeof(err));
+    dash_set_context(&d, "{\"v\":42}", 1);
+    context_apply(&d);
+    int i = dash_find(&d,"x");
+    TEST_ASSERT_EQUAL_INT(42, d.components[i].value);
+    TEST_ASSERT_TRUE(d.components[i].dirty);
+}
+void test_ctxapply_arc_value(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, bound_layout("arc", ",\"min\":0,\"max\":255"), err, sizeof(err));
+    dash_set_context(&d, "{\"v\":128}", 1);
+    context_apply(&d);
+    TEST_ASSERT_EQUAL_INT(128, d.components[dash_find(&d,"x")].value);
+}
+void test_ctxapply_roller_index(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, bound_layout("roller", ",\"options\":[\"A\",\"B\",\"C\"]"), err, sizeof(err));
+    dash_set_context(&d, "{\"v\":2}", 1);
+    context_apply(&d);
+    TEST_ASSERT_EQUAL_INT(2, d.components[dash_find(&d,"x")].value);
 }
 void test_switch_parsed(void) {
     Dashboard d{}; char err[80];
@@ -904,6 +976,67 @@ void test_button_parsed_str(void) {
     int i = dash_find(&d, "b");
     TEST_ASSERT_FALSE(d.components[i].set_is_num);
     TEST_ASSERT_EQUAL_STRING("movie", d.components[i].set_value);
+}
+void test_slider_parsed(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"components\":{\"s\":{\"type\":\"slider\",\"bind\":\"vol\",\"min\":0,\"max\":10,"
+                    "\"step\":2,\"orientation\":\"vertical\"}},\"pages\":[]}";
+    TEST_ASSERT_TRUE(dash_set_layout(&d, L, err, sizeof(err)));
+    int i = dash_find(&d, "s");
+    TEST_ASSERT_EQUAL_INT(COMP_SLIDER, d.components[i].type);
+    TEST_ASSERT_EQUAL_STRING("vol", d.components[i].bind);
+    TEST_ASSERT_EQUAL_INT(0,  d.components[i].vmin);
+    TEST_ASSERT_EQUAL_INT(10, d.components[i].vmax);
+    TEST_ASSERT_EQUAL_INT(2,  d.components[i].step);
+    TEST_ASSERT_TRUE(d.components[i].bar_vertical);
+}
+void test_slider_quantize_snaps(void) {
+    TEST_ASSERT_EQUAL_INT(10, slider_quantize(12, 0, 100, 5));   // 12 -> 10
+    TEST_ASSERT_EQUAL_INT(15, slider_quantize(13, 0, 100, 5));   // 13 -> 15
+    TEST_ASSERT_EQUAL_INT(20, slider_quantize(22, 10, 100, 5));  // offset vmin : (22-10)/5=2.4 -> 20
+}
+void test_slider_quantize_off_when_step_zero(void) {
+    TEST_ASSERT_EQUAL_INT(42, slider_quantize(42, 0, 100, 0));   // step<=0 -> pas de quantification
+    TEST_ASSERT_EQUAL_INT(42, slider_quantize(42, 0, 100, -3));
+}
+void test_slider_quantize_clamps_to_vmax(void) {
+    TEST_ASSERT_EQUAL_INT(10, slider_quantize(10, 0, 10, 4));    // arrondi donnerait 12 -> borné à 10
+    TEST_ASSERT_EQUAL_INT(10, slider_quantize(10, 0, 10, 6));    // idem : 12 -> 10
+}
+void test_slider_quantize_clamps_to_vmin(void) {
+    TEST_ASSERT_EQUAL_INT(0, slider_quantize(-5, 0, 10, 4));     // arrondi donnerait -4 -> borné à 0
+}
+void test_arc_parsed(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"components\":{\"a\":{\"type\":\"arc\",\"bind\":\"dim\",\"min\":0,\"max\":255}},\"pages\":[]}";
+    TEST_ASSERT_TRUE(dash_set_layout(&d, L, err, sizeof(err)));
+    int i = dash_find(&d, "a");
+    TEST_ASSERT_EQUAL_INT(COMP_ARC, d.components[i].type);
+    TEST_ASSERT_EQUAL_INT(255, d.components[i].vmax);
+}
+void test_roller_parsed(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"components\":{\"r\":{\"type\":\"roller\",\"bind\":\"src\","
+                    "\"options\":[\"HDMI\",\"TV\",\"AUX\"],\"rows\":5}},\"pages\":[]}";
+    TEST_ASSERT_TRUE(dash_set_layout(&d, L, err, sizeof(err)));
+    int i = dash_find(&d, "r");
+    TEST_ASSERT_EQUAL_INT(COMP_ROLLER, d.components[i].type);
+    TEST_ASSERT_EQUAL_STRING("HDMI\nTV\nAUX", d.components[i].roller_options);
+    TEST_ASSERT_EQUAL_INT(5, d.components[i].roller_rows);
+}
+void test_button_momentary_parsed(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"components\":{\"b\":{\"type\":\"button\",\"bind\":\"bell\",\"value\":1,"
+                    "\"momentary\":true}},\"pages\":[]}";
+    TEST_ASSERT_TRUE(dash_set_layout(&d, L, err, sizeof(err)));
+    int i = dash_find(&d, "b");
+    TEST_ASSERT_TRUE(d.components[i].momentary);
+}
+void test_button_set_defaults_not_momentary(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"components\":{\"b\":{\"type\":\"button\",\"bind\":\"scene\",\"value\":2}},\"pages\":[]}";
+    TEST_ASSERT_TRUE(dash_set_layout(&d, L, err, sizeof(err)));
+    TEST_ASSERT_FALSE(d.components[dash_find(&d,"b")].momentary);
 }
 void test_ctxapply_button_radio(void) {
     Dashboard d{}; char err[80];
@@ -1296,6 +1429,15 @@ int main(int, char**) {
     RUN_TEST(test_ctxapply_switch_reflects);
     RUN_TEST(test_button_parsed_num);
     RUN_TEST(test_button_parsed_str);
+    RUN_TEST(test_slider_parsed);
+    RUN_TEST(test_slider_quantize_snaps);
+    RUN_TEST(test_slider_quantize_off_when_step_zero);
+    RUN_TEST(test_slider_quantize_clamps_to_vmax);
+    RUN_TEST(test_slider_quantize_clamps_to_vmin);
+    RUN_TEST(test_arc_parsed);
+    RUN_TEST(test_roller_parsed);
+    RUN_TEST(test_button_momentary_parsed);
+    RUN_TEST(test_button_set_defaults_not_momentary);
     RUN_TEST(test_ctxapply_button_radio);
     RUN_TEST(test_ctxapply_button_radio_str);
     RUN_TEST(test_layout_parse_counts);
@@ -1344,6 +1486,9 @@ int main(int, char**) {
     RUN_TEST(test_ctxapply_readout_num_formats);
     RUN_TEST(test_ctxapply_readout_string);
     RUN_TEST(test_ctxapply_bar_value);
+    RUN_TEST(test_ctxapply_slider_value);
+    RUN_TEST(test_ctxapply_arc_value);
+    RUN_TEST(test_ctxapply_roller_index);
     RUN_TEST(test_bar_label_style_parsed);
     RUN_TEST(test_bar_label_style_defaults);
     RUN_TEST(test_ctxapply_unchanged_not_dirty);
@@ -1396,6 +1541,11 @@ int main(int, char**) {
     RUN_TEST(test_ui_write_arms_sink);
     RUN_TEST(test_external_write_does_not_arm);
     RUN_TEST(test_ui_write_arms_only_matching_watch);
+    RUN_TEST(test_pulse_arms_and_captures_num);
+    RUN_TEST(test_pulse_captures_and_resets_str);
+    RUN_TEST(test_live_write_clears_stale_capture);
+    RUN_TEST(test_pulse_arms_only_matching_watch);
+    RUN_TEST(test_repeated_pulse_rearms_same_value);
     RUN_TEST(test_ctx_to_json_all);
     RUN_TEST(test_ctx_to_json_filter);
     RUN_TEST(test_ctx_to_json_filter_multi);

@@ -546,6 +546,9 @@ static void sync_icon(Component& c, Placement&, lv_obj_t* w, lv_obj_t*, lv_obj_t
 // Callbacks définis plus bas (zone gesture, avec s_dash) -> déclarés ici pour build_*.
 static void switch_event_cb(lv_event_t* e);
 static void button_event_cb(lv_event_t* e);
+static void slider_event_cb(lv_event_t* e);
+static void arc_event_cb(lv_event_t* e);
+static void roller_event_cb(lv_event_t* e);
 static void build_switch(lv_obj_t* parent, Component& c, Placement& q,
                          lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
     lv_obj_t* sw = lv_switch_create(parent);
@@ -579,6 +582,59 @@ static void sync_button(Component& c, Placement&, lv_obj_t* w, lv_obj_t* sub1, l
     else         lv_obj_remove_state(w, LV_STATE_CHECKED);
     if (sub1) lv_label_set_text(sub1, c.text);              // libellé pilotable via /update text
 }
+static void build_slider(lv_obj_t* parent, Component& c, Placement& q,
+                         lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
+    lv_obj_t* s = lv_slider_create(parent);
+    lv_obj_set_size(s, q.width ? q.width : 200, q.height ? q.height : 16);
+    lv_slider_set_range(s, c.vmin, c.vmax);
+    lv_slider_set_orientation(s, c.bar_vertical ? LV_SLIDER_ORIENTATION_VERTICAL
+                                                : LV_SLIDER_ORIENTATION_HORIZONTAL);
+    lv_obj_set_style_bg_color(s, lv_color_hex(c.color), LV_PART_INDICATOR);
+    lv_obj_align(s, ALIGN_MAP[q.anchor], q.dx, q.dy);
+    lv_obj_set_user_data(s, &c);
+    lv_obj_add_event_cb(s, slider_event_cb, LV_EVENT_VALUE_CHANGED, nullptr);
+    *main = s;
+}
+static void sync_slider(Component& c, Placement&, lv_obj_t* w, lv_obj_t*, lv_obj_t*) {
+    if (lv_obj_has_state(w, LV_STATE_PRESSED)) return;   // anti-conflit : ne pas arracher le doigt
+    lv_slider_set_value(w, c.value, LV_ANIM_OFF);
+}
+static void build_arc(lv_obj_t* parent, Component& c, Placement& q,
+                      lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
+    lv_obj_t* a = lv_arc_create(parent);
+    int d = q.radius ? q.radius * 2 : 160;
+    lv_obj_set_size(a, d, d);
+    lv_obj_align(a, ALIGN_MAP[q.anchor], q.dx, q.dy);
+    lv_arc_set_range(a, c.vmin, c.vmax);
+    lv_arc_set_bg_angles(a, 90 + q.start_angle + q.gap_deg / 2,
+                            90 + q.start_angle - q.gap_deg / 2);
+    lv_obj_set_style_arc_width(a, q.thickness, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(a, q.thickness, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(a, lv_color_hex(0x1F2937), LV_PART_MAIN);
+    lv_obj_set_style_arc_color(a, lv_color_hex(c.color), LV_PART_INDICATOR);
+    lv_obj_set_user_data(a, &c);                          // knob conservé (input), CLICKABLE gardé
+    lv_obj_add_event_cb(a, arc_event_cb, LV_EVENT_VALUE_CHANGED, nullptr);
+    *main = a;
+}
+static void sync_arc(Component& c, Placement&, lv_obj_t* w, lv_obj_t*, lv_obj_t*) {
+    if (lv_obj_has_state(w, LV_STATE_PRESSED)) return;
+    lv_arc_set_value(w, c.value);
+}
+static void build_roller(lv_obj_t* parent, Component& c, Placement& q,
+                         lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
+    lv_obj_t* r = lv_roller_create(parent);
+    lv_roller_set_options(r, c.roller_options, LV_ROLLER_MODE_NORMAL);
+    lv_roller_set_visible_row_count(r, c.roller_rows ? c.roller_rows : 3);
+    if (q.width) lv_obj_set_width(r, q.width);
+    lv_obj_align(r, ALIGN_MAP[q.anchor], q.dx, q.dy);
+    lv_obj_set_user_data(r, &c);
+    lv_obj_add_event_cb(r, roller_event_cb, LV_EVENT_VALUE_CHANGED, nullptr);
+    *main = r;
+}
+static void sync_roller(Component& c, Placement&, lv_obj_t* w, lv_obj_t*, lv_obj_t*) {
+    if (lv_obj_has_state(w, LV_STATE_PRESSED)) return;
+    lv_roller_set_selected(w, (uint16_t)(c.value < 0 ? 0 : c.value), LV_ANIM_OFF);
+}
 
 // Vtable vue indexée par CompType. Types physiques (led_ring/sound) : build/sync = nullptr
 // (rendus par leur tick dédié -> le moteur les saute). label/readout partagent build_text.
@@ -607,6 +663,9 @@ static const ViewVTable VIEW[] = {
     /* COMP_ICON     */ { build_icon, sync_icon },
     /* COMP_SWITCH   */ { build_switch, sync_switch },
     /* COMP_BUTTON   */ { build_button, sync_button },
+    /* COMP_SLIDER   */ { build_slider, sync_slider },
+    /* COMP_ARC      */ { build_arc,    sync_arc    },
+    /* COMP_ROLLER   */ { build_roller, sync_roller },
 };
 static_assert(sizeof(VIEW) / sizeof(VIEW[0]) == COMP_COUNT,
               "VIEW desync avec CompType : ajoute la ligne du nouveau type");
@@ -642,8 +701,40 @@ static void button_event_cb(lv_event_t* e) {
     Component* c = (Component*)lv_obj_get_user_data(w);
     if (!c || !s_dash || !c->bind[0]) return;   // bind vide -> pas de var fantome (symetrie context_apply)
     if (g_ctx_mutex) xSemaphoreTake(g_ctx_mutex, portMAX_DELAY);
-    if (c->set_is_num) dash_ctx_write_ui_num(s_dash, c->bind, c->set_value_num, millis());
-    else               dash_ctx_write_ui_str(s_dash, c->bind, c->set_value, millis());
+    if (c->momentary) {
+        if (c->set_is_num) dash_ctx_pulse_num(s_dash, c->bind, c->set_value_num, millis());
+        else               dash_ctx_pulse_str(s_dash, c->bind, c->set_value, millis());
+    } else {
+        if (c->set_is_num) dash_ctx_write_ui_num(s_dash, c->bind, c->set_value_num, millis());
+        else               dash_ctx_write_ui_str(s_dash, c->bind, c->set_value, millis());
+    }
+    if (g_ctx_mutex) xSemaphoreGive(g_ctx_mutex);
+}
+static void slider_event_cb(lv_event_t* e) {
+    lv_obj_t* w = lv_event_get_target_obj(e);
+    Component* c = (Component*)lv_obj_get_user_data(w);
+    if (!c || !s_dash || !c->bind[0]) return;
+    int32_t val = slider_quantize(lv_slider_get_value(w), c->vmin, c->vmax, c->step);
+    if (g_ctx_mutex) xSemaphoreTake(g_ctx_mutex, portMAX_DELAY);
+    dash_ctx_write_ui_num(s_dash, c->bind, val, millis());
+    if (g_ctx_mutex) xSemaphoreGive(g_ctx_mutex);
+}
+static void arc_event_cb(lv_event_t* e) {
+    lv_obj_t* w = lv_event_get_target_obj(e);
+    Component* c = (Component*)lv_obj_get_user_data(w);
+    if (!c || !s_dash || !c->bind[0]) return;
+    int32_t val = slider_quantize(lv_arc_get_value(w), c->vmin, c->vmax, c->step);
+    if (g_ctx_mutex) xSemaphoreTake(g_ctx_mutex, portMAX_DELAY);
+    dash_ctx_write_ui_num(s_dash, c->bind, val, millis());
+    if (g_ctx_mutex) xSemaphoreGive(g_ctx_mutex);
+}
+static void roller_event_cb(lv_event_t* e) {
+    lv_obj_t* w = lv_event_get_target_obj(e);
+    Component* c = (Component*)lv_obj_get_user_data(w);
+    if (!c || !s_dash || !c->bind[0]) return;
+    uint16_t sel = lv_roller_get_selected(w);            // lecture widget hors mutex (comme slider/arc)
+    if (g_ctx_mutex) xSemaphoreTake(g_ctx_mutex, portMAX_DELAY);
+    dash_ctx_write_ui_num(s_dash, c->bind, (double)sel, millis());
     if (g_ctx_mutex) xSemaphoreGive(g_ctx_mutex);
 }
 

@@ -12,6 +12,8 @@
 #define MAX_SINKS              6
 #define MAX_HEADERS_PER_SINK   4
 #define SINK_BODY_LEN          192
+#define ROLLER_OPTS_LEN        160
+#define MAX_ROLLER_ROWS          7
 #define URL_LEN                 192
 #define HEADER_NAME_LEN         32
 #define HEADER_VAL_LEN          64

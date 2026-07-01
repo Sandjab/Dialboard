@@ -43,7 +43,12 @@ static void fire_one(int idx) {
         strlcpy(job.hname[i], s.headers[i].name, HEADER_NAME_LEN);
         resolve_header(s.headers[i].value, job.hval[i], HEADER_VAL_LEN);
     }
-    sink_render_body(s.body, s.watch, &s_d->ctx, job.body, sizeof(job.body));
+    if (s.has_capture) {                              // momentary : corps figé au tap
+        strlcpy(job.body, s.captured_body, sizeof(job.body));
+        s.has_capture = false;                        // consommé
+    } else {
+        sink_render_body(s.body, s.watch, &s_d->ctx, job.body, sizeof(job.body));
+    }
     s.pending_since = 0;                         // désarme AVANT le tir (un nouvel UI write ré-armera)
     unlock();
 

@@ -1,8 +1,10 @@
 #include "dashboard.h"
 #include "color.h"
 #include "format.h"
+#include "sink.h"
 #include <ArduinoJson.h>
 #include <string.h>
+#include <math.h>
 
 bool bg_key_valid(const char* key) {
     if (!key || !key[0]) return false;
@@ -33,6 +35,9 @@ static const struct { const char* name; CompType type; } COMP_NAMES[] = {
     { "icon", COMP_ICON },
     { "switch", COMP_SWITCH },
     { "button", COMP_BUTTON },
+    { "slider", COMP_SLIDER },
+    { "arc",    COMP_ARC    },
+    { "roller", COMP_ROLLER },
 };
 
 static uint8_t parse_font_family(const char *s) {
@@ -131,6 +136,7 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
         c.color       = parse_hex_color(o["color"] | "#FFFFFF", 0xFFFFFF);
         c.vmin        = o["min"] | 0;
         c.vmax        = o["max"] | 100;
+        c.step        = o["step"] | 0;
         c.off_below   = o["off_below"] | 1;
         c.led_glow      = o["glow"]      | true;
         c.led_bezel     = o["bezel"]     | true;
@@ -242,6 +248,20 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
                 c.set_value_num = 0.0;
                 strlcpy(c.set_value, bv.is<const char*>() ? bv.as<const char*>() : "", sizeof(c.set_value));
             }
+            c.momentary = o["momentary"] | false;
+        }
+        if (c.type == COMP_ROLLER) {
+            size_t ro = 0;
+            for (JsonVariantConst ov : o["options"].as<JsonArrayConst>()) {
+                const char* opt = ov.is<const char*>() ? ov.as<const char*>() : "";
+                if (ro && ro + 1 < sizeof(c.roller_options)) c.roller_options[ro++] = '\n';
+                for (const char* p = opt; *p && ro + 1 < sizeof(c.roller_options); p++) c.roller_options[ro++] = *p;
+            }
+            c.roller_options[ro] = '\0';
+            int rows = o["rows"] | 3;
+            if (rows < 1) rows = 1;
+            if (rows > MAX_ROLLER_ROWS) rows = MAX_ROLLER_ROWS;
+            c.roller_rows = (uint8_t)rows;
         }
         t.comp_count++;
     }
@@ -455,6 +475,9 @@ static const comp_apply_fn APPLY[] = {
     /* COMP_ICON     */ apply_icon,
     /* COMP_SWITCH   */ nullptr,             // push-by-id ajoute plus tard ; reflet via context_apply
     /* COMP_BUTTON   */ nullptr,             // effecteur : pas de push-by-id, reflet via context_apply
+    /* COMP_SLIDER   */ nullptr,             // effecteur : reflet via context_apply
+    /* COMP_ARC      */ nullptr,
+    /* COMP_ROLLER   */ nullptr,
 };
 static_assert(sizeof(APPLY) / sizeof(APPLY[0]) == COMP_COUNT,
               "APPLY desync avec CompType : ajoute la ligne du nouveau type");
@@ -494,16 +517,43 @@ void dash_set_context(Dashboard* d, const char* json, uint32_t now) {
 }
 
 // Arme (pending_since = now) chaque sink dont watch == var. now==0 -> 1 (0 = "non armé").
-static void arm_sinks(Dashboard* d, const char* var, uint32_t now) {
+// capture=true (momentary) : fige le corps rendu maintenant ; capture=false (live) : efface toute capture périmée.
+static void arm_sinks(Dashboard* d, const char* var, uint32_t now, bool capture) {
     for (int i = 0; i < d->sink_count; i++)
-        if (strncmp(d->sinks[i].watch, var, ID_LEN) == 0)
+        if (strncmp(d->sinks[i].watch, var, ID_LEN) == 0) {
             d->sinks[i].pending_since = now ? now : 1;
+            if (capture) {
+                sink_render_body(d->sinks[i].body, d->sinks[i].watch, &d->ctx,
+                                 d->sinks[i].captured_body, sizeof(d->sinks[i].captured_body));
+                d->sinks[i].has_capture = true;
+            } else {
+                d->sinks[i].has_capture = false;
+            }
+        }
 }
 void dash_ctx_write_ui_num(Dashboard* d, const char* var, double v, uint32_t now) {
-    if (ctx_set_num(&d->ctx, var, v, now)) arm_sinks(d, var, now);
+    if (ctx_set_num(&d->ctx, var, v, now)) arm_sinks(d, var, now, false);
 }
 void dash_ctx_write_ui_str(Dashboard* d, const char* var, const char* v, uint32_t now) {
-    if (ctx_set_str(&d->ctx, var, v, now)) arm_sinks(d, var, now);
+    if (ctx_set_str(&d->ctx, var, v, now)) arm_sinks(d, var, now, false);
+}
+// Momentary : écrit l'impulsion (arme + fige le corps), puis reset EXTERNAL (n'arme pas) -> retombée
+// d'un afficheur bind. Le ré-tir ne dépend PAS du reset (ctx_set renvoie true à chaque write).
+void dash_ctx_pulse_num(Dashboard* d, const char* var, double v, uint32_t now) {
+    if (ctx_set_num(&d->ctx, var, v, now)) arm_sinks(d, var, now, true);
+    ctx_set_num(&d->ctx, var, 0, now);
+}
+void dash_ctx_pulse_str(Dashboard* d, const char* var, const char* v, uint32_t now) {
+    if (ctx_set_str(&d->ctx, var, v, now)) arm_sinks(d, var, now, true);
+    ctx_set_str(&d->ctx, var, "", now);
+}
+
+// Arrondit val au multiple de step le plus proche au-dessus de vmin (LVGL n'a pas de pas natif sur slider/arc).
+int32_t slider_quantize(int32_t val, int32_t vmin, int32_t vmax, int32_t step) {
+    if (step <= 0) return val;
+    int32_t r = vmin + (int32_t)lround((double)(val - vmin) / step) * step;
+    if (r < vmin) return vmin;              // borne aussi en bas (contrat "borné" complet ; val<vmin non atteignable via LVGL)
+    return r > vmax ? vmax : r;
 }
 
 void context_apply(Dashboard* d) {
@@ -548,6 +598,14 @@ void context_apply(Dashboard* d) {
                     int32_t nv = (int32_t)v.num;
                     if (nv < 0) nv = 0;
                     if (nv >= c.aimg_frames) nv = c.aimg_frames - 1;
+                    if (c.value != nv) { c.value = nv; changed = true; }
+                }
+                break;
+            case COMP_SLIDER:
+            case COMP_ARC:
+            case COMP_ROLLER:                           // effecteur : scalaire -> valeur (index pour roller)
+                if (v.type == CTX_NUM) {
+                    int32_t nv = (int32_t)v.num;
                     if (c.value != nv) { c.value = nv; changed = true; }
                 }
                 break;
