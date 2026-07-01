@@ -74,8 +74,11 @@ enverrait la valeur de repos au lieu de l'impulsion (course reset↔fire).
   existant. Toujours sous `g_ctx_mutex` bloquant (patron B1).
 
 **Propriétés.**
-- **Ré-tir** : chaque tap fait `rest→value` ⇒ `ctx_set` renvoie `true` ⇒ ré-arme ⇒ ré-capture. Un tap
-  de la **même valeur** re-tire (le reset intercalé garantit le changement).
+- **Ré-tir** : `ctx_set_*` renvoie `true` à **chaque** écriture (sauf contexte plein) — pas seulement au
+  changement — donc `dash_ctx_write_ui_*` ré-arme à chaque tap **indépendamment** du reset, y compris pour
+  une **même valeur** répétée. Le reset EXTERNAL à `rest` ne sert donc **qu'à la retombée** d'un afficheur
+  `bind` (rendu race-free par la capture) : `context_apply` (~100 ms) lit le ctx après coup et le voit à
+  `rest` (le flash `value`→`rest` du callback n'est pas observé). Retombée conforme spec socle §4.4.
 - **Sans hypothèse de timing** : le corps est figé au tap ; correct pour **tout** `debounce_ms`.
 - **N'affecte pas les sliders** : eux n'appellent jamais le chemin pulse ⇒ live-at-fire conservé ⇒
   debounce de traîne (coalescence du drag) intact.
