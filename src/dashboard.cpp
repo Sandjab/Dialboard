@@ -31,6 +31,7 @@ static const struct { const char* name; CompType type; } COMP_NAMES[] = {
     { "image_anim", COMP_IMAGE_ANIM }, { "led", COMP_LED },
     { "rect", COMP_RECT }, { "circle", COMP_CIRCLE }, { "line", COMP_LINE },
     { "icon", COMP_ICON },
+    { "switch", COMP_SWITCH },
 };
 
 static uint8_t parse_font_family(const char *s) {
@@ -438,6 +439,7 @@ static const comp_apply_fn APPLY[] = {
     /* COMP_CIRCLE   */ apply_shape,
     /* COMP_LINE     */ apply_shape,
     /* COMP_ICON     */ apply_icon,
+    /* COMP_SWITCH   */ nullptr,             // push-by-id ajoute plus tard ; reflet via context_apply
 };
 static_assert(sizeof(APPLY) / sizeof(APPLY[0]) == COMP_COUNT,
               "APPLY desync avec CompType : ajoute la ligne du nouveau type");
@@ -531,6 +533,12 @@ void context_apply(Dashboard* d) {
                     int32_t nv = (int32_t)v.num;
                     if (nv < 0) nv = 0;
                     if (nv >= c.aimg_frames) nv = c.aimg_frames - 1;
+                    if (c.value != nv) { c.value = nv; changed = true; }
+                }
+                break;
+            case COMP_SWITCH:                           // effecteur : reflete l'etat on/off depuis le ctx
+                if (v.type == CTX_NUM) {
+                    int32_t nv = (v.num != 0) ? 1 : 0;
                     if (c.value != nv) { c.value = nv; changed = true; }
                 }
                 break;

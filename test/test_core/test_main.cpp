@@ -867,6 +867,24 @@ void test_ctxapply_bar_value(void) {
     context_apply(&d);
     TEST_ASSERT_EQUAL_INT(63, d.components[dash_find(&d,"x")].value);
 }
+void test_switch_parsed(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"components\":{\"s\":{\"type\":\"switch\",\"bind\":\"lamp\"}},\"pages\":[]}";
+    TEST_ASSERT_TRUE(dash_set_layout(&d, L, err, sizeof(err)));
+    int i = dash_find(&d, "s");
+    TEST_ASSERT_EQUAL_INT(COMP_SWITCH, d.components[i].type);
+    TEST_ASSERT_EQUAL_STRING("lamp", d.components[i].bind);
+}
+void test_ctxapply_switch_reflects(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, bound_layout("switch", ""), err, sizeof(err));
+    int i = dash_find(&d, "x");
+    dash_set_context(&d, "{\"v\":1}", 1); context_apply(&d);
+    TEST_ASSERT_EQUAL_INT(1, d.components[i].value);
+    TEST_ASSERT_TRUE(d.components[i].dirty);
+    dash_set_context(&d, "{\"v\":0}", 2); context_apply(&d);
+    TEST_ASSERT_EQUAL_INT(0, d.components[i].value);
+}
 void test_bar_label_style_parsed(void) {
     Dashboard d{}; char err[80];
     const char* j = "{\"components\":{\"b\":{\"type\":\"bar\",\"label\":\"RAM\","
@@ -1236,6 +1254,8 @@ int main(int, char**) {
     RUN_TEST(test_update_aimg_play_period_defaults);
     RUN_TEST(test_ctxapply_meter_value);
     RUN_TEST(test_ctxapply_chart_appends_on_change);
+    RUN_TEST(test_switch_parsed);
+    RUN_TEST(test_ctxapply_switch_reflects);
     RUN_TEST(test_layout_parse_counts);
     RUN_TEST(test_page_background_override_and_inherit);
     RUN_TEST(test_page_background_image_parsed);
