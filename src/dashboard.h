@@ -161,6 +161,9 @@ struct Sink {
     int         last_status;            // dernier code HTTP, <=0 sur erreur transport
     uint32_t    err_count;
     uint32_t    fired_at;               // millis() du dernier tir réussi
+    // capture à l'armement (momentary) : corps figé au tap, consommé au tir
+    char        captured_body[SINK_BODY_LEN + TEXT_LEN];
+    bool        has_capture;
 };
 
 struct Dashboard {
@@ -191,4 +194,6 @@ void dash_set_context(Dashboard* d, const char* json, uint32_t now);
 // Écriture du contexte d'ORIGINE UI (effecteur) : écrit la var ET arme les sinks qui l'observent.
 void dash_ctx_write_ui_num(Dashboard* d, const char* var, double v, uint32_t now);
 void dash_ctx_write_ui_str(Dashboard* d, const char* var, const char* v, uint32_t now);
+void dash_ctx_pulse_num(Dashboard* d, const char* var, double v, uint32_t now);   // momentary : capture + reset
+void dash_ctx_pulse_str(Dashboard* d, const char* var, const char* v, uint32_t now);
 void context_apply(Dashboard* d);

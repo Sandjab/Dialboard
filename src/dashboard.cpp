@@ -1,6 +1,7 @@
 #include "dashboard.h"
 #include "color.h"
 #include "format.h"
+#include "sink.h"
 #include <ArduinoJson.h>
 #include <string.h>
 
@@ -515,16 +516,35 @@ void dash_set_context(Dashboard* d, const char* json, uint32_t now) {
 }
 
 // Arme (pending_since = now) chaque sink dont watch == var. now==0 -> 1 (0 = "non armé").
-static void arm_sinks(Dashboard* d, const char* var, uint32_t now) {
+// capture=true (momentary) : fige le corps rendu maintenant ; capture=false (live) : efface toute capture périmée.
+static void arm_sinks(Dashboard* d, const char* var, uint32_t now, bool capture) {
     for (int i = 0; i < d->sink_count; i++)
-        if (strncmp(d->sinks[i].watch, var, ID_LEN) == 0)
+        if (strncmp(d->sinks[i].watch, var, ID_LEN) == 0) {
             d->sinks[i].pending_since = now ? now : 1;
+            if (capture) {
+                sink_render_body(d->sinks[i].body, d->sinks[i].watch, &d->ctx,
+                                 d->sinks[i].captured_body, sizeof(d->sinks[i].captured_body));
+                d->sinks[i].has_capture = true;
+            } else {
+                d->sinks[i].has_capture = false;
+            }
+        }
 }
 void dash_ctx_write_ui_num(Dashboard* d, const char* var, double v, uint32_t now) {
-    if (ctx_set_num(&d->ctx, var, v, now)) arm_sinks(d, var, now);
+    if (ctx_set_num(&d->ctx, var, v, now)) arm_sinks(d, var, now, false);
 }
 void dash_ctx_write_ui_str(Dashboard* d, const char* var, const char* v, uint32_t now) {
-    if (ctx_set_str(&d->ctx, var, v, now)) arm_sinks(d, var, now);
+    if (ctx_set_str(&d->ctx, var, v, now)) arm_sinks(d, var, now, false);
+}
+// Momentary : écrit l'impulsion (arme + fige le corps), puis reset EXTERNAL (n'arme pas) -> retombée
+// d'un afficheur bind. Le ré-tir ne dépend PAS du reset (ctx_set renvoie true à chaque write).
+void dash_ctx_pulse_num(Dashboard* d, const char* var, double v, uint32_t now) {
+    if (ctx_set_num(&d->ctx, var, v, now)) arm_sinks(d, var, now, true);
+    ctx_set_num(&d->ctx, var, 0, now);
+}
+void dash_ctx_pulse_str(Dashboard* d, const char* var, const char* v, uint32_t now) {
+    if (ctx_set_str(&d->ctx, var, v, now)) arm_sinks(d, var, now, true);
+    ctx_set_str(&d->ctx, var, "", now);
 }
 
 void context_apply(Dashboard* d) {

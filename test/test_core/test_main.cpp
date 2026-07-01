@@ -836,6 +836,55 @@ void test_ui_write_arms_only_matching_watch(void) {
     TEST_ASSERT_EQUAL_UINT32(0, d.sinks[0].pending_since);
 }
 
+// --- momentary : capture à l'armement ---
+static const char* LAYOUT_SINK_BELL =
+  "{\"sinks\":[{\"watch\":\"bell\",\"url\":\"http://h/\",\"body\":{\"v\":\"{{bell}}\"}}],"
+  "\"components\":{},\"pages\":[]}";
+
+void test_pulse_arms_and_captures_num(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, LAYOUT_SINK_BELL, err, sizeof(err));
+    dash_ctx_pulse_num(&d, "bell", 1, 5000);
+    TEST_ASSERT_EQUAL_UINT32(5000, d.sinks[0].pending_since);              // armé
+    TEST_ASSERT_TRUE(d.sinks[0].has_capture);                             // capturé
+    TEST_ASSERT_EQUAL_STRING("{\"v\":\"1\"}", d.sinks[0].captured_body);  // impulsion figée
+    TEST_ASSERT_EQUAL_INT(0, (int)d.ctx.vars[ctx_find(&d.ctx,"bell")].num); // ctx retombé à 0
+}
+void test_pulse_captures_and_resets_str(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, "{\"sinks\":[{\"watch\":\"scene\",\"url\":\"http://h/\"}],"
+                        "\"components\":{},\"pages\":[]}", err, sizeof(err));
+    dash_ctx_pulse_str(&d, "scene", "ring", 7000);
+    TEST_ASSERT_TRUE(d.sinks[0].has_capture);
+    TEST_ASSERT_EQUAL_STRING("{\"scene\":\"ring\"}", d.sinks[0].captured_body);  // corps défaut typé
+    TEST_ASSERT_EQUAL_STRING("", d.ctx.vars[ctx_find(&d.ctx,"scene")].str);      // retombé à ""
+}
+void test_live_write_clears_stale_capture(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, LAYOUT_SINK_BELL, err, sizeof(err));
+    dash_ctx_pulse_num(&d, "bell", 1, 5000);
+    TEST_ASSERT_TRUE(d.sinks[0].has_capture);
+    dash_ctx_write_ui_num(&d, "bell", 2, 6000);          // write live sur la même var
+    TEST_ASSERT_FALSE(d.sinks[0].has_capture);           // capture effacée
+    TEST_ASSERT_EQUAL_UINT32(6000, d.sinks[0].pending_since);
+}
+void test_pulse_arms_only_matching_watch(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, LAYOUT_SINK_BELL, err, sizeof(err));
+    dash_ctx_pulse_num(&d, "other", 1, 5000);
+    TEST_ASSERT_EQUAL_UINT32(0, d.sinks[0].pending_since);
+    TEST_ASSERT_FALSE(d.sinks[0].has_capture);
+}
+void test_repeated_pulse_rearms_same_value(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, LAYOUT_SINK_BELL, err, sizeof(err));
+    dash_ctx_pulse_num(&d, "bell", 1, 5000);
+    d.sinks[0].pending_since = 0; d.sinks[0].has_capture = false;   // simule un tir consommé
+    dash_ctx_pulse_num(&d, "bell", 1, 8000);                        // même valeur
+    TEST_ASSERT_EQUAL_UINT32(8000, d.sinks[0].pending_since);       // ré-armé malgré valeur inchangée
+    TEST_ASSERT_TRUE(d.sinks[0].has_capture);
+}
+
 // --- context_apply : variables liees -> composants ---
 static const char* bound_layout(const char* type, const char* extra) {
     static char b[256];
@@ -1446,6 +1495,11 @@ int main(int, char**) {
     RUN_TEST(test_ui_write_arms_sink);
     RUN_TEST(test_external_write_does_not_arm);
     RUN_TEST(test_ui_write_arms_only_matching_watch);
+    RUN_TEST(test_pulse_arms_and_captures_num);
+    RUN_TEST(test_pulse_captures_and_resets_str);
+    RUN_TEST(test_live_write_clears_stale_capture);
+    RUN_TEST(test_pulse_arms_only_matching_watch);
+    RUN_TEST(test_repeated_pulse_rearms_same_value);
     RUN_TEST(test_ctx_to_json_all);
     RUN_TEST(test_ctx_to_json_filter);
     RUN_TEST(test_ctx_to_json_filter_multi);
