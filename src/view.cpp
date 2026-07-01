@@ -12,7 +12,6 @@
 #include "asset_fs.h"
 #include "fonts.h"
 #include <Arduino.h>                 // millis()
-#include <stdlib.h>                  // atof()
 #include "freertos/semphr.h"
 #include "dashboard.h"               // dash_ctx_write_ui_num/str (deja tire via view.h, explicite ici)
 
@@ -643,7 +642,7 @@ static void button_event_cb(lv_event_t* e) {
     Component* c = (Component*)lv_obj_get_user_data(w);
     if (!c || !s_dash || !c->bind[0]) return;   // bind vide -> pas de var fantome (symetrie context_apply)
     if (g_ctx_mutex) xSemaphoreTake(g_ctx_mutex, portMAX_DELAY);
-    if (c->set_is_num) dash_ctx_write_ui_num(s_dash, c->bind, atof(c->set_value), millis());
+    if (c->set_is_num) dash_ctx_write_ui_num(s_dash, c->bind, c->set_value_num, millis());
     else               dash_ctx_write_ui_str(s_dash, c->bind, c->set_value, millis());
     if (g_ctx_mutex) xSemaphoreGive(g_ctx_mutex);
 }

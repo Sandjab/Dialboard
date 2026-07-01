@@ -893,6 +893,7 @@ void test_button_parsed_num(void) {
     TEST_ASSERT_EQUAL_INT(COMP_BUTTON, d.components[i].type);
     TEST_ASSERT_EQUAL_STRING("scene", d.components[i].bind);
     TEST_ASSERT_TRUE(d.components[i].set_is_num);
+    TEST_ASSERT_TRUE(d.components[i].set_value_num == 2.0);   // double pre-parse, pas de round-trip %g
     TEST_ASSERT_EQUAL_STRING("2", d.components[i].set_value);
     TEST_ASSERT_EQUAL_STRING("Film", d.components[i].text);
 }

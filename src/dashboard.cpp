@@ -3,7 +3,6 @@
 #include "format.h"
 #include <ArduinoJson.h>
 #include <string.h>
-#include <stdlib.h>                 // atof (reflet radio du button)
 
 bool bg_key_valid(const char* key) {
     if (!key || !key[0]) return false;
@@ -236,9 +235,11 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
             c.set_is_num = bv.is<float>() || bv.is<int>();
             if (c.set_is_num) {
                 double n = bv.as<double>();
+                c.set_value_num = n;                             // double d'origine (pas de round-trip %g)
                 if (n == (double)(long)n) snprintf(c.set_value, sizeof(c.set_value), "%ld", (long)n);
                 else                      snprintf(c.set_value, sizeof(c.set_value), "%g", n);
             } else {
+                c.set_value_num = 0.0;
                 strlcpy(c.set_value, bv.is<const char*>() ? bv.as<const char*>() : "", sizeof(c.set_value));
             }
         }
@@ -558,7 +559,7 @@ void context_apply(Dashboard* d) {
                 break;
             case COMP_BUTTON: {                         // effecteur set : actif (radio) si ctx == set_value
                 int32_t nv = 0;
-                if (c.set_is_num) { if (v.type == CTX_NUM && v.num == atof(c.set_value)) nv = 1; }
+                if (c.set_is_num) { if (v.type == CTX_NUM && v.num == c.set_value_num) nv = 1; }
                 else              { if (v.type == CTX_STR && strncmp(v.str, c.set_value, TEXT_LEN) == 0) nv = 1; }
                 if (c.value != nv) { c.value = nv; changed = true; }
                 break;

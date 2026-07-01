@@ -84,8 +84,9 @@ struct Component {
     int       icon_state_count;
 
     // button (effecteur set) : valeur ecrite dans bind au tap
-    char     set_value[TEXT_LEN];   // valeur a ecrire, forme canonique string ; nombre si set_is_num
-    bool     set_is_num;            // true => set_value represente un nombre (write_ui_num), sinon string
+    char     set_value[TEXT_LEN];   // valeur a ecrire (cas string) ; forme canonique aussi peuplee si num
+    double   set_value_num;         // valeur numerique pre-parsee (cas num) : evite atof() recurrent + perte %g
+    bool     set_is_num;            // true => valeur numerique (set_value_num), sinon string (set_value)
 
     // --- etat (modifie par /update) ---
     int32_t  value;
