@@ -305,6 +305,12 @@ main > .col:last-child { border-right: 0; }
 .w-led { border-radius: 50%; }
 .w-led-spec { position: absolute; border-radius: 50%; pointer-events: none; }
 
+/* Effecteurs (Plan C) */
+.w-switch { box-sizing: border-box; background: #4B5563; }
+.w-switch-knob { position: absolute; border-radius: 50%; background: #FFFFFF; }
+.w-button { box-sizing: border-box; display: flex; align-items: center; justify-content: center; background: #4B5563; border-radius: 6px; }
+.w-button-label { color: #FFFFFF; white-space: nowrap; line-height: 1; }
+
 .w-ring { cursor: default; }       /* ring centré, non déplaçable (view.cpp:51) */
 .w-ring svg { display: block; }
 /* F4 : l'anneau ne capte le clic que sur ses parties PEINTES — la bande (track/indicateur), la
