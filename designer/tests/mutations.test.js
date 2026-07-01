@@ -284,7 +284,9 @@ test('reorderPages ignore les index hors bornes (no-op)', () => {
 
 import {
   uniqueSourceName, addSource, removeSource,
-  setSourceProp, setSourceHeaders, setSourceVars
+  setSourceProp, setSourceHeaders, setSourceVars,
+  uniqueSinkName, addSink, removeSink,
+  setSinkProp, setSinkHeaders, setSinkBody
 } from '../js/mutations.js';
 
 test('addSource ajoute une source nommee avec interval par defaut', () => {
@@ -330,6 +332,48 @@ test('setSourceProp / setSourceHeaders no-op sur index invalide', () => {
   setSourceProp(s, 3, 'url', 'http://x');   // ne doit pas throw
   setSourceHeaders(s, 3, { a: 'b' });
   assert.deepEqual(s.sources, []);
+});
+
+test('addSink : ajoute un sink vide (watch/url manquants → invalide, débounce 0)', () => {
+  const s = {};
+  addSink(s, 'lampe');
+  assert.deepEqual(s.sinks, [{ name: 'lampe', watch: '', url: '', debounce_ms: 0 }]);
+});
+
+test('uniqueSinkName : évite les collisions de nom', () => {
+  const s = { sinks: [{ name: 'sink1' }] };
+  assert.equal(uniqueSinkName(s), 'sink2');
+  assert.equal(uniqueSinkName({}), 'sink1');
+});
+
+test('setSinkProp : édite/efface (chaîne vide → clé supprimée)', () => {
+  const s = { sinks: [{ name: 'a', watch: 'lamp', url: '', debounce_ms: 0 }] };
+  setSinkProp(s, 0, 'url', 'http://ha.local');
+  assert.equal(s.sinks[0].url, 'http://ha.local');
+  setSinkProp(s, 0, 'watch', '');
+  assert.equal('watch' in s.sinks[0], false);
+});
+
+test('setSinkHeaders : objet non vide posé, vide supprimé', () => {
+  const s = { sinks: [{ name: 'a' }] };
+  setSinkHeaders(s, 0, { Authorization: '$ha' });
+  assert.deepEqual(s.sinks[0].headers, { Authorization: '$ha' });
+  setSinkHeaders(s, 0, {});
+  assert.equal('headers' in s.sinks[0], false);
+});
+
+test('setSinkBody : valeur JSON posée, absente supprimée', () => {
+  const s = { sinks: [{ name: 'a' }] };
+  setSinkBody(s, 0, { state: '{{lamp}}' });
+  assert.deepEqual(s.sinks[0].body, { state: '{{lamp}}' });
+  setSinkBody(s, 0, null);
+  assert.equal('body' in s.sinks[0], false);
+});
+
+test('removeSink : retire par index', () => {
+  const s = { sinks: [{ name: 'a' }, { name: 'b' }] };
+  removeSink(s, 0);
+  assert.deepEqual(s.sinks, [{ name: 'b' }]);
 });
 
 test('placeComponentCopy : id neuf, copie indépendante, offset, ref re-pointé', () => {
