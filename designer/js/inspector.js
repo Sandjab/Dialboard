@@ -423,6 +423,30 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     return row;
   }
 
+  // Champ « Valeur (set) » du button : texte + case « numérique ». Case cochée → value émise comme
+  // NOMBRE (Number, 0 si vide/non numérique) ; décochée → CHAÎNE. Le firmware décide num/str par le type
+  // JSON (set_is_num). ref figée au rendu (cf. invariant inspecteur : le change part en différé).
+  function valueField(label, c) {
+    const ref = sel.ref;                                  // figée au rendu (cf. invariant inspecteur)
+    const row = document.createElement('div'); row.className = 'insp-row';
+    const span = document.createElement('span'); span.className = 'insp-label'; span.textContent = t(label);
+    row.appendChild(span);
+    const txt = document.createElement('input'); txt.type = 'text';
+    txt.value = c.value == null ? '' : String(c.value);
+    const num = document.createElement('input'); num.type = 'checkbox'; num.checked = typeof c.value === 'number';
+    num.title = t('inspector.tip.value_numeric');
+    const commit = () => {
+      let v;
+      if (num.checked) { const parsed = Number(txt.value); v = Number.isFinite(parsed) ? parsed : 0; }
+      else v = txt.value;
+      model.commit(s => setComponentProp(s, ref, 'value', v));
+    };
+    txt.addEventListener('change', commit);
+    num.addEventListener('change', commit);
+    row.append(txt, num);
+    return row;
+  }
+
   // Rien de sélectionné (null / sélection périmée / ref orpheline) : placeholder neutre. Cohérence stricte
   // arbre↔inspecteur (Option 1) : on n'édite rien tant que rien n'est sélectionné.
   function renderEmpty(body) {
@@ -599,6 +623,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
         if (kind === 'image') { propBody.appendChild(imageField(label, c)); continue; }   // picker bespoke
         if (kind === 'image_anim') { propBody.appendChild(imageAnimField(label, c)); continue; }   // editeur bespoke
         if (kind === 'fill') { propBody.appendChild(fillField(label, c)); continue; }   // forme : fond optionnel (bespoke : enableWhen non supporté, comme image/image_anim)
+        if (kind === 'value') { propBody.appendChild(valueField(label, c)); continue; }  // button : valeur num|str (bespoke)
         // Color picker : aperçu live sur 'input' (canvas seul, hors modèle → pas de flood undo) ; commit
         // unique sur 'change' (makeInput), précédé d'un clearPreview pour que le commit re-rende l'état réel.
         // ref figée au rendu : le color picker émet son 'change' en DIFFÉRÉ (après qu'un clic ailleurs a

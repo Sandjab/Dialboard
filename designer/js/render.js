@@ -624,3 +624,43 @@ export function buildIcon(comp, mock = MOCKS.icon) {
   n.appendChild(document.importNode(doc.documentElement, true));
   return n;
 }
+
+// --- Effecteurs (Plan C). Parité firmware : view.cpp build_switch/build_button. ---
+
+// switch : piste arrondie (état repos = off, gris) + poignée circulaire à gauche. Taille = placement
+// width/height (défaut firmware 60×30, cf. build_switch). Pas de champ de style (le firmware rend le
+// switch au thème LVGL par défaut) → aperçu statique off.
+export function buildSwitch(_comp, placement = {}) {
+  const w = placement.width || 60, h = placement.height || 30;
+  const n = document.createElement('div');
+  n.className = 'w w-switch';
+  n.style.width = w + 'px';
+  n.style.height = h + 'px';
+  n.style.borderRadius = (h / 2) + 'px';
+  const knob = document.createElement('div');
+  knob.className = 'w-switch-knob';
+  const kd = Math.max(2, h - 6);           // poignée : marge 3px sur chaque bord
+  knob.style.width = kd + 'px';
+  knob.style.height = kd + 'px';
+  knob.style.left = '3px';                 // off = poignée à gauche
+  knob.style.top = '3px';
+  n.appendChild(knob);
+  return n;
+}
+
+// button : rectangle arrondi + libellé blanc centré. Taille = placement width/height (défaut 100×44).
+// Police générique du composant (défaut 20, comme le firmware). Le fond/rayon approchent le bouton LVGL
+// par défaut (le chrome exact suit le thème device ; la parité porte sur taille/texte/position).
+export function buildButton(comp, placement = {}) {
+  const w = placement.width || 100, h = placement.height || 44;
+  const n = document.createElement('div');
+  n.className = 'w w-button';
+  n.style.width = w + 'px';
+  n.style.height = h + 'px';
+  const lbl = document.createElement('span');
+  lbl.className = 'w-button-label';
+  lbl.style.font = font(comp.font_family, comp.bold, comp.italic, pickFontPx(comp.font ?? 20));
+  lbl.textContent = comp.text || 'Button';
+  n.appendChild(lbl);
+  return n;
+}

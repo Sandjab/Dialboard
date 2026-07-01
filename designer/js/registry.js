@@ -8,7 +8,7 @@
 // défaut (default.*) est localisé À LA CRÉATION via t() — Latin-1 garanti (contrat WS-2).
 import { snapPlacement } from './geometry.js';
 import { t } from './i18n.js';
-import { buildLabel, buildReadout, buildBar, buildRing, buildChart, buildMeter, buildImage, buildImageAnim, buildLed, buildRect, buildCircle, buildLine, buildIcon } from './render.js';
+import { buildLabel, buildReadout, buildBar, buildRing, buildChart, buildMeter, buildImage, buildImageAnim, buildLed, buildRect, buildCircle, buildLine, buildIcon, buildSwitch, buildButton } from './render.js';
 
 // Modes de l'anneau LED physique (value firmware → clé i18n du libellé). Partagé designer/firmware via le schéma.
 export const LED_MODES = [
@@ -146,6 +146,28 @@ export const COMPONENTS = {
     placeFields: [['anchor', 'field.anchor', 'anchor'], ['dx', 'field.dx', 'num'], ['dy', 'field.dy', 'num']],
     mockFields: [['value', 'field.mock_value']],
     build: (comp, _pl, mock) => buildIcon(comp, mock),
+  },
+  switch: {
+    label: 'comp.switch',
+    defaults: () => ({ type: 'switch' }),
+    makePlacement: (id, x, y) => ({ ...screenPlacement(id, x, y), width: 60, height: 30 }),
+    centered: false, physical: false,
+    compFields: [['bind', 'field.bind', 'idtext']],
+    placeFields: [['anchor', 'field.anchor', 'anchor'], ['dx', 'field.dx', 'num'], ['dy', 'field.dy', 'num'],
+                  ['width', 'field.width', 'num', 60], ['height', 'field.height', 'num', 30]],  // 4e = défaut firmware (view.cpp:552)
+    mockFields: [],
+    build: (comp, pl) => buildSwitch(comp, pl),
+  },
+  button: {
+    label: 'comp.button',
+    defaults: () => ({ type: 'button', text: t('default.button.text'), value: 'on' }),
+    makePlacement: (id, x, y) => ({ ...screenPlacement(id, x, y), width: 100, height: 44 }),
+    centered: false, physical: false,
+    compFields: [['text', 'field.text', 'latintext'], ['value', 'field.value', 'value'], ['bind', 'field.bind', 'idtext']],
+    placeFields: [['anchor', 'field.anchor', 'anchor'], ['dx', 'field.dx', 'num'], ['dy', 'field.dy', 'num'],
+                  ['width', 'field.width', 'num', 100], ['height', 'field.height', 'num', 44]],  // 4e = défaut firmware (view.cpp:565)
+    mockFields: [],
+    build: (comp, pl) => buildButton(comp, pl),
   },
   rect: {
     label: 'comp.rect',

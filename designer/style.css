@@ -305,6 +305,12 @@ main > .col:last-child { border-right: 0; }
 .w-led { border-radius: 50%; }
 .w-led-spec { position: absolute; border-radius: 50%; pointer-events: none; }
 
+/* Effecteurs (Plan C) */
+.w-switch { box-sizing: border-box; background: #4B5563; }
+.w-switch-knob { position: absolute; border-radius: 50%; background: #FFFFFF; }
+.w-button { box-sizing: border-box; display: flex; align-items: center; justify-content: center; background: #4B5563; border-radius: 6px; }
+.w-button-label { color: #FFFFFF; white-space: nowrap; line-height: 1; }
+
 .w-ring { cursor: default; }       /* ring centré, non déplaçable (view.cpp:51) */
 .w-ring svg { display: block; }
 /* F4 : l'anneau ne capte le clic que sur ses parties PEINTES — la bande (track/indicateur), la
@@ -420,6 +426,8 @@ main > .col:last-child { border-right: 0; }
 .src-field { display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 8px; }
 .src-field > span { color: #9CA3AF; font-size: 13px; }
 .src-field input { width: 100%; }
+.src-field textarea { width: 100%; }
+.src-field .insp-warn { grid-column: 2; color: var(--err); }
 .src-pairs { display: flex; flex-direction: column; gap: 4px; margin-left: 8px; }
 .src-sub { color: #9CA3AF; font-size: 12px; margin-top: 4px; }
 .src-row { display: flex; gap: 6px; align-items: center; }

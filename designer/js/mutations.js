@@ -333,3 +333,48 @@ export function setSourceVars(state, index, vars) {
   if (vars && Object.keys(vars).length) s.vars = vars;
   else delete s.vars;
 }
+
+// --- Sinks (push réactif ; miroir des sources) ---
+
+// Nom libre <sink><n> : 1er entier sans collision avec les noms existants.
+export function uniqueSinkName(state) {
+  const used = new Set((state.sinks || []).map(s => s.name));
+  let n = 1;
+  while (used.has(`sink${n}`)) n++;
+  return `sink${n}`;
+}
+
+// Ajoute un sink en fin de liste. watch/url absents volontairement (l'utilisateur les saisit ;
+// requis par le schema => signalés invalides tant qu'ils sont vides).
+export function addSink(state, name) {
+  (state.sinks ||= []).push({ name, watch: '', url: '', debounce_ms: 0 });
+}
+
+export function removeSink(state, index) {
+  if (!state.sinks) return;
+  state.sinks.splice(index, 1);
+}
+
+// Edite name/watch/url/debounce_ms. Valeur vide => suppression de la cle (parité avec setSourceProp).
+export function setSinkProp(state, index, key, value) {
+  const s = state.sinks?.[index];
+  if (!s) return;
+  if (value === '' || value === null || value === undefined) delete s[key];
+  else s[key] = value;
+}
+
+// Remplace l'objet headers (reconstruit côté UI depuis une liste de paires). Vide => supprime la clé.
+export function setSinkHeaders(state, index, headers) {
+  const s = state.sinks?.[index];
+  if (!s) return;
+  if (headers && Object.keys(headers).length) s.headers = headers;
+  else delete s.headers;
+}
+
+// Remplace le body (objet JSON envoyé au endpoint). null/absent => supprime la clé (firmware applique son défaut).
+export function setSinkBody(state, index, body) {
+  const s = state.sinks?.[index];
+  if (!s) return;
+  if (body != null) s.body = body;
+  else delete s.body;
+}

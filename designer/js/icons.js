@@ -21,6 +21,8 @@ const PATHS = {
   circle:   '<circle cx="12" cy="12" r="8"/>',
   line:     '<path d="M4 12h16"/>',
   icon:     '<rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="9" cy="9" r="1.6" fill="currentColor" stroke="none"/><path d="M5 18l5-5 3 3 3-4 4 5"/>',
+  switch:   '<rect x="2.5" y="8.5" width="19" height="7" rx="3.5"/><circle cx="16" cy="12" r="2.2" fill="currentColor" stroke="none"/>', // interrupteur (poignée à droite = on)
+  button:   '<rect x="4" y="7" width="16" height="10" rx="3"/><circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none"/>',      // bouton + point de tap
 };
 
 // Construit un <svg> namespacé via DOMParser (parse en contexte SVG, sans innerHTML).

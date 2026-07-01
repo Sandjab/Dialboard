@@ -118,7 +118,9 @@
         { "$ref": "#/$defs/comp_rect" },
         { "$ref": "#/$defs/comp_circle" },
         { "$ref": "#/$defs/comp_line" },
-        { "$ref": "#/$defs/comp_icon" }
+        { "$ref": "#/$defs/comp_icon" },
+        { "$ref": "#/$defs/comp_switch" },
+        { "$ref": "#/$defs/comp_button" }
       ]
     },
     "comp_label": {
@@ -391,6 +393,30 @@
         "orientation": { "enum": ["horizontal", "vertical"], "description": "Sens du séparateur. Defaut horizontal. (réutilise le parsing orientation de bar)" },
         "dash": { "enum": ["solid", "dashed", "dotted"], "description": "Motif du trait (line_dash_width/gap). Defaut solid." },
         "rounded": { "type": "boolean", "description": "Bouts arrondis (line_rounded). Defaut false." }
+      }
+    },
+    "comp_switch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "description": "Effecteur : interrupteur tactile (lv_switch). Écrit bind=on?1:0 à l'interaction (origine UI → arme les sinks) et reflète l'état on/off depuis le contexte. Taille via placement width/height (défaut 60×30).",
+      "properties": {
+        "type": { "const": "switch" },
+        "visible": { "type": "boolean", "description": "Affiche le composant (défaut true). false = caché (LV_OBJ_FLAG_HIDDEN). Révélable via /update." },
+        "bind": { "$ref": "#/$defs/id", "description": "Var de contexte écrite au toggle (origine UI) et reflétée (état on/off)." }
+      }
+    },
+    "comp_button": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "description": "Effecteur : bouton tactile (lv_button + label). Au tap, écrit bind=value (origine UI → arme les sinks). Reflet radio : surbrillance si contexte == value. Taille via placement width/height (défaut 100×44). Texte blanc, police générique (font/font_family, défaut 20).",
+      "properties": {
+        "type": { "const": "button" },
+        "visible": { "type": "boolean", "description": "Affiche le composant (défaut true). false = caché (LV_OBJ_FLAG_HIDDEN). Révélable via /update." },
+        "bind": { "$ref": "#/$defs/id", "description": "Var de contexte écrite au tap (origine UI)." },
+        "text": { "$ref": "#/$defs/display", "description": "Libellé du bouton (Latin-1). Pilotable via /update." },
+        "value": { "type": ["number", "string"], "description": "Valeur écrite dans bind au tap. Nombre → set numérique ; chaîne → set string (le type JSON décide, cf. set_is_num firmware). Absent ⇒ chaîne vide." }
       }
     },
     "page": {

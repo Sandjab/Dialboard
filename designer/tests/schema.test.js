@@ -455,3 +455,15 @@ test('schema : name de source hors Latin-1 (emoji) rejeté', () => {
   l.sources = [{ url: 'https://x', name: 'source 🔥' }];
   assert.equal(validate(l).valid, false);
 });
+
+test('schema : comp_button accepte value nombre ET chaîne ; comp_switch minimal', () => {
+  // layout plus minimal que base() : aucun composant préexistant qui masquerait l'assertion sur switch/button
+  const base2 = { components: {}, pages: [{ name: 'p', place: [] }] };
+  const withNum = { ...base2, components: { b: { type: 'button', text: 'Play', value: 5, bind: 'scene' } } };
+  const withStr = { ...base2, components: { b: { type: 'button', text: 'Movie', value: 'movie', bind: 'scene' } } };
+  const sw      = { ...base2, components: { s: { type: 'switch', bind: 'lamp' } } };
+  for (const layout of [withNum, withStr, sw]) {
+    const r = validate(layout);
+    assert.equal(r.valid, true, JSON.stringify(r.errors));
+  }
+});
