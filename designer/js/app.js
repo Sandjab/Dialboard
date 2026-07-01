@@ -16,6 +16,7 @@ import { createTree } from './tree.js';
 import { createCarousel } from './carousel.js';
 import { bindFileIO } from './file-io.js';
 import { createSources } from './sources.js';
+import { createSinks } from './sinks.js';
 import { stripPhysicalPlacements, ensurePhysicals, pruneOrphans } from './physical.js';
 import { showToast, makeToast } from './toast.js';
 import { withConfirm } from './confirm.js';
@@ -241,11 +242,13 @@ async function main() {
 
   // Panneau Sources (pull réseau) : édition des sources top-level. Indépendant du canvas/pages.
   createSources($('sources'), model);
-  const drawer = createDrawer($('drawer'), { toggleBtn: $('drawer-toggle'), onOpen: () => settings.close() });  // settings déclaré juste après — closure, pas de TDZ
+  createSinks($('sinks'), model);
+  const drawer = createDrawer($('drawer'), { toggleBtn: $('drawer-toggle'), onOpen: () => { settings.close(); sinksDrawer.close(); } });  // settings/sinksDrawer déclarés après — closure, pas de TDZ
+  const sinksDrawer = createDrawer($('sinks-drawer'), { toggleBtn: $('sinks-toggle'), onOpen: () => { drawer.close(); settings.close(); } });
   const languages = await availableLanguages();
   const settings = createSettings($('settings-drawer'), {
     toggleBtn: $('settings-toggle'),
-    onOpen: () => drawer.close(),                 // un seul tiroir ouvert à la fois
+    onOpen: () => { drawer.close(); sinksDrawer.close(); },   // un seul tiroir ouvert à la fois
     getSettings, setSettings,
     languages,
     currentLang: currentLang(),

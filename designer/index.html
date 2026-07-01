@@ -40,6 +40,7 @@
     <!-- Tiroir Sources -->
     <div class="tb-group">
       <button id="drawer-toggle" class="tb-btn" type="button" data-i18n-tip="toolbar.device.tip" data-i18n-title="toolbar.device.title" data-tip="Sources (pull)" title="Sources pull"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.5 3.5l1.4 1.4M11.1 11.1l1.4 1.4M12.5 3.5l-1.4 1.4M4.9 11.1l-1.4 1.4"/></svg></button>
+      <button id="sinks-toggle" class="tb-btn" type="button" data-i18n-tip="toolbar.sinks.tip" data-i18n-title="toolbar.sinks.title" data-tip="Sinks (push)" title="Sinks : push réactif"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v7"/><path d="M5 6l3 3 3-3"/><path d="M2 11v2a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-2"/></svg></button>
     </div>
     <!-- Réglages -->
     <div class="tb-group">
@@ -90,6 +91,19 @@
       </div>
       <div id="sources-pane" class="drawer-pane">
         <div id="sources" class="sources-panel"></div>
+      </div>
+    </div>
+  </aside>
+
+  <aside id="sinks-drawer" class="drawer" hidden>
+    <div class="drawer-backdrop"></div>
+    <div class="drawer-panel" role="dialog" aria-label="Sinks" data-i18n-aria-label="drawer.sinks.aria">
+      <div class="drawer-head">
+        <h2 data-i18n="drawer.sinks.title">Sinks</h2>
+        <button class="drawer-close" type="button" data-i18n-title="drawer.close" title="Fermer">✕</button>
+      </div>
+      <div id="sinks-pane" class="drawer-pane">
+        <div id="sinks" class="sources-panel"></div>
       </div>
     </div>
   </aside>
