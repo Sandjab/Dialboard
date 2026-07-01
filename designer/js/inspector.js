@@ -29,7 +29,7 @@ const nonLatin1 = v => /[^\x20-\x7E\xA0-\xFF]/.test(v ?? '');
 const nonId = v => (v ?? '') !== '' && !/^[A-Za-z0-9_]+$/.test(v);
 
 // Découpe le texte de l'éditeur d'options du roller (une par ligne) → tableau, lignes vides retirées.
-// Miroir du join '\n' firmware (dashboard.cpp:255-259). Exportée pour test.
+// Miroir du join '\n' firmware (bloc COMP_ROLLER, dashboard.cpp). Exportée pour test.
 export function parseOptions(text) {
   return (text ?? '').split('\n').map(s => s.trim()).filter(Boolean);
 }
@@ -468,7 +468,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     ta.value = Array.isArray(c.options) ? c.options.join('\n') : '';
     const warn = document.createElement('span'); warn.className = 'insp-warn';
     warn.textContent = t('inspector.warn.options_empty');
-    warn.style.display = 'none';
+    warn.style.display = parseOptions(ta.value).length ? 'none' : '';
     ta.addEventListener('change', () => {
       const opts = parseOptions(ta.value);
       if (!opts.length) { warn.style.display = ''; return; }   // vide : avertir, pas de commit
