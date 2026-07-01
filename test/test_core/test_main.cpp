@@ -885,6 +885,43 @@ void test_ctxapply_switch_reflects(void) {
     dash_set_context(&d, "{\"v\":0}", 2); context_apply(&d);
     TEST_ASSERT_EQUAL_INT(0, d.components[i].value);
 }
+void test_button_parsed_num(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"components\":{\"b\":{\"type\":\"button\",\"bind\":\"scene\",\"value\":2,\"text\":\"Film\"}},\"pages\":[]}";
+    TEST_ASSERT_TRUE(dash_set_layout(&d, L, err, sizeof(err)));
+    int i = dash_find(&d, "b");
+    TEST_ASSERT_EQUAL_INT(COMP_BUTTON, d.components[i].type);
+    TEST_ASSERT_EQUAL_STRING("scene", d.components[i].bind);
+    TEST_ASSERT_TRUE(d.components[i].set_is_num);
+    TEST_ASSERT_EQUAL_STRING("2", d.components[i].set_value);
+    TEST_ASSERT_EQUAL_STRING("Film", d.components[i].text);
+}
+void test_button_parsed_str(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"components\":{\"b\":{\"type\":\"button\",\"bind\":\"mode\",\"value\":\"movie\"}},\"pages\":[]}";
+    TEST_ASSERT_TRUE(dash_set_layout(&d, L, err, sizeof(err)));
+    int i = dash_find(&d, "b");
+    TEST_ASSERT_FALSE(d.components[i].set_is_num);
+    TEST_ASSERT_EQUAL_STRING("movie", d.components[i].set_value);
+}
+void test_ctxapply_button_radio(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, bound_layout("button", ",\"value\":2"), err, sizeof(err));
+    int i = dash_find(&d, "x");
+    dash_set_context(&d, "{\"v\":2}", 1); context_apply(&d);
+    TEST_ASSERT_EQUAL_INT(1, d.components[i].value);
+    dash_set_context(&d, "{\"v\":3}", 2); context_apply(&d);
+    TEST_ASSERT_EQUAL_INT(0, d.components[i].value);
+}
+void test_ctxapply_button_radio_str(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, bound_layout("button", ",\"value\":\"movie\""), err, sizeof(err));
+    int i = dash_find(&d, "x");
+    dash_set_context(&d, "{\"v\":\"movie\"}", 1); context_apply(&d);
+    TEST_ASSERT_EQUAL_INT(1, d.components[i].value);
+    dash_set_context(&d, "{\"v\":\"music\"}", 2); context_apply(&d);
+    TEST_ASSERT_EQUAL_INT(0, d.components[i].value);
+}
 void test_bar_label_style_parsed(void) {
     Dashboard d{}; char err[80];
     const char* j = "{\"components\":{\"b\":{\"type\":\"bar\",\"label\":\"RAM\","
@@ -1256,6 +1293,10 @@ int main(int, char**) {
     RUN_TEST(test_ctxapply_chart_appends_on_change);
     RUN_TEST(test_switch_parsed);
     RUN_TEST(test_ctxapply_switch_reflects);
+    RUN_TEST(test_button_parsed_num);
+    RUN_TEST(test_button_parsed_str);
+    RUN_TEST(test_ctxapply_button_radio);
+    RUN_TEST(test_ctxapply_button_radio_str);
     RUN_TEST(test_layout_parse_counts);
     RUN_TEST(test_page_background_override_and_inherit);
     RUN_TEST(test_page_background_image_parsed);

@@ -3,6 +3,7 @@
 #include "format.h"
 #include <ArduinoJson.h>
 #include <string.h>
+#include <stdlib.h>                 // atof (reflet radio du button)
 
 bool bg_key_valid(const char* key) {
     if (!key || !key[0]) return false;
@@ -32,6 +33,7 @@ static const struct { const char* name; CompType type; } COMP_NAMES[] = {
     { "rect", COMP_RECT }, { "circle", COMP_CIRCLE }, { "line", COMP_LINE },
     { "icon", COMP_ICON },
     { "switch", COMP_SWITCH },
+    { "button", COMP_BUTTON },
 };
 
 static uint8_t parse_font_family(const char *s) {
@@ -228,6 +230,17 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
             c.led_mode       = parse_led_mode(o["mode"], LED_OFF);
             c.led_period_ms  = o["period_ms"] | 1000;
             c.led_value      = 0;                         // progress part de 0 jusqu'au 1er /update
+        }
+        if (c.type == COMP_BUTTON) {                    // value (num|str) ecrite au tap (origine UI)
+            JsonVariantConst bv = o["value"];
+            c.set_is_num = bv.is<float>() || bv.is<int>();
+            if (c.set_is_num) {
+                double n = bv.as<double>();
+                if (n == (double)(long)n) snprintf(c.set_value, sizeof(c.set_value), "%ld", (long)n);
+                else                      snprintf(c.set_value, sizeof(c.set_value), "%g", n);
+            } else {
+                strlcpy(c.set_value, bv.is<const char*>() ? bv.as<const char*>() : "", sizeof(c.set_value));
+            }
         }
         t.comp_count++;
     }
@@ -440,6 +453,7 @@ static const comp_apply_fn APPLY[] = {
     /* COMP_LINE     */ apply_shape,
     /* COMP_ICON     */ apply_icon,
     /* COMP_SWITCH   */ nullptr,             // push-by-id ajoute plus tard ; reflet via context_apply
+    /* COMP_BUTTON   */ nullptr,             // effecteur : pas de push-by-id, reflet via context_apply
 };
 static_assert(sizeof(APPLY) / sizeof(APPLY[0]) == COMP_COUNT,
               "APPLY desync avec CompType : ajoute la ligne du nouveau type");
@@ -542,6 +556,13 @@ void context_apply(Dashboard* d) {
                     if (c.value != nv) { c.value = nv; changed = true; }
                 }
                 break;
+            case COMP_BUTTON: {                         // effecteur set : actif (radio) si ctx == set_value
+                int32_t nv = 0;
+                if (c.set_is_num) { if (v.type == CTX_NUM && v.num == atof(c.set_value)) nv = 1; }
+                else              { if (v.type == CTX_STR && strncmp(v.str, c.set_value, TEXT_LEN) == 0) nv = 1; }
+                if (c.value != nv) { c.value = nv; changed = true; }
+                break;
+            }
             default: break;                            // led_ring/sound : pas de bind
         }
         if (changed) { c.dirty = true; d->values_dirty = true; }
