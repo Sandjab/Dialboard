@@ -592,6 +592,14 @@ void context_apply(Dashboard* d) {
                     if (c.value != nv) { c.value = nv; changed = true; }
                 }
                 break;
+            case COMP_SLIDER:
+            case COMP_ARC:
+            case COMP_ROLLER:                           // effecteur : scalaire -> valeur (index pour roller)
+                if (v.type == CTX_NUM) {
+                    int32_t nv = (int32_t)v.num;
+                    if (c.value != nv) { c.value = nv; changed = true; }
+                }
+                break;
             case COMP_SWITCH:                           // effecteur : reflete l'etat on/off depuis le ctx
                 if (v.type == CTX_NUM) {
                     int32_t nv = (v.num != 0) ? 1 : 0;

@@ -916,6 +916,29 @@ void test_ctxapply_bar_value(void) {
     context_apply(&d);
     TEST_ASSERT_EQUAL_INT(63, d.components[dash_find(&d,"x")].value);
 }
+void test_ctxapply_slider_value(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, bound_layout("slider", ",\"min\":0,\"max\":100"), err, sizeof(err));
+    dash_set_context(&d, "{\"v\":42}", 1);
+    context_apply(&d);
+    int i = dash_find(&d,"x");
+    TEST_ASSERT_EQUAL_INT(42, d.components[i].value);
+    TEST_ASSERT_TRUE(d.components[i].dirty);
+}
+void test_ctxapply_arc_value(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, bound_layout("arc", ",\"min\":0,\"max\":255"), err, sizeof(err));
+    dash_set_context(&d, "{\"v\":128}", 1);
+    context_apply(&d);
+    TEST_ASSERT_EQUAL_INT(128, d.components[dash_find(&d,"x")].value);
+}
+void test_ctxapply_roller_index(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, bound_layout("roller", ",\"options\":[\"A\",\"B\",\"C\"]"), err, sizeof(err));
+    dash_set_context(&d, "{\"v\":2}", 1);
+    context_apply(&d);
+    TEST_ASSERT_EQUAL_INT(2, d.components[dash_find(&d,"x")].value);
+}
 void test_switch_parsed(void) {
     Dashboard d{}; char err[80];
     const char* L = "{\"components\":{\"s\":{\"type\":\"switch\",\"bind\":\"lamp\"}},\"pages\":[]}";
@@ -1443,6 +1466,9 @@ int main(int, char**) {
     RUN_TEST(test_ctxapply_readout_num_formats);
     RUN_TEST(test_ctxapply_readout_string);
     RUN_TEST(test_ctxapply_bar_value);
+    RUN_TEST(test_ctxapply_slider_value);
+    RUN_TEST(test_ctxapply_arc_value);
+    RUN_TEST(test_ctxapply_roller_index);
     RUN_TEST(test_bar_label_style_parsed);
     RUN_TEST(test_bar_label_style_defaults);
     RUN_TEST(test_ctxapply_unchanged_not_dirty);
