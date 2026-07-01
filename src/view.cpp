@@ -714,7 +714,7 @@ static void slider_event_cb(lv_event_t* e) {
     lv_obj_t* w = lv_event_get_target_obj(e);
     Component* c = (Component*)lv_obj_get_user_data(w);
     if (!c || !s_dash || !c->bind[0]) return;
-    int32_t val = slider_quantize(lv_slider_get_value(w), c->vmin, c->step);
+    int32_t val = slider_quantize(lv_slider_get_value(w), c->vmin, c->vmax, c->step);
     if (g_ctx_mutex) xSemaphoreTake(g_ctx_mutex, portMAX_DELAY);
     dash_ctx_write_ui_num(s_dash, c->bind, val, millis());
     if (g_ctx_mutex) xSemaphoreGive(g_ctx_mutex);
@@ -723,7 +723,7 @@ static void arc_event_cb(lv_event_t* e) {
     lv_obj_t* w = lv_event_get_target_obj(e);
     Component* c = (Component*)lv_obj_get_user_data(w);
     if (!c || !s_dash || !c->bind[0]) return;
-    int32_t val = slider_quantize(lv_arc_get_value(w), c->vmin, c->step);
+    int32_t val = slider_quantize(lv_arc_get_value(w), c->vmin, c->vmax, c->step);
     if (g_ctx_mutex) xSemaphoreTake(g_ctx_mutex, portMAX_DELAY);
     dash_ctx_write_ui_num(s_dash, c->bind, val, millis());
     if (g_ctx_mutex) xSemaphoreGive(g_ctx_mutex);

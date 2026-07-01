@@ -991,13 +991,17 @@ void test_slider_parsed(void) {
     TEST_ASSERT_TRUE(d.components[i].bar_vertical);
 }
 void test_slider_quantize_snaps(void) {
-    TEST_ASSERT_EQUAL_INT(10, slider_quantize(12, 0, 5));    // 12 -> 10
-    TEST_ASSERT_EQUAL_INT(15, slider_quantize(13, 0, 5));    // 13 -> 15
-    TEST_ASSERT_EQUAL_INT(20, slider_quantize(22, 10, 5));   // offset vmin : (22-10)/5=2.4 -> 20
+    TEST_ASSERT_EQUAL_INT(10, slider_quantize(12, 0, 100, 5));   // 12 -> 10
+    TEST_ASSERT_EQUAL_INT(15, slider_quantize(13, 0, 100, 5));   // 13 -> 15
+    TEST_ASSERT_EQUAL_INT(20, slider_quantize(22, 10, 100, 5));  // offset vmin : (22-10)/5=2.4 -> 20
 }
 void test_slider_quantize_off_when_step_zero(void) {
-    TEST_ASSERT_EQUAL_INT(42, slider_quantize(42, 0, 0));    // step<=0 -> pas de quantification
-    TEST_ASSERT_EQUAL_INT(42, slider_quantize(42, 0, -3));
+    TEST_ASSERT_EQUAL_INT(42, slider_quantize(42, 0, 100, 0));   // step<=0 -> pas de quantification
+    TEST_ASSERT_EQUAL_INT(42, slider_quantize(42, 0, 100, -3));
+}
+void test_slider_quantize_clamps_to_vmax(void) {
+    TEST_ASSERT_EQUAL_INT(10, slider_quantize(10, 0, 10, 4));    // arrondi donnerait 12 -> borné à 10
+    TEST_ASSERT_EQUAL_INT(10, slider_quantize(10, 0, 10, 6));    // idem : 12 -> 10
 }
 void test_arc_parsed(void) {
     Dashboard d{}; char err[80];
@@ -1425,6 +1429,7 @@ int main(int, char**) {
     RUN_TEST(test_slider_parsed);
     RUN_TEST(test_slider_quantize_snaps);
     RUN_TEST(test_slider_quantize_off_when_step_zero);
+    RUN_TEST(test_slider_quantize_clamps_to_vmax);
     RUN_TEST(test_arc_parsed);
     RUN_TEST(test_roller_parsed);
     RUN_TEST(test_button_momentary_parsed);

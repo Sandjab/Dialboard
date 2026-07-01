@@ -549,10 +549,10 @@ void dash_ctx_pulse_str(Dashboard* d, const char* var, const char* v, uint32_t n
 }
 
 // Arrondit val au multiple de step le plus proche au-dessus de vmin (LVGL n'a pas de pas natif sur slider/arc).
-int32_t slider_quantize(int32_t val, int32_t vmin, int32_t step) {
+int32_t slider_quantize(int32_t val, int32_t vmin, int32_t vmax, int32_t step) {
     if (step <= 0) return val;
-    int32_t steps = (int32_t)lround((double)(val - vmin) / step);
-    return vmin + steps * step;
+    int32_t r = vmin + (int32_t)lround((double)(val - vmin) / step) * step;
+    return r > vmax ? vmax : r;
 }
 
 void context_apply(Dashboard* d) {
