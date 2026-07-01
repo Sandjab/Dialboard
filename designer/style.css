@@ -394,6 +394,7 @@ main > .col:last-child { border-right: 0; }
 .insp-label { flex: 0 0 96px; color: #9aa0aa; }
 .insp-row input[type="text"], .insp-row input[type="number"], .insp-row select { flex: 1; min-width: 0; background: var(--panel-2); border: 1px solid var(--line); color: var(--ink); border-radius: 4px; padding: 2px 5px; }
 .insp-row input[type="color"] { width: 36px; height: 22px; padding: 0; border: 1px solid var(--line); background: none; }
+.insp-options { width: 100%; box-sizing: border-box; resize: vertical; font: inherit; }
 .insp-row.disabled { opacity: .45; }
 /* Affordance "Source" : la ligne bind (donnée poussée/tirée) ressort. */
 .insp-source .insp-label { color: var(--accent); }

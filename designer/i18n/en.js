@@ -214,6 +214,7 @@ export default {
   'field.rows': 'Rows',
   'field.momentary': 'Momentary',
   'inspector.tip.value_mode': 'Set: written on tap (radio reflect). Momentary: pulse then reset.',
+  'inspector.warn.options_empty': 'At least one option required',
   // --- Messages partagés id/page (arbre + carousel) ---
   'id.invalid': 'Invalid id: letters, digits, _ only',
   'id.taken': 'Id « {id} » is already taken',

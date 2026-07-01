@@ -28,6 +28,12 @@ const SELECTS = {
 const nonLatin1 = v => /[^\x20-\x7E\xA0-\xFF]/.test(v ?? '');
 const nonId = v => (v ?? '') !== '' && !/^[A-Za-z0-9_]+$/.test(v);
 
+// Découpe le texte de l'éditeur d'options du roller (une par ligne) → tableau, lignes vides retirées.
+// Miroir du join '\n' firmware (dashboard.cpp:255-259). Exportée pour test.
+export function parseOptions(text) {
+  return (text ?? '').split('\n').map(s => s.trim()).filter(Boolean);
+}
+
 const deviceHidden = new Set();   // refs poussées cachées sur le device (état de bascule du bouton)
 
 // Œil de visibilité : icône SVG en data-URI (img), couleur baked-in (clair = visible, rouge = caché).
@@ -430,6 +436,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     const ref = sel.ref;                                  // figée au rendu (cf. invariant inspecteur)
     const row = document.createElement('div'); row.className = 'insp-row';
     const span = document.createElement('span'); span.className = 'insp-label'; span.textContent = t(label);
+    span.title = t('inspector.tip.value_mode');
     row.appendChild(span);
     const txt = document.createElement('input'); txt.type = 'text';
     txt.value = c.value == null ? '' : String(c.value);
@@ -444,6 +451,31 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     txt.addEventListener('change', commit);
     num.addEventListener('change', commit);
     row.append(txt, num);
+    return row;
+  }
+
+  // Éditeur « Options » du roller : textarea, une option par ligne (miroir du join '\n' firmware).
+  // Commit sur 'change' → tableau (lignes vides retirées) ; vide → avertissement rouge + PAS de commit.
+  // ref figée au rendu (invariant inspecteur : le 'change' peut partir après un changement de sélection).
+  function optionsField(label, c) {
+    const ref = sel.ref;
+    const row = document.createElement('div'); row.className = 'insp-row';
+    const span = document.createElement('span'); span.className = 'insp-label'; span.textContent = t(label);
+    row.appendChild(span);
+    const ta = document.createElement('textarea');
+    ta.className = 'insp-options';
+    ta.rows = 4;
+    ta.value = Array.isArray(c.options) ? c.options.join('\n') : '';
+    const warn = document.createElement('span'); warn.className = 'insp-warn';
+    warn.textContent = t('inspector.warn.options_empty');
+    warn.style.display = 'none';
+    ta.addEventListener('change', () => {
+      const opts = parseOptions(ta.value);
+      if (!opts.length) { warn.style.display = ''; return; }   // vide : avertir, pas de commit
+      warn.style.display = 'none';
+      model.commit(s => setComponentProp(s, ref, 'options', opts));
+    });
+    row.append(ta, warn);
     return row;
   }
 
@@ -624,6 +656,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
         if (kind === 'image_anim') { propBody.appendChild(imageAnimField(label, c)); continue; }   // editeur bespoke
         if (kind === 'fill') { propBody.appendChild(fillField(label, c)); continue; }   // forme : fond optionnel (bespoke : enableWhen non supporté, comme image/image_anim)
         if (kind === 'value') { propBody.appendChild(valueField(label, c)); continue; }  // button : valeur num|str (bespoke)
+        if (kind === 'options') { propBody.appendChild(optionsField(label, c)); continue; }   // roller : liste bespoke
         // Color picker : aperçu live sur 'input' (canvas seul, hors modèle → pas de flood undo) ; commit
         // unique sur 'change' (makeInput), précédé d'un clearPreview pour que le commit re-rende l'état réel.
         // ref figée au rendu : le color picker émet son 'change' en DIFFÉRÉ (après qu'un clic ailleurs a

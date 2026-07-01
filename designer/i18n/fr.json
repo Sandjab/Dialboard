@@ -207,6 +207,7 @@
   "field.rows": "Rangées",
   "field.momentary": "Momentané",
   "inspector.tip.value_mode": "Set : écrit au tap (reflet radio). Momentané : impulsion puis reset.",
+  "inspector.warn.options_empty": "Au moins une option requise",
   "id.invalid": "id invalide : lettres, chiffres, _ uniquement",
   "id.taken": "L'id « {id} » est déjà pris",
   "page.invalid_name": "nom de page invalide : lettres, chiffres, _ uniquement",
