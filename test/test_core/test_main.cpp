@@ -1003,6 +1003,9 @@ void test_slider_quantize_clamps_to_vmax(void) {
     TEST_ASSERT_EQUAL_INT(10, slider_quantize(10, 0, 10, 4));    // arrondi donnerait 12 -> borné à 10
     TEST_ASSERT_EQUAL_INT(10, slider_quantize(10, 0, 10, 6));    // idem : 12 -> 10
 }
+void test_slider_quantize_clamps_to_vmin(void) {
+    TEST_ASSERT_EQUAL_INT(0, slider_quantize(-5, 0, 10, 4));     // arrondi donnerait -4 -> borné à 0
+}
 void test_arc_parsed(void) {
     Dashboard d{}; char err[80];
     const char* L = "{\"components\":{\"a\":{\"type\":\"arc\",\"bind\":\"dim\",\"min\":0,\"max\":255}},\"pages\":[]}";
@@ -1430,6 +1433,7 @@ int main(int, char**) {
     RUN_TEST(test_slider_quantize_snaps);
     RUN_TEST(test_slider_quantize_off_when_step_zero);
     RUN_TEST(test_slider_quantize_clamps_to_vmax);
+    RUN_TEST(test_slider_quantize_clamps_to_vmin);
     RUN_TEST(test_arc_parsed);
     RUN_TEST(test_roller_parsed);
     RUN_TEST(test_button_momentary_parsed);
