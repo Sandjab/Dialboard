@@ -5,6 +5,7 @@ import {
   ringSweepDeg, arcIndicatorAngles, pointOnArc, arcPath, ringPaths, sparklinePoints, meterAngle, capArcPath, ledLit,
   resolveIcon
 } from '../js/render.js';
+import * as render from '../js/render.js';
 
 test('pickFontPx renvoie la taille exacte, clampée à [8,120] (Tiny TTF rend toute taille)', () => {
   assert.equal(pickFontPx(24), 24);
@@ -164,4 +165,16 @@ test('resolveIcon : champ omis dans une bande retombe sur la base', () => {
   assert.deepEqual(resolveIcon(comp, 0), { symbol: 'wifi', color: '#888888' });
   const comp2 = { symbol: 'wifi', color: '#FFFFFF', states: [{ at: 1, symbol: 'close' }] };
   assert.deepEqual(resolveIcon(comp2, 0), { symbol: 'close', color: '#FFFFFF' });
+});
+
+test('render : buildSlider/buildArc/buildRoller exportés', () => {
+  assert.equal(typeof render.buildSlider, 'function');
+  assert.equal(typeof render.buildArc, 'function');
+  assert.equal(typeof render.buildRoller, 'function');
+});
+
+test('render : MOCKS a slider/arc/roller', () => {
+  assert.ok('slider' in render.MOCKS);
+  assert.ok('arc' in render.MOCKS);
+  assert.ok('roller' in render.MOCKS);
 });
