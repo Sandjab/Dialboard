@@ -259,6 +259,7 @@
   "inspector.tip.remove_anim": "Retirer l'animation",
   "inspector.tip.frame": "Frame {i} — clic = frame de repos",
   "inspector.tip.fill_bg": "Remplir le fond",
+  "inspector.tip.value_numeric": "Émettre comme nombre (décoché = texte)",
   "inspector.tip.page_bg_fallback": "Repli : ne s'affiche que si l'image de fond est absente.",
   "inspector.tip.inherit_bg": "Hériter du fond global",
   "inspector.tip.bg_unavailable": "Fond défini — aperçu indisponible (octets stockés sur le device)",

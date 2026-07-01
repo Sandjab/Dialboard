@@ -272,6 +272,7 @@ export default {
   'inspector.tip.remove_anim': 'Remove the animation',
   'inspector.tip.frame': 'Frame {i} — click = rest frame',
   'inspector.tip.fill_bg': 'Fill the background',
+  'inspector.tip.value_numeric': 'Send as a number (unchecked = text)',
   'inspector.tip.page_bg_fallback': 'Fallback: only shown if the background image is missing.',
   'inspector.tip.inherit_bg': 'Inherit the global background',
   'inspector.tip.bg_unavailable': 'Background set — preview unavailable (bytes stored on the device)',
