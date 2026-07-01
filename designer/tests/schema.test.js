@@ -468,6 +468,10 @@ test('schema : comp_button accepte value nombre ET chaîne ; comp_switch minimal
   }
 });
 
+test('schema : comp_button accepte momentary', () => {
+  const withMom = { components: { b: { type: 'button', text: 'Ring', bind: 'bell', momentary: true } }, pages: [{ name: 'p', place: [] }] };
+  assert.equal(validate(withMom).valid, true, JSON.stringify(validate(withMom).errors));
+});
 test('schema : comp_slider valide (minimal + complet)', () => {
   const pages = [{ name: 'p', place: [] }];
   const min = { components: { s: { type: 'slider' } }, pages };

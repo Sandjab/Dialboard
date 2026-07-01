@@ -419,7 +419,8 @@
         "visible": { "type": "boolean", "description": "Affiche le composant (défaut true). false = caché (LV_OBJ_FLAG_HIDDEN). Révélable via /update." },
         "bind": { "$ref": "#/$defs/id", "description": "Var de contexte écrite au tap (origine UI)." },
         "text": { "$ref": "#/$defs/display", "description": "Libellé du bouton (Latin-1). Pilotable via /update." },
-        "value": { "type": ["number", "string"], "description": "Valeur écrite dans bind au tap. Nombre → set numérique ; chaîne → set string (le type JSON décide, cf. set_is_num firmware). Absent ⇒ chaîne vide." }
+        "value": { "type": ["number", "string"], "description": "Valeur écrite dans bind au tap. Nombre → set numérique ; chaîne → set string (le type JSON décide, cf. set_is_num firmware). Absent ⇒ chaîne vide." },
+        "momentary": { "type": "boolean", "description": "Mode du bouton : false = set (écrit value, reflet radio) ; true = impulsion (value puis reset). Défaut false." }
       }
     },
     "comp_slider": {
