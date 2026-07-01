@@ -11,6 +11,11 @@
 #include "config.h"
 #include "asset_fs.h"
 #include "fonts.h"
+#include <Arduino.h>                 // millis()
+#include "freertos/semphr.h"
+#include "dashboard.h"               // dash_ctx_write_ui_num/str (deja tire via view.h, explicite ici)
+
+extern SemaphoreHandle_t g_ctx_mutex;   // defini dans main.cpp, sérialise l'accès au contexte
 
 static lv_obj_t* s_page_cont[MAX_PAGES];
 static lv_obj_t* s_widget[MAX_PAGES][MAX_PLACEMENTS_PER_PAGE];
@@ -536,6 +541,45 @@ static void sync_icon(Component& c, Placement&, lv_obj_t* w, lv_obj_t*, lv_obj_t
     lv_label_set_text(w, ICON_GLYPHS[sym]);
 }
 
+// Effecteurs : premiers composants interactifs. user_data = &c (ré-assigné à chaque rebuild),
+// lu par le callback tactile pour retrouver bind/set_value. Style LVGL par défaut (thème checked).
+// Callbacks définis plus bas (zone gesture, avec s_dash) -> déclarés ici pour build_*.
+static void switch_event_cb(lv_event_t* e);
+static void button_event_cb(lv_event_t* e);
+static void build_switch(lv_obj_t* parent, Component& c, Placement& q,
+                         lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
+    lv_obj_t* sw = lv_switch_create(parent);
+    if (q.width || q.height) lv_obj_set_size(sw, q.width ? q.width : 60, q.height ? q.height : 30);
+    lv_obj_align(sw, ALIGN_MAP[q.anchor], q.dx, q.dy);
+    lv_obj_set_user_data(sw, &c);
+    lv_obj_add_event_cb(sw, switch_event_cb, LV_EVENT_VALUE_CHANGED, nullptr);
+    *main = sw;
+}
+static void sync_switch(Component& c, Placement&, lv_obj_t* w, lv_obj_t*, lv_obj_t*) {
+    if (c.value) lv_obj_add_state(w, LV_STATE_CHECKED);     // reflet (lv_obj_add_state n'émet pas VALUE_CHANGED)
+    else         lv_obj_remove_state(w, LV_STATE_CHECKED);
+}
+static void build_button(lv_obj_t* parent, Component& c, Placement& q,
+                         lv_obj_t** main, lv_obj_t** sub1, lv_obj_t**) {
+    lv_obj_t* b = lv_button_create(parent);
+    if (q.width || q.height) lv_obj_set_size(b, q.width ? q.width : 100, q.height ? q.height : 44);
+    lv_obj_align(b, ALIGN_MAP[q.anchor], q.dx, q.dy);
+    lv_obj_set_user_data(b, &c);
+    lv_obj_add_event_cb(b, button_event_cb, LV_EVENT_CLICKED, nullptr);
+    lv_obj_t* lbl = lv_label_create(b);
+    lv_obj_set_style_text_font(lbl, get_font(c.font_family, c.font, c.bold, c.italic), 0);
+    lv_obj_set_style_text_color(lbl, lv_color_hex(0xFFFFFF), 0);
+    lv_label_set_text(lbl, c.text);
+    lv_obj_center(lbl);
+    *main = b;
+    *sub1 = lbl;
+}
+static void sync_button(Component& c, Placement&, lv_obj_t* w, lv_obj_t* sub1, lv_obj_t*) {
+    if (c.value) lv_obj_add_state(w, LV_STATE_CHECKED);     // reflet radio : surbrillance si ctx == value
+    else         lv_obj_remove_state(w, LV_STATE_CHECKED);
+    if (sub1) lv_label_set_text(sub1, c.text);              // libellé pilotable via /update text
+}
+
 // Vtable vue indexée par CompType. Types physiques (led_ring/sound) : build/sync = nullptr
 // (rendus par leur tick dédié -> le moteur les saute). label/readout partagent build_text.
 struct ViewVTable {
@@ -561,20 +605,46 @@ static const ViewVTable VIEW[] = {
     /* COMP_CIRCLE   */ { build_circle, nullptr },
     /* COMP_LINE     */ { build_line,   nullptr },
     /* COMP_ICON     */ { build_icon, sync_icon },
+    /* COMP_SWITCH   */ { build_switch, sync_switch },
+    /* COMP_BUTTON   */ { build_button, sync_button },
 };
 static_assert(sizeof(VIEW) / sizeof(VIEW[0]) == COMP_COUNT,
               "VIEW desync avec CompType : ajoute la ligne du nouveau type");
 
 // Swipe -> navigation. L'objet ecran persiste a travers les rebuilds (lv_obj_clean
 // ne supprime que ses enfants), donc on n'enregistre le callback gesture qu'une fois.
-static Dashboard* s_dash_for_gesture = nullptr;
+// Dashboard actif courant : partagé par le callback de geste (nav) ET les callbacks d'effecteurs
+// (button/switch). Reposé à chaque view_rebuild. L'écran persiste à travers les rebuilds.
+static Dashboard* s_dash = nullptr;
 static void gesture_cb(lv_event_t* e) {
     lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_active());
-    if (!s_dash_for_gesture) return;
+    if (!s_dash) return;
     // Seuls les swipes latéraux naviguent : droite = suivant, gauche = précédent.
     // Haut/bas volontairement ignorés (réservés à une future page de config par swipe haut).
-    if (dir == LV_DIR_RIGHT)     nav_goto_dir(s_dash_for_gesture, +1, /*animate=*/true);
-    else if (dir == LV_DIR_LEFT) nav_goto_dir(s_dash_for_gesture, -1, /*animate=*/true);
+    if (dir == LV_DIR_RIGHT)     nav_goto_dir(s_dash, +1, /*animate=*/true);
+    else if (dir == LV_DIR_LEFT) nav_goto_dir(s_dash, -1, /*animate=*/true);
+}
+
+// Effecteurs : écriture d'origine UI. Tournent sur le thread UI (cœur 1, dans lv_timer_handler) ;
+// prennent g_ctx_mutex en BLOQUANT (le mutex n'est jamais tenu pendant un HTTP -> attente brève)
+// pour garantir l'écriture, puis dash_ctx_write_ui_* (écrit le ctx + arme les sinks observant la var).
+static void switch_event_cb(lv_event_t* e) {
+    lv_obj_t* w = lv_event_get_target_obj(e);
+    Component* c = (Component*)lv_obj_get_user_data(w);
+    if (!c || !s_dash || !c->bind[0]) return;   // bind vide -> pas de var fantome (symetrie context_apply)
+    bool on = lv_obj_has_state(w, LV_STATE_CHECKED);
+    if (g_ctx_mutex) xSemaphoreTake(g_ctx_mutex, portMAX_DELAY);
+    dash_ctx_write_ui_num(s_dash, c->bind, on ? 1 : 0, millis());
+    if (g_ctx_mutex) xSemaphoreGive(g_ctx_mutex);
+}
+static void button_event_cb(lv_event_t* e) {
+    lv_obj_t* w = lv_event_get_target_obj(e);
+    Component* c = (Component*)lv_obj_get_user_data(w);
+    if (!c || !s_dash || !c->bind[0]) return;   // bind vide -> pas de var fantome (symetrie context_apply)
+    if (g_ctx_mutex) xSemaphoreTake(g_ctx_mutex, portMAX_DELAY);
+    if (c->set_is_num) dash_ctx_write_ui_num(s_dash, c->bind, c->set_value_num, millis());
+    else               dash_ctx_write_ui_str(s_dash, c->bind, c->set_value, millis());
+    if (g_ctx_mutex) xSemaphoreGive(g_ctx_mutex);
 }
 
 // Met à jour la coloration des points indicateurs sans toucher aux flags hidden des pages
@@ -778,7 +848,7 @@ void view_rebuild(Dashboard* d) {
     s_dots = nullptr;  // freed by lv_obj_clean above; drop stale pointer
     lv_obj_set_style_bg_color(scr, lv_color_hex(d->background), 0);
     lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
-    s_dash_for_gesture = d;
+    s_dash = d;
     static bool s_gesture_cb_added = false;
     if (!s_gesture_cb_added) {
         lv_obj_add_event_cb(scr, gesture_cb, LV_EVENT_GESTURE, nullptr);

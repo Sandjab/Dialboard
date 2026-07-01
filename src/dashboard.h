@@ -4,7 +4,7 @@
 #include "config.h"
 #include "context.h"
 
-enum CompType { COMP_NONE, COMP_LABEL, COMP_READOUT, COMP_BAR, COMP_RING, COMP_LED_RING, COMP_SOUND, COMP_CHART, COMP_METER, COMP_IMAGE, COMP_IMAGE_ANIM, COMP_LED, COMP_RECT, COMP_CIRCLE, COMP_LINE, COMP_ICON, COMP_COUNT };
+enum CompType { COMP_NONE, COMP_LABEL, COMP_READOUT, COMP_BAR, COMP_RING, COMP_LED_RING, COMP_SOUND, COMP_CHART, COMP_METER, COMP_IMAGE, COMP_IMAGE_ANIM, COMP_LED, COMP_RECT, COMP_CIRCLE, COMP_LINE, COMP_ICON, COMP_SWITCH, COMP_BUTTON, COMP_COUNT };
 enum LedMode  { LED_OFF, LED_SOLID, LED_PROGRESS, LED_SPINNER, LED_BLINK, LED_BREATHE };
 enum BarMode  { BAR_NORMAL, BAR_SYMMETRICAL };               // bar : lv_bar_set_mode
 enum ArcMode  { ARC_NORMAL, ARC_SYMMETRICAL, ARC_REVERSE };  // ring : lv_arc_set_mode
@@ -82,6 +82,11 @@ struct Component {
     uint8_t   icon_symbol;                       // index du glyphe de base (-> ICON_GLYPHS dans view.cpp)
     IconState icon_states[MAX_ICON_STATES];
     int       icon_state_count;
+
+    // button (effecteur set) : valeur ecrite dans bind au tap
+    char     set_value[TEXT_LEN];   // valeur a ecrire (cas string) ; forme canonique aussi peuplee si num
+    double   set_value_num;         // valeur numerique pre-parsee (cas num) : evite atof() recurrent + perte %g
+    bool     set_is_num;            // true => valeur numerique (set_value_num), sinon string (set_value)
 
     // --- etat (modifie par /update) ---
     int32_t  value;
