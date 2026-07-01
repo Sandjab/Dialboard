@@ -905,6 +905,51 @@ void test_button_parsed_str(void) {
     TEST_ASSERT_FALSE(d.components[i].set_is_num);
     TEST_ASSERT_EQUAL_STRING("movie", d.components[i].set_value);
 }
+void test_slider_parsed(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"components\":{\"s\":{\"type\":\"slider\",\"bind\":\"vol\",\"min\":0,\"max\":10,"
+                    "\"step\":2,\"orientation\":\"vertical\"}},\"pages\":[]}";
+    TEST_ASSERT_TRUE(dash_set_layout(&d, L, err, sizeof(err)));
+    int i = dash_find(&d, "s");
+    TEST_ASSERT_EQUAL_INT(COMP_SLIDER, d.components[i].type);
+    TEST_ASSERT_EQUAL_STRING("vol", d.components[i].bind);
+    TEST_ASSERT_EQUAL_INT(0,  d.components[i].vmin);
+    TEST_ASSERT_EQUAL_INT(10, d.components[i].vmax);
+    TEST_ASSERT_EQUAL_INT(2,  d.components[i].step);
+    TEST_ASSERT_TRUE(d.components[i].bar_vertical);
+}
+void test_arc_parsed(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"components\":{\"a\":{\"type\":\"arc\",\"bind\":\"dim\",\"min\":0,\"max\":255}},\"pages\":[]}";
+    TEST_ASSERT_TRUE(dash_set_layout(&d, L, err, sizeof(err)));
+    int i = dash_find(&d, "a");
+    TEST_ASSERT_EQUAL_INT(COMP_ARC, d.components[i].type);
+    TEST_ASSERT_EQUAL_INT(255, d.components[i].vmax);
+}
+void test_roller_parsed(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"components\":{\"r\":{\"type\":\"roller\",\"bind\":\"src\","
+                    "\"options\":[\"HDMI\",\"TV\",\"AUX\"],\"rows\":5}},\"pages\":[]}";
+    TEST_ASSERT_TRUE(dash_set_layout(&d, L, err, sizeof(err)));
+    int i = dash_find(&d, "r");
+    TEST_ASSERT_EQUAL_INT(COMP_ROLLER, d.components[i].type);
+    TEST_ASSERT_EQUAL_STRING("HDMI\nTV\nAUX", d.components[i].roller_options);
+    TEST_ASSERT_EQUAL_INT(5, d.components[i].roller_rows);
+}
+void test_button_momentary_parsed(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"components\":{\"b\":{\"type\":\"button\",\"bind\":\"bell\",\"value\":1,"
+                    "\"momentary\":true}},\"pages\":[]}";
+    TEST_ASSERT_TRUE(dash_set_layout(&d, L, err, sizeof(err)));
+    int i = dash_find(&d, "b");
+    TEST_ASSERT_TRUE(d.components[i].momentary);
+}
+void test_button_set_defaults_not_momentary(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"components\":{\"b\":{\"type\":\"button\",\"bind\":\"scene\",\"value\":2}},\"pages\":[]}";
+    TEST_ASSERT_TRUE(dash_set_layout(&d, L, err, sizeof(err)));
+    TEST_ASSERT_FALSE(d.components[dash_find(&d,"b")].momentary);
+}
 void test_ctxapply_button_radio(void) {
     Dashboard d{}; char err[80];
     dash_set_layout(&d, bound_layout("button", ",\"value\":2"), err, sizeof(err));
@@ -1296,6 +1341,11 @@ int main(int, char**) {
     RUN_TEST(test_ctxapply_switch_reflects);
     RUN_TEST(test_button_parsed_num);
     RUN_TEST(test_button_parsed_str);
+    RUN_TEST(test_slider_parsed);
+    RUN_TEST(test_arc_parsed);
+    RUN_TEST(test_roller_parsed);
+    RUN_TEST(test_button_momentary_parsed);
+    RUN_TEST(test_button_set_defaults_not_momentary);
     RUN_TEST(test_ctxapply_button_radio);
     RUN_TEST(test_ctxapply_button_radio_str);
     RUN_TEST(test_layout_parse_counts);

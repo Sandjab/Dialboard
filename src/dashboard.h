@@ -4,7 +4,7 @@
 #include "config.h"
 #include "context.h"
 
-enum CompType { COMP_NONE, COMP_LABEL, COMP_READOUT, COMP_BAR, COMP_RING, COMP_LED_RING, COMP_SOUND, COMP_CHART, COMP_METER, COMP_IMAGE, COMP_IMAGE_ANIM, COMP_LED, COMP_RECT, COMP_CIRCLE, COMP_LINE, COMP_ICON, COMP_SWITCH, COMP_BUTTON, COMP_COUNT };
+enum CompType { COMP_NONE, COMP_LABEL, COMP_READOUT, COMP_BAR, COMP_RING, COMP_LED_RING, COMP_SOUND, COMP_CHART, COMP_METER, COMP_IMAGE, COMP_IMAGE_ANIM, COMP_LED, COMP_RECT, COMP_CIRCLE, COMP_LINE, COMP_ICON, COMP_SWITCH, COMP_BUTTON, COMP_SLIDER, COMP_ARC, COMP_ROLLER, COMP_COUNT };
 enum LedMode  { LED_OFF, LED_SOLID, LED_PROGRESS, LED_SPINNER, LED_BLINK, LED_BREATHE };
 enum BarMode  { BAR_NORMAL, BAR_SYMMETRICAL };               // bar : lv_bar_set_mode
 enum ArcMode  { ARC_NORMAL, ARC_SYMMETRICAL, ARC_REVERSE };  // ring : lv_arc_set_mode
@@ -87,6 +87,13 @@ struct Component {
     char     set_value[TEXT_LEN];   // valeur a ecrire (cas string) ; forme canonique aussi peuplee si num
     double   set_value_num;         // valeur numerique pre-parsee (cas num) : evite atof() recurrent + perte %g
     bool     set_is_num;            // true => valeur numerique (set_value_num), sinon string (set_value)
+    // button momentary (impulsion) : true => pulse (capture-a-l'arm) au lieu de set
+    bool     momentary;
+    // slider/arc : pas de composant neuf ; min/max reutilisent vmin/vmax, orientation slider = bar_vertical
+    int32_t  step;                  // slider/arc : pas de quantification si <= 0
+    // roller : libelles joints par '\n' + rangees visibles
+    char     roller_options[ROLLER_OPTS_LEN];
+    uint8_t  roller_rows;
 
     // --- etat (modifie par /update) ---
     int32_t  value;

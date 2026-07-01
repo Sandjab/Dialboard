@@ -33,6 +33,9 @@ static const struct { const char* name; CompType type; } COMP_NAMES[] = {
     { "icon", COMP_ICON },
     { "switch", COMP_SWITCH },
     { "button", COMP_BUTTON },
+    { "slider", COMP_SLIDER },
+    { "arc",    COMP_ARC    },
+    { "roller", COMP_ROLLER },
 };
 
 static uint8_t parse_font_family(const char *s) {
@@ -131,6 +134,7 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
         c.color       = parse_hex_color(o["color"] | "#FFFFFF", 0xFFFFFF);
         c.vmin        = o["min"] | 0;
         c.vmax        = o["max"] | 100;
+        c.step        = o["step"] | 0;
         c.off_below   = o["off_below"] | 1;
         c.led_glow      = o["glow"]      | true;
         c.led_bezel     = o["bezel"]     | true;
@@ -242,6 +246,20 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
                 c.set_value_num = 0.0;
                 strlcpy(c.set_value, bv.is<const char*>() ? bv.as<const char*>() : "", sizeof(c.set_value));
             }
+            c.momentary = o["momentary"] | false;
+        }
+        if (c.type == COMP_ROLLER) {
+            size_t ro = 0;
+            for (JsonVariantConst ov : o["options"].as<JsonArrayConst>()) {
+                const char* opt = ov.is<const char*>() ? ov.as<const char*>() : "";
+                if (ro && ro + 1 < sizeof(c.roller_options)) c.roller_options[ro++] = '\n';
+                for (const char* p = opt; *p && ro + 1 < sizeof(c.roller_options); p++) c.roller_options[ro++] = *p;
+            }
+            c.roller_options[ro] = '\0';
+            int rows = o["rows"] | 3;
+            if (rows < 1) rows = 1;
+            if (rows > MAX_ROLLER_ROWS) rows = MAX_ROLLER_ROWS;
+            c.roller_rows = (uint8_t)rows;
         }
         t.comp_count++;
     }
@@ -455,6 +473,9 @@ static const comp_apply_fn APPLY[] = {
     /* COMP_ICON     */ apply_icon,
     /* COMP_SWITCH   */ nullptr,             // push-by-id ajoute plus tard ; reflet via context_apply
     /* COMP_BUTTON   */ nullptr,             // effecteur : pas de push-by-id, reflet via context_apply
+    /* COMP_SLIDER   */ nullptr,             // effecteur : reflet via context_apply
+    /* COMP_ARC      */ nullptr,
+    /* COMP_ROLLER   */ nullptr,
 };
 static_assert(sizeof(APPLY) / sizeof(APPLY[0]) == COMP_COUNT,
               "APPLY desync avec CompType : ajoute la ligne du nouveau type");
