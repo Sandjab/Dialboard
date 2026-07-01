@@ -424,11 +424,13 @@
       }
     },
     "comp_slider": {
-      "type": "object", "additionalProperties": false, "required": ["type"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
       "description": "Effecteur : curseur linéaire (lv_slider). Écrit bind = valeur (quantifiée si step>0) au glissement (origine UI → arme les sinks). Place via width/height/anchor/dx/dy (défaut 200×16).",
       "properties": {
         "type": { "const": "slider" },
-        "visible": { "type": "boolean" },
+        "visible": { "type": "boolean", "description": "Affiche le composant (défaut true). false = caché (LV_OBJ_FLAG_HIDDEN). Révélable via /update." },
         "bind": { "$ref": "#/$defs/id", "description": "Variable écrite au glissement (origine UI)." },
         "min": { "type": "number", "description": "Borne basse (défaut 0)." },
         "max": { "type": "number", "description": "Borne haute (défaut 100)." },
@@ -438,11 +440,13 @@
       }
     },
     "comp_arc": {
-      "type": "object", "additionalProperties": false, "required": ["type"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
       "description": "Effecteur : cadran circulaire (lv_arc). Écrit bind = valeur (quantifiée si step>0) au tournoiement. Géométrie via placement radius/thickness/gap_deg/start_angle (comme le ring). Piste grise, indicateur coloré.",
       "properties": {
         "type": { "const": "arc" },
-        "visible": { "type": "boolean" },
+        "visible": { "type": "boolean", "description": "Affiche le composant (défaut true). false = caché (LV_OBJ_FLAG_HIDDEN). Révélable via /update." },
         "bind": { "$ref": "#/$defs/id", "description": "Variable écrite au tournoiement (origine UI)." },
         "min": { "type": "number", "description": "Borne basse (défaut 0)." },
         "max": { "type": "number", "description": "Borne haute (défaut 100)." },
@@ -453,11 +457,13 @@
       }
     },
     "comp_roller": {
-      "type": "object", "additionalProperties": false, "required": ["type", "options"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "options"],
       "description": "Effecteur : molette de sélection (lv_roller). Écrit bind = index sélectionné (numérique) au défilement. Place via width/anchor/dx/dy (hauteur auto = rows lignes).",
       "properties": {
         "type": { "const": "roller" },
-        "visible": { "type": "boolean" },
+        "visible": { "type": "boolean", "description": "Affiche le composant (défaut true). false = caché (LV_OBJ_FLAG_HIDDEN). Révélable via /update." },
         "bind": { "$ref": "#/$defs/id", "description": "Variable écrite à la sélection (index numérique)." },
         "options": { "type": "array", "items": { "$ref": "#/$defs/display" }, "minItems": 1, "description": "Libellés des options (une par ligne dans l'éditeur)." },
         "rows": { "type": "integer", "minimum": 1, "maximum": 7, "description": "Rangées visibles (défaut 3, max MAX_ROLLER_ROWS)." }
