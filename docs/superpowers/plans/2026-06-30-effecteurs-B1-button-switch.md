@@ -22,7 +22,7 @@
 | `src/dashboard.h` | enum `CompType`, struct `Component` | +`COMP_SWITCH`/`COMP_BUTTON` ; +champs button `set_value`/`set_is_num` |
 | `src/dashboard.cpp` | table `COMP_NAMES`, parse, `context_apply` | +noms ; +parse `value` du button ; +cases reflet switch/button |
 | `src/view.cpp` | rendu LVGL + callbacks | +`build_*`/`sync_*`/`*_event_cb` switch/button ; +lignes `VIEW[]` ; +extern mutex ; rename `s_dash_for_gesture`→`s_dash` |
-| `schema/layout.schema.json` | contrat layout | +`comp_switch`/`comp_button` (oneOf + $defs) |
+| ~~`schema/layout.schema.json`~~ | **déplacé au Plan C** (voir Task 4) — couplé au registre designer par un test de parité stricte |
 | `test/test_core/test_main.cpp` | tests natifs | +tests parse + reflet (5) |
 | `data/layout-effecteurs-test.json` (scratchpad) | layout de vérif on-device | nouveau (non committé) |
 
@@ -426,7 +426,9 @@ Claude-Session: https://claude.ai/code/session_017hhk3fuJASRkpuHhH8cCcv"
 
 ---
 
-### Task 4: Schéma + layout de test
+### Task 4: Schéma + layout de test — ⚠️ DÉPLACÉE AU PLAN C
+
+> **Non exécutée en B1** (décision 2026-07-01). Le schéma des composants (`comp_switch`/`comp_button`) est couplé au registre du designer par un test de parité stricte (`designer/tests/registry.test.js` : `Object.keys(COMPONENTS)` doit égaler exactement les `type` du schéma, et chaque entrée registre exige `build`/`compFields`/`defaults()`… = rendu WYSIWYG). Ajouter les composants au schéma oblige donc à créer les entrées registre + le rendu designer → c'est le **Plan C**. B1 reste **firmware pur** : le firmware parse `switch`/`button` sans le schéma (parsing tolérant), donc la vérif on-device (Task 5) fonctionne. Le bloc ci-dessous sert de matériau au Plan C. La création du layout de test est reprise dans la Task 5.
 
 **Files:**
 - Modify: `schema/layout.schema.json` (oneOf + $defs)
