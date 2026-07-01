@@ -4,6 +4,7 @@
 #include "sink.h"
 #include <ArduinoJson.h>
 #include <string.h>
+#include <math.h>
 
 bool bg_key_valid(const char* key) {
     if (!key || !key[0]) return false;
@@ -545,6 +546,13 @@ void dash_ctx_pulse_num(Dashboard* d, const char* var, double v, uint32_t now) {
 void dash_ctx_pulse_str(Dashboard* d, const char* var, const char* v, uint32_t now) {
     if (ctx_set_str(&d->ctx, var, v, now)) arm_sinks(d, var, now, true);
     ctx_set_str(&d->ctx, var, "", now);
+}
+
+// Arrondit val au multiple de step le plus proche au-dessus de vmin (LVGL n'a pas de pas natif sur slider/arc).
+int32_t slider_quantize(int32_t val, int32_t vmin, int32_t step) {
+    if (step <= 0) return val;
+    int32_t steps = (int32_t)lround((double)(val - vmin) / step);
+    return vmin + steps * step;
 }
 
 void context_apply(Dashboard* d) {

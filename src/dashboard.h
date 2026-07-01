@@ -197,3 +197,4 @@ void dash_ctx_write_ui_str(Dashboard* d, const char* var, const char* v, uint32_
 void dash_ctx_pulse_num(Dashboard* d, const char* var, double v, uint32_t now);   // momentary : capture + reset
 void dash_ctx_pulse_str(Dashboard* d, const char* var, const char* v, uint32_t now);
 void context_apply(Dashboard* d);
+int32_t slider_quantize(int32_t val, int32_t vmin, int32_t step);   // arrondi au pas ; step<=0 => val
