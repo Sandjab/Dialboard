@@ -23,6 +23,13 @@ const PATHS = {
   icon:     '<rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="9" cy="9" r="1.6" fill="currentColor" stroke="none"/><path d="M5 18l5-5 3 3 3-4 4 5"/>',
   switch:   '<rect x="2.5" y="8.5" width="19" height="7" rx="3.5"/><circle cx="16" cy="12" r="2.2" fill="currentColor" stroke="none"/>', // interrupteur (poignée à droite = on)
   button:   '<rect x="4" y="7" width="16" height="10" rx="3"/><circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none"/>',      // bouton + point de tap
+  slider: '<line x1="3" y1="12" x2="21" y2="12"/>' +
+          '<circle cx="14" cy="12" r="3" fill="currentColor" stroke="none"/>',
+  arc:    '<path d="M4 16 A 9 9 0 1 1 20 16" fill="none"/>' +
+          '<circle cx="20" cy="16" r="2.2" fill="currentColor" stroke="none"/>',
+  roller: '<rect x="5" y="4" width="14" height="16" rx="2"/>' +
+          '<line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/>' +
+          '<polyline points="9 7 12 5.5 15 7" fill="none"/>',
 };
 
 // Construit un <svg> namespacé via DOMParser (parse en contexte SVG, sans innerHTML).

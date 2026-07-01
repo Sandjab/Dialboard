@@ -120,7 +120,10 @@
         { "$ref": "#/$defs/comp_line" },
         { "$ref": "#/$defs/comp_icon" },
         { "$ref": "#/$defs/comp_switch" },
-        { "$ref": "#/$defs/comp_button" }
+        { "$ref": "#/$defs/comp_button" },
+        { "$ref": "#/$defs/comp_slider" },
+        { "$ref": "#/$defs/comp_arc" },
+        { "$ref": "#/$defs/comp_roller" }
       ]
     },
     "comp_label": {
@@ -417,6 +420,46 @@
         "bind": { "$ref": "#/$defs/id", "description": "Var de contexte écrite au tap (origine UI)." },
         "text": { "$ref": "#/$defs/display", "description": "Libellé du bouton (Latin-1). Pilotable via /update." },
         "value": { "type": ["number", "string"], "description": "Valeur écrite dans bind au tap. Nombre → set numérique ; chaîne → set string (le type JSON décide, cf. set_is_num firmware). Absent ⇒ chaîne vide." }
+      }
+    },
+    "comp_slider": {
+      "type": "object", "additionalProperties": false, "required": ["type"],
+      "description": "Effecteur : curseur linéaire (lv_slider). Écrit bind = valeur (quantifiée si step>0) au glissement (origine UI → arme les sinks). Place via width/height/anchor/dx/dy (défaut 200×16).",
+      "properties": {
+        "type": { "const": "slider" },
+        "visible": { "type": "boolean" },
+        "bind": { "$ref": "#/$defs/id", "description": "Variable écrite au glissement (origine UI)." },
+        "min": { "type": "number", "description": "Borne basse (défaut 0)." },
+        "max": { "type": "number", "description": "Borne haute (défaut 100)." },
+        "step": { "type": "integer", "description": "Pas de quantification. <=0 = valeur brute (défaut 0)." },
+        "orientation": { "enum": ["horizontal", "vertical"], "description": "Sens du curseur (défaut horizontal)." },
+        "color": { "$ref": "#/$defs/hexColor", "description": "Couleur de l'indicateur (défaut #FFFFFF)." }
+      }
+    },
+    "comp_arc": {
+      "type": "object", "additionalProperties": false, "required": ["type"],
+      "description": "Effecteur : cadran circulaire (lv_arc). Écrit bind = valeur (quantifiée si step>0) au tournoiement. Géométrie via placement radius/thickness/gap_deg/start_angle (comme le ring). Piste grise, indicateur coloré.",
+      "properties": {
+        "type": { "const": "arc" },
+        "visible": { "type": "boolean" },
+        "bind": { "$ref": "#/$defs/id", "description": "Variable écrite au tournoiement (origine UI)." },
+        "min": { "type": "number", "description": "Borne basse (défaut 0)." },
+        "max": { "type": "number", "description": "Borne haute (défaut 100)." },
+        "step": { "type": "integer", "description": "Pas de quantification. <=0 = valeur brute (défaut 0)." },
+        "mode": { "enum": ["normal", "symmetrical", "reverse"], "description": "Sens de remplissage (défaut normal)." },
+        "rounded": { "type": "boolean", "description": "Extrémités arrondies (défaut true)." },
+        "color": { "$ref": "#/$defs/hexColor", "description": "Couleur de l'indicateur (défaut #FFFFFF)." }
+      }
+    },
+    "comp_roller": {
+      "type": "object", "additionalProperties": false, "required": ["type", "options"],
+      "description": "Effecteur : molette de sélection (lv_roller). Écrit bind = index sélectionné (numérique) au défilement. Place via width/anchor/dx/dy (hauteur auto = rows lignes).",
+      "properties": {
+        "type": { "const": "roller" },
+        "visible": { "type": "boolean" },
+        "bind": { "$ref": "#/$defs/id", "description": "Variable écrite à la sélection (index numérique)." },
+        "options": { "type": "array", "items": { "$ref": "#/$defs/display" }, "minItems": 1, "description": "Libellés des options (une par ligne dans l'éditeur)." },
+        "rows": { "type": "integer", "minimum": 1, "maximum": 7, "description": "Rangées visibles (défaut 3, max MAX_ROLLER_ROWS)." }
       }
     },
     "page": {

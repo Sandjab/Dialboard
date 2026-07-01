@@ -184,7 +184,7 @@ test('registre : switch expose bind seul + defaults()', () => {
 
 test('registre : button expose text/value/bind + defaults() (value string, radio set)', () => {
   const keys = COMPONENTS.button.compFields.map(f => f[0]);
-  assert.deepEqual(keys, ['text', 'value', 'bind']);
+  assert.deepEqual(keys, ['text', 'value', 'momentary', 'bind']);
   const d = COMPONENTS.button.defaults();
   assert.equal(d.type, 'button');
   assert.equal(typeof d.value, 'string');          // défaut string (set_is_num=false côté firmware)
@@ -196,4 +196,31 @@ test('registre : switch/button émettent width/height au placement (parité tail
   assert.equal(sw.width, 60); assert.equal(sw.height, 30);
   const bt = COMPONENTS.button.makePlacement('bt1', 180, 180);
   assert.equal(bt.width, 100); assert.equal(bt.height, 44);
+});
+
+test('registre : slider/arc/roller présents, non physiques', () => {
+  for (const t of ['slider', 'arc', 'roller']) {
+    assert.ok(COMPONENTS[t], `${t} absent du registre`);
+    assert.equal(COMPONENTS[t].physical, false);
+    assert.equal(COMPONENTS[t].defaults().type, t);
+  }
+});
+
+test('registre : compFields attendus (parité firmware)', () => {
+  assert.deepEqual(COMPONENTS.slider.compFields.map(f => f[0]), ['bind', 'min', 'max', 'step', 'orientation', 'color']);
+  assert.deepEqual(COMPONENTS.arc.compFields.map(f => f[0]), ['bind', 'min', 'max', 'step', 'mode', 'rounded', 'color']);
+  assert.deepEqual(COMPONENTS.roller.compFields.map(f => f[0]), ['bind', 'options', 'rows']);
+  assert.ok(COMPONENTS.button.compFields.some(f => f[0] === 'momentary' && f[2] === 'bool'));
+});
+
+test('registre : roller.options via kind bespoke "options"', () => {
+  assert.equal(COMPONENTS.roller.compFields.find(f => f[0] === 'options')[2], 'options');
+  assert.deepEqual(COMPONENTS.roller.defaults().options, ['OFF', 'ON']);
+});
+
+test('registre : slider/arc émettent les tailles/géométrie au placement', () => {
+  const sl = COMPONENTS.slider.makePlacement('s1', 180, 180);
+  assert.equal(sl.width, 200); assert.equal(sl.height, 16);
+  const ar = COMPONENTS.arc.makePlacement('a1', 180, 180);
+  assert.equal(ar.radius, 80); assert.equal(ar.thickness, 16); assert.equal(ar.gap_deg, 70);
 });
