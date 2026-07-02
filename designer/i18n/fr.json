@@ -353,6 +353,7 @@
   "console.tab.js": "Log JS",
   "console.tab.net": "Log réseau",
   "console.tab.device_context": "Device",
+  "console.tab.wifi": "WiFi",
   "console.devctx.pull": "Pull",
   "console.devctx.auto": "Auto (2 s)",
   "console.devctx.vars": "Variables",

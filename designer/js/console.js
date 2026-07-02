@@ -7,8 +7,8 @@
 import { t } from './i18n.js';
 import { formatDeviceDump } from './device.js';
 
-export function createConsole(root, model, { validate, logs, getSettings, pullDeviceContext }) {
-  let tab = 'problems';     // onglet actif : problems | source | activity | js | net | deviceCtx
+export function createConsole(root, model, { validate, logs, getSettings, pullDeviceContext, mountWifi }) {
+  let tab = 'problems';     // onglet actif : problems | source | activity | js | net | deviceCtx | wifi
   let isOpen = false;       // corps déplié ? (≠ la méthode publique open(t) renvoyée plus bas)
   let syncAuto = () => {};   // remplacé en Tâche 7 (auto-refresh) — laissé mutable (let) pour la substitution
 
@@ -28,11 +28,12 @@ export function createConsole(root, model, { validate, logs, getSettings, pullDe
     js: mkTab('js', t('console.tab.js')),
     net: mkTab('net', t('console.tab.net')),
     deviceCtx: mkTab('deviceCtx', t('console.tab.device_context')),
+    wifi: mkTab('wifi', t('console.tab.wifi')),
   };
   const spacer = document.createElement('span'); spacer.className = 'console-spacer';
   const toggle = document.createElement('button');
   toggle.type = 'button'; toggle.className = 'console-toggle'; toggle.title = t('console.toggle_tip');
-  head.append(tabBtns.problems, tabBtns.source, tabBtns.activity, tabBtns.js, tabBtns.net, tabBtns.deviceCtx, spacer, toggle);
+  head.append(tabBtns.problems, tabBtns.source, tabBtns.activity, tabBtns.js, tabBtns.net, tabBtns.deviceCtx, tabBtns.wifi, spacer, toggle);
 
   // --- Corps : Problèmes (liste) + Source (pre + Copier) + 3 panneaux de journaux (liste + Vider) ---
   const body = document.createElement('div');
@@ -69,19 +70,23 @@ export function createConsole(root, model, { validate, logs, getSettings, pullDe
   const devOut = document.createElement('div'); devOut.className = 'console-devout';
   devCtx.append(devBar, devOut);
 
-  body.append(problems, source, logPanels.activity.wrap, logPanels.js.wrap, logPanels.net.wrap, devCtx);
+  // --- Panneau WiFi : monté par app.js (createWifiPanel), gaté par le réglage deviceWifi ---
+  const wifiPanel = document.createElement('div'); wifiPanel.className = 'console-wifi';
+
+  body.append(problems, source, logPanels.activity.wrap, logPanels.js.wrap, logPanels.net.wrap, devCtx, wifiPanel);
   root.append(head, body);
 
   const panelByTab = {
     problems, source,
     activity: logPanels.activity.wrap, js: logPanels.js.wrap, net: logPanels.net.wrap,
     deviceCtx: devCtx,
+    wifi: wifiPanel,
   };
   const LOG_TABS = { activity: 'logActivity', js: 'logJs', net: 'logNet' };
   // Quels onglets optionnels sont visibles selon les settings (case décochée → onglet masqué).
   const tabVisible = () => {
     const s = (getSettings && getSettings()) || {};
-    return { activity: !!s.logActivity, js: !!s.logJs, net: !!s.logNet, deviceCtx: !!s.deviceContext };
+    return { activity: !!s.logActivity, js: !!s.logJs, net: !!s.logNet, deviceCtx: !!s.deviceContext, wifi: !!s.deviceWifi };
   };
 
   const syncView = () => {
@@ -92,17 +97,18 @@ export function createConsole(root, model, { validate, logs, getSettings, pullDe
     tabBtns.js.hidden = !vis.js;
     tabBtns.net.hidden = !vis.net;
     tabBtns.deviceCtx.hidden = !vis.deviceCtx;
+    tabBtns.wifi.hidden = !vis.wifi;
     for (const k of Object.keys(tabBtns)) tabBtns[k].classList.toggle('active', tab === k);
     for (const k of Object.keys(panelByTab)) panelByTab[k].hidden = tab !== k;
     toggle.textContent = isOpen ? '▾' : '▴';
   };
 
-  // Appelé par app.js quand un réglage de journal (ou de l'onglet Device) change : si l'onglet actif
+  // Appelé par app.js quand un réglage de journal (ou de l'onglet Device/WiFi) change : si l'onglet actif
   // vient d'être masqué, on retombe sur « Problèmes » (sinon un panneau caché resterait « actif »
   // sans onglet cliquable).
   const refreshTabs = () => {
     const vis = tabVisible();
-    if ((tab in LOG_TABS && !vis[tab]) || (tab === 'deviceCtx' && !vis.deviceCtx)) tab = 'problems';
+    if ((tab in LOG_TABS && !vis[tab]) || (tab === 'deviceCtx' && !vis.deviceCtx) || (tab === 'wifi' && !vis.wifi)) tab = 'problems';
     syncAuto();
     syncView();
   };
@@ -241,6 +247,7 @@ export function createConsole(root, model, { validate, logs, getSettings, pullDe
   logs.subscribe(() => { if (tab in LOG_TABS) renderLog(tab); });   // nouvelle ligne pendant qu'on regarde un journal
   renderProblems(); renderSource(); syncView();
   renderDevCtx(null, null);   // état « aucun pull » d'emblée
+  if (mountWifi) mountWifi(wifiPanel);   // monte le panneau WiFi (liste/ajout/suppression) une fois, dans l'onglet
 
   return {
     // Ouvre la console sur un onglet (appelé par le clic validation de la barre d'état → 'problems').

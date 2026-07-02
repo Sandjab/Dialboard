@@ -371,6 +371,7 @@ export default {
   'console.tab.js': 'JS Log',
   'console.tab.net': 'Network Log',
   'console.tab.device_context': 'Device',
+  'console.tab.wifi': 'WiFi',
   'console.devctx.pull': 'Pull',
   'console.devctx.auto': 'Auto (2s)',
   'console.devctx.vars': 'Variables',

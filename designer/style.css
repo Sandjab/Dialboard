@@ -205,6 +205,7 @@ main > .col:last-child { border-right: 0; }
 .console-devctx[hidden] { display: none; }   /* display:flex (auteur) l'emporterait sinon sur [hidden] (UA) */
 
 /* Panneau WiFi (liste/ajout/suppression de réseaux device), gaté par le réglage deviceWifi. */
+.console-wifi { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden; }
 .console-wifi[hidden] { display: none; }   /* même gotcha que .console-devctx : display auteur l'emporterait sur [hidden] (UA) */
 
 /* --- Plan B : webfont + canvas --- */
