@@ -1,3 +1,4 @@
+#include "clock_geom.h"
 #include <unity.h>
 #include <string.h>
 #include "format.h"
@@ -1426,6 +1427,31 @@ void test_wifi_parse_garbage_empty(void) {
     TEST_ASSERT_EQUAL_INT(0, wifi_list_parse("{}", m, 5));              // pas de clé nets -> 0
 }
 
+// --- clock_geom : logique pure des aiguilles + format digital ---
+void test_clock_angles_noon(void) {
+    float h, m, s; clock_hand_angles(12, 0, 0, &h, &m, &s);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, h);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, m);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, s);
+}
+void test_clock_angles_quarter(void) {
+    float h, m, s; clock_hand_angles(3, 0, 0, &h, &m, &s);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 90.0f, h);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, m);
+}
+void test_clock_angles_half_past(void) {
+    float h, m, s; clock_hand_angles(6, 30, 0, &h, &m, &s);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 195.0f, h);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 180.0f, m);
+}
+void test_clock_digital(void) {
+    char buf[16];
+    clock_format_digital(9, 5, 7, false, buf, sizeof(buf));
+    TEST_ASSERT_EQUAL_STRING("09:05", buf);
+    clock_format_digital(9, 5, 7, true, buf, sizeof(buf));
+    TEST_ASSERT_EQUAL_STRING("09:05:07", buf);
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_remaining_seconds);
@@ -1598,5 +1624,9 @@ int main(int, char**) {
     RUN_TEST(test_ctx_to_json_filter);
     RUN_TEST(test_ctx_to_json_filter_multi);
     RUN_TEST(test_ctx_to_json_str);
+    RUN_TEST(test_clock_angles_noon);
+    RUN_TEST(test_clock_angles_quarter);
+    RUN_TEST(test_clock_angles_half_past);
+    RUN_TEST(test_clock_digital);
     return UNITY_END();
 }
