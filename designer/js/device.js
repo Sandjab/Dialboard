@@ -37,6 +37,14 @@ export async function getStatus(base) {
   return r.json();
 }
 
+// GET /context : dump du blackboard { nom: valeur, … }. vars = CSV optionnel → filtre ?vars=a,b,c.
+export async function getContext(base, vars) {
+  const q = vars ? '?vars=' + encodeURIComponent(vars) : '';
+  const r = await devFetch(base, '/context' + q);
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
 // POST /page : navigue la page affichée SUR LE DEVICE. body = {dir:'next'|'prev'} | {index:N} | {name:'…'}.
 export async function setDevicePage(base, body) {
   const r = await devFetch(base, '/page', {
