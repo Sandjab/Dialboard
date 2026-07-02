@@ -76,7 +76,10 @@ static void h_portal_save() {
     String ssid = s_ap_server.arg("ssid");
     String pass = s_ap_server.arg("pass");
     if (!ssid.length()) { s_ap_server.send(400, "text/html", "SSID vide"); return; }
-    wifi_store_upsert(ssid.c_str(), pass.c_str());
+    if (!wifi_store_upsert(ssid.c_str(), pass.c_str())) {   // liste pleine -> rien enregistre : ne PAS rebooter (sinon cul-de-sac)
+        s_ap_server.send(507, "text/html", "<h2>Liste pleine</h2><p>Trop de reseaux. Supprime-en un depuis le designer, puis reessaie.</p>");
+        return;
+    }
     s_ap_server.send(200, "text/html", "<meta http-equiv=refresh content='3'><h2>Enregistre. Redemarrage...</h2>");
     s_reboot = true;
 }

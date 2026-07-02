@@ -26,7 +26,6 @@
 
 #define HTTP_PORT               80
 #define MDNS_HOST               "dialboard"
-#define WIFI_BOOT_TIMEOUT_MS    20000
 #define LAYOUT_PATH             "/layout.json"
 #define SECRETS_PATH            "/secrets.json"
 #define MAX_WIFI_NETS           5           // réseaux WiFi stockés (NVS)
