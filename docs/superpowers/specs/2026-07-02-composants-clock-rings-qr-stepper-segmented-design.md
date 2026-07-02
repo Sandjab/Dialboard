@@ -71,8 +71,9 @@ On ajoute **5 composants**, en **une seule fois**, en **version minimale d'abord
   - `center` : optionnel — texte libre affiché au centre (ou vide).
 - **Rendu firmware** : N `lv_arc` en indicateur, rayons décroissants calculés par index ; chaque piste
   lit son `bind`. Réutilise la mécanique de l'anneau `ring` existant, empilée.
-- **Application valeur** : `POST /update {"<bind_piste>": v}` met à jour la piste correspondante
-  (chaque piste a sa propre clé `bind`).
+- **Application valeur** (raffiné au plan : `/update` adresse par **ID de composant**, pas par var) :
+  `POST /update {"<ringsId>": [v0, v1, v2]}` (tableau, push-by-id) met à jour les pistes dans l'ordre.
+  Chaque piste garde un `bind` optionnel pour le chemin pull/sources (lu via `context_apply`).
 - **Parité designer** : arcs concentriques (prototype validé au brainstorm).
 - **Hors périmètre** : seuils/gradients par piste (couleur unie), > 3 pistes, légende courbe par piste,
   countdown.
@@ -83,8 +84,9 @@ On ajoute **5 composants**, en **une seule fois**, en **version minimale d'abord
 - **Champs (minimaux)** :
   - `text` : chaîne encodée (défaut = URL du device). **Updatable via `bind`** comme un label
     (`POST /update {"<id>": "…"}`).
-  - `ecc` : `L` | `M` | `Q` | `H` (défaut `M`).
   - couleurs (contraste requis ; défauts sombre/clair).
+- **ECC figé à MEDIUM** (découvert au plan : `lv_qrcode.c` hardcode `qrcodegen_Ecc_MEDIUM`).
+  Pas de champ `ecc` : les deux côtés encodent en MEDIUM → parité triviale.
 - **Rendu firmware** : `LV_USE_QRCODE 1` dans `src/lv_conf.h` + `lv_qrcode_create` / `lv_qrcode_update`.
   (`lv_qrcode` est présent dans notre LVGL 9.5 : `.pio/libdeps/esp32s3/lvgl/src/libs/qrcode/`,
   seulement désactivé par défaut.)
