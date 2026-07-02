@@ -7,8 +7,6 @@ playgrounds/*
 !playgrounds/README.md
 .playwright-mcp/
 .DS_Store
-# Identifiants WiFi — local uniquement, jamais committé (cf. src/secrets.h.example)
-src/secrets.h
 # Maquettes du compagnon visuel de brainstorm (scratch, non trackées)
 .superpowers/
 designer/electron/node_modules/
