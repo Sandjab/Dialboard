@@ -54,6 +54,13 @@ test('schema : secrets top-level reste interdit (write-only, hors layout)', () =
   assert.equal(validate(l).valid, false);
 });
 
+test('schema : tz racine accepté', () => {
+  const l = base();
+  l.tz = 'UTC0';
+  const r = validate(l);
+  assert.equal(r.valid, true, JSON.stringify(r.errors));
+});
+
 test('schema : composant chart valide (points + bind)', () => {
   const l = base();
   l.components.g = { type: 'chart', color: '#38BDF8', min: 0, max: 100, points: 30, bind: 'cpu' };

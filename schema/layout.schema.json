@@ -16,6 +16,7 @@
         "wrap": { "type": "boolean", "description": "Navigation circulaire (derniere page -> premiere). Defaut true." }
       }
     },
+    "tz": { "type": "string", "description": "Fuseau POSIX (configTzTime) pour le composant clock. Defaut \"UTC0\". Ex. \"CET-1CEST,M3.5.0,M10.5.0\" (Paris)." },
     "components": {
       "type": "object",
       "description": "Map id -> definition. AUCUNE position ici (la position vit dans pages[].place[]). Un meme id place sur plusieurs pages = un seul exemplaire, etat partage.",

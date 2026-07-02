@@ -170,6 +170,7 @@ struct Dashboard {
     char      title[TEXT_LEN];
     uint32_t  background;
     bool      nav_wrap;
+    char      tz[TZ_LEN];   // fuseau POSIX pour clock (defaut "UTC0")
     Component components[MAX_COMPONENTS];
     int       comp_count;
     Page      pages[MAX_PAGES];

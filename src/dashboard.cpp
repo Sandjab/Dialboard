@@ -119,6 +119,7 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
     strlcpy(t.title, doc["title"] | "", sizeof(t.title));
     t.background = parse_hex_color(doc["background"] | "#000000", 0x000000);
     t.nav_wrap   = doc["nav"]["wrap"] | true;
+    strlcpy(t.tz, doc["tz"] | "UTC0", sizeof(t.tz));
 
     JsonObjectConst comps = doc["components"].as<JsonObjectConst>();
     if (comps.isNull()) { snprintf(err, errn, "components manquant"); return false; }
