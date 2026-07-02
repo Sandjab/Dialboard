@@ -11,7 +11,7 @@ export function defaultSettings() {
   return { lang: 'en',
            theme: 'amber',
            ghostOpacity: 0.38, gridShow: false, gridSnap: false, gridStep: 10,
-           logActivity: true, logJs: false, logNet: false };
+           logActivity: true, logJs: false, logNet: false, deviceContext: false };
 }
 
 export function normalizeSettings(raw) {
@@ -28,6 +28,7 @@ export function normalizeSettings(raw) {
     logActivity: typeof r.logActivity === 'boolean' ? r.logActivity : d.logActivity,
     logJs: typeof r.logJs === 'boolean' ? r.logJs : d.logJs,
     logNet: typeof r.logNet === 'boolean' ? r.logNet : d.logNet,
+    deviceContext: typeof r.deviceContext === 'boolean' ? r.deviceContext : d.deviceContext,
   };
 }
 
