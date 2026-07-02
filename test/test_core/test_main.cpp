@@ -1452,6 +1452,31 @@ void test_clock_digital(void) {
     TEST_ASSERT_EQUAL_STRING("09:05:07", buf);
 }
 
+// --- clock : parse de la config (mode + show_seconds) ---
+static const char* LAYOUT_CLOCK_DEFAULT =
+  "{\"title\":\"T\",\"background\":\"#000000\","
+  "\"components\":{\"clk\":{\"type\":\"clock\"}},"
+  "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"clk\",\"radius\":80}]}]}";
+static const char* LAYOUT_CLOCK_DIGITAL =
+  "{\"title\":\"T\",\"background\":\"#000000\","
+  "\"components\":{\"clk\":{\"type\":\"clock\",\"mode\":\"digital\",\"show_seconds\":true}},"
+  "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"clk\",\"radius\":80}]}]}";
+
+void test_clock_parse_defaults(void) {
+    Dashboard d{}; char err[80];
+    TEST_ASSERT_TRUE(dash_set_layout(&d, LAYOUT_CLOCK_DEFAULT, err, sizeof(err)));
+    int i = dash_find(&d, "clk");
+    TEST_ASSERT_TRUE(d.components[i].clock_analog);     // mode absent -> analogique par défaut
+    TEST_ASSERT_FALSE(d.components[i].show_seconds);    // défaut false
+}
+void test_clock_parse_digital_seconds(void) {
+    Dashboard d{}; char err[80];
+    TEST_ASSERT_TRUE(dash_set_layout(&d, LAYOUT_CLOCK_DIGITAL, err, sizeof(err)));
+    int i = dash_find(&d, "clk");
+    TEST_ASSERT_FALSE(d.components[i].clock_analog);    // mode:"digital" -> pas analogique
+    TEST_ASSERT_TRUE(d.components[i].show_seconds);
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_remaining_seconds);
@@ -1628,5 +1653,7 @@ int main(int, char**) {
     RUN_TEST(test_clock_angles_quarter);
     RUN_TEST(test_clock_angles_half_past);
     RUN_TEST(test_clock_digital);
+    RUN_TEST(test_clock_parse_defaults);
+    RUN_TEST(test_clock_parse_digital_seconds);
     return UNITY_END();
 }

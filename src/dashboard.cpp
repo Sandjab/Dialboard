@@ -234,7 +234,6 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
         if (c.type == COMP_CLOCK) {
             c.clock_analog = (strcmp(o["mode"] | "analog", "digital") != 0);
             c.show_seconds = o["show_seconds"] | false;
-            c.show_date    = o["show_date"] | false;
         }
         if (c.type == COMP_LED_RING) {                    // config -> état initial du driver (boot vivant)
             c.led_color      = c.color;                   // (sinon le driver retombe sur blanc tant qu'aucun /update)

@@ -98,7 +98,6 @@ struct Component {
     // clock : cadran analogique (aiguilles) ou digital (label HH:MM[:SS]) ; heure = device (NTP), pas de push-by-id
     bool     clock_analog;    // true=cadran, false=digital (défaut true)
     bool     show_seconds;
-    bool     show_date;
 
     // --- etat (modifie par /update) ---
     int32_t  value;

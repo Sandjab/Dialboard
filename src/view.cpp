@@ -47,8 +47,10 @@ static lv_style_t s_meter_section_style[MAX_COMPONENTS][MAX_THRESHOLDS];
 static bool       s_meter_section_init[MAX_COMPONENTS][MAX_THRESHOLDS] = {{0}};
 
 // clock : aiguilles = lv_line, mêmes contraintes de pointeur persistant que s_line_pts.
-// Indexé par composant (comme s_meter_section_style) : [comp][hour/min/sec][2 points].
-static lv_point_precise_t s_clock_pts[MAX_COMPONENTS][3][2];
+// Indexé par PLACEMENT (comme s_line_pts) et non par composant : la géométrie dépend de q.radius,
+// propriété du placement -> un même id clock sur 2 pages a 2 rayons distincts. Rempli par build_clock,
+// relu par sync_clock, tous deux repérés par s_cur_page/s_cur_place. [page][place][hour/min/sec][2 points].
+static lv_point_precise_t s_clock_pts[MAX_PAGES][MAX_PLACEMENTS_PER_PAGE][3][2];
 
 // led : descripteurs de gradient persistants (lv_obj_set_style_bg_grad stocke le pointeur).
 static lv_grad_dsc_t s_led_dome_grad[MAX_COMPONENTS];
@@ -689,18 +691,18 @@ static void build_clock(lv_obj_t* parent, Component& c, Placement& q,
         lv_obj_set_size(tick, vertical ? 4 : 10, vertical ? 10 : 4);
         lv_obj_align(tick, TICK_ALIGN[i], 0, 0);
     }
-    int idx = q.comp_index;
+    // Aiguilles = derniers enfants du conteneur (après les 4 ticks) -> sync_clock les retrouve
+    // par la fin (child0 = child_count - nlines). Points stockés par placement (s_cur_page/place).
+    lv_point_precise_t (*pts)[2] = s_clock_pts[s_cur_page][s_cur_place];
     int nlines = c.show_seconds ? 3 : 2;
     for (int k = 0; k < nlines; k++) {
         lv_obj_t* ln = lv_line_create(box);
         lv_obj_set_style_line_width(ln, k == 0 ? 6 : (k == 1 ? 4 : 2), 0);
-        lv_obj_set_style_line_color(ln, lv_color_hex(k == 2 ? 0x38BDF8 : c.color), 0);
+        lv_obj_set_style_line_color(ln, lv_color_hex(k == 2 ? 0x38BDF8 : c.color), 0);   // k==2 : accent trotteuse (voulu)
         lv_obj_set_style_line_rounded(ln, true, 0);
-        if (idx >= 0 && idx < MAX_COMPONENTS) {
-            s_clock_pts[idx][k][0] = (lv_point_precise_t){ (lv_value_precise_t)r, (lv_value_precise_t)r };
-            s_clock_pts[idx][k][1] = (lv_point_precise_t){ (lv_value_precise_t)r, (lv_value_precise_t)r };
-            lv_line_set_points(ln, s_clock_pts[idx][k], 2);
-        }
+        pts[k][0] = (lv_point_precise_t){ (lv_value_precise_t)r, (lv_value_precise_t)r };
+        pts[k][1] = (lv_point_precise_t){ (lv_value_precise_t)r, (lv_value_precise_t)r };
+        lv_line_set_points(ln, pts[k], 2);
     }
     *main = box;
 }
@@ -717,21 +719,22 @@ static void sync_clock(Component& c, Placement& q, lv_obj_t* w, lv_obj_t*, lv_ob
     }
     if (!synced) return;
     int r = q.radius ? q.radius : 80;
-    int idx = q.comp_index;
-    if (idx < 0 || idx >= MAX_COMPONENTS) return;
+    lv_point_precise_t (*pts)[2] = s_clock_pts[s_cur_page][s_cur_place];   // même placement qu'au build
     float ah, am, as; clock_hand_angles(tm.tm_hour, tm.tm_min, tm.tm_sec, &ah, &am, &as);
-    const float DEG2RAD = 3.14159265f / 180.0f;
-    struct { float deg; float len; int k; } hands[3] = {
-        { ah, r * 0.5f, 0 }, { am, r * 0.72f, 1 }, { as, r * 0.8f, 2 },
+    const float DEG2RAD = (float)M_PI / 180.0f;
+    struct { float deg; float len; } hands[3] = {
+        { ah, r * 0.5f }, { am, r * 0.72f }, { as, r * 0.8f },
     };
     int nlines = c.show_seconds ? 3 : 2;
+    // Les aiguilles sont les nlines DERNIERS enfants du conteneur (les 4 ticks cardinaux
+    // sont créés avant elles dans build_clock) -> on indexe depuis la fin.
     int child0 = lv_obj_get_child_count(w) - nlines;
     for (int j = 0; j < nlines; j++) {
         float rad = hands[j].deg * DEG2RAD;
-        s_clock_pts[idx][j][1].x = (lv_value_precise_t)(r + hands[j].len * sinf(rad));
-        s_clock_pts[idx][j][1].y = (lv_value_precise_t)(r - hands[j].len * cosf(rad));
+        pts[j][1].x = (lv_value_precise_t)(r + hands[j].len * sinf(rad));
+        pts[j][1].y = (lv_value_precise_t)(r - hands[j].len * cosf(rad));
         lv_obj_t* ln = lv_obj_get_child(w, child0 + j);
-        if (ln) lv_line_set_points(ln, s_clock_pts[idx][j], 2);
+        if (ln) lv_line_set_points(ln, pts[j], 2);
     }
 }
 
@@ -1129,6 +1132,7 @@ void view_sync(Dashboard* d) {
                 if (c.visible) lv_obj_remove_flag(objs[k], LV_OBJ_FLAG_HIDDEN);
                 else           lv_obj_add_flag(objs[k], LV_OBJ_FLAG_HIDDEN);
             }
+            s_cur_page = p; s_cur_place = i;   // pour sync_clock (points persistants par placement, cf. build)
             if ((unsigned)c.type < COMP_COUNT && VIEW[c.type].sync)
                 VIEW[c.type].sync(c, q, w, s_sub1[p][i], s_sub2[p][i]);
         }
