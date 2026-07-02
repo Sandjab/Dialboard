@@ -124,7 +124,8 @@
         { "$ref": "#/$defs/comp_button" },
         { "$ref": "#/$defs/comp_slider" },
         { "$ref": "#/$defs/comp_arc" },
-        { "$ref": "#/$defs/comp_roller" }
+        { "$ref": "#/$defs/comp_roller" },
+        { "$ref": "#/$defs/comp_clock" }
       ]
     },
     "comp_label": {
@@ -468,6 +469,23 @@
         "bind": { "$ref": "#/$defs/id", "description": "Variable écrite à la sélection (index numérique)." },
         "options": { "type": "array", "items": { "$ref": "#/$defs/display" }, "minItems": 1, "description": "Libellés des options (une par ligne dans l'éditeur)." },
         "rows": { "type": "integer", "minimum": 1, "maximum": 7, "description": "Rangées visibles (défaut 3, max MAX_ROLLER_ROWS)." }
+      }
+    },
+    "comp_clock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "description": "Affichage : horloge (heure du device via NTP). Aucun bind. mode analog|digital.",
+      "properties": {
+        "type": { "const": "clock" },
+        "visible": { "type": "boolean" },
+        "mode": { "enum": ["analog", "digital"], "description": "Cadran (analog) ou texte HH:MM (digital). Defaut analog." },
+        "show_seconds": { "type": "boolean", "description": "Affiche les secondes. Defaut false." },
+        "color": { "$ref": "#/$defs/hexColor" },
+        "font": { "$ref": "#/$defs/font" },
+        "font_family": { "$ref": "#/$defs/fontFamily" },
+        "bold": { "type": "boolean" },
+        "italic": { "type": "boolean" }
       }
     },
     "page": {

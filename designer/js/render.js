@@ -763,3 +763,40 @@ export function buildRoller(comp, placement = {}, mock = MOCKS.roller) {
   wrap.appendChild(list);
   return wrap;
 }
+
+// clock (digital) : texte figé HH:MM[:SS] (parité d'ALLURE, pas de sync live). Pur -> testable sans DOM.
+export function clockDigitalText(comp) {
+  return comp.show_seconds ? '10:10:36' : '10:10';
+}
+
+// buildClock rend une heure figée 10:10 (parité d'ALLURE, pas de sync live). Pas de bind, pas de mock.
+export function buildClock(comp, placement = {}) {
+  if (comp.mode === 'digital') {
+    const n = document.createElement('div');
+    n.className = 'w w-clock';
+    n.style.font = font(comp.font_family, comp.bold, comp.italic, pickFontPx(comp.font ?? 28));
+    n.style.color = comp.color || '#FFFFFF';
+    n.textContent = clockDigitalText(comp);
+    return n;
+  }
+  const r = placement.radius || 80, size = r * 2;
+  const svg = document.createElementNS(SVGNS, 'svg');
+  svg.setAttribute('width', size); svg.setAttribute('height', size);
+  svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
+  svg.classList.add('w', 'w-clock');
+  const col = comp.color || '#FFFFFF';
+  const hand = (deg, len, w, c) => {
+    const rad = deg * Math.PI / 180;
+    const p = document.createElementNS(SVGNS, 'line');
+    p.setAttribute('x1', r); p.setAttribute('y1', r);
+    p.setAttribute('x2', (r + len * Math.sin(rad)).toFixed(1));
+    p.setAttribute('y2', (r - len * Math.cos(rad)).toFixed(1));
+    p.setAttribute('stroke', c); p.setAttribute('stroke-width', w); p.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(p);
+  };
+  [0, 90, 180, 270].forEach(deg => hand(deg, r * 0.08, 3, '#3a4a63'));
+  hand(305, r * 0.5, 6, col);
+  hand(60,  r * 0.72, 4, col);
+  if (comp.show_seconds) hand(216, r * 0.8, 2, '#38BDF8');
+  return svg;
+}

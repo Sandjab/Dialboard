@@ -30,6 +30,7 @@ const PATHS = {
   roller: '<rect x="5" y="4" width="14" height="16" rx="2"/>' +
           '<line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/>' +
           '<polyline points="9 7 12 5.5 15 7"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
 };
 
 // Construit un <svg> namespacé via DOMParser (parse en contexte SVG, sans innerHTML).

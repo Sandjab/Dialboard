@@ -126,6 +126,7 @@ export default {
   'comp.line': 'Line',
   'comp.led_ring': 'LED ring',
   'comp.sound': 'Sound',
+  'comp.clock': 'Clock',
   // --- Modes de l'anneau LED (panneau Device) ---
   'ledmode.off': 'Off',
   'ledmode.solid': 'Solid',
@@ -213,6 +214,8 @@ export default {
   'field.options': 'Options',
   'field.rows': 'Rows',
   'field.momentary': 'Momentary',
+  'field.clock_mode': 'Mode',
+  'field.show_seconds': 'Seconds',
   'inspector.tip.value_mode': 'Set: written on tap (radio reflect). Momentary: pulse then reset.',
   'inspector.warn.options_empty': 'At least one option required',
   'inspector.warn.options_too_long': 'Options exceed the device limit ({max} bytes) — will be truncated',
@@ -259,6 +262,8 @@ export default {
   'select.dash.solid': 'Solid',
   'select.dash.dashed': 'Dashed',
   'select.dash.dotted': 'Dotted',
+  'select.clockmode.analog': 'Analog',
+  'select.clockmode.digital': 'Digital',
   // --- Inspecteur : sections, notes, champs, boutons, tooltips ---
   'inspector.sec.placement': 'Placement',
   'inspector.sec.zones': 'Zones (color from previous threshold to threshold)',

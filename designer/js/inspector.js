@@ -24,6 +24,7 @@ const SELECTS = {
   dash:       [['solid', 'select.dash.solid'], ['dashed', 'select.dash.dashed'], ['dotted', 'select.dash.dotted']],
   symbol:     Object.keys(ICON_SVG).map(n => [n, n]),
   fontfamily: [['montserrat', 'Montserrat'], ['jetbrains_mono', 'JetBrains Mono'], ['lora', 'Lora'], ['inter', 'Inter']],
+  clockmode:  [['analog', 'select.clockmode.analog'], ['digital', 'select.clockmode.digital']],
 };
 const nonLatin1 = v => /[^\x20-\x7E\xA0-\xFF]/.test(v ?? '');
 const nonId = v => (v ?? '') !== '' && !/^[A-Za-z0-9_]+$/.test(v);

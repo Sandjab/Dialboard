@@ -8,7 +8,7 @@
 // défaut (default.*) est localisé À LA CRÉATION via t() — Latin-1 garanti (contrat WS-2).
 import { snapPlacement } from './geometry.js';
 import { t } from './i18n.js';
-import { buildLabel, buildReadout, buildBar, buildRing, buildChart, buildMeter, buildImage, buildImageAnim, buildLed, buildRect, buildCircle, buildLine, buildIcon, buildSwitch, buildButton, buildSlider, buildArc, buildRoller } from './render.js';
+import { buildLabel, buildReadout, buildBar, buildRing, buildChart, buildMeter, buildImage, buildImageAnim, buildLed, buildRect, buildCircle, buildLine, buildIcon, buildSwitch, buildButton, buildSlider, buildArc, buildRoller, buildClock } from './render.js';
 
 // Modes de l'anneau LED physique (value firmware → clé i18n du libellé). Partagé designer/firmware via le schéma.
 export const LED_MODES = [
@@ -100,6 +100,19 @@ export const COMPONENTS = {
                   ['width', 'field.width', 'num', 160], ['height', 'field.height', 'num', 160]],  // 4e = placeholder ; défaut firmware = width (carré), 160 si tout absent (view.cpp:285)
     mockFields: [['value', 'field.mock_value']],
     build: (comp, pl, mock) => buildMeter(comp, pl, mock),
+  },
+  clock: {
+    label: 'comp.clock',
+    defaults: () => ({ type: 'clock', mode: 'analog', color: '#FFFFFF' }),
+    makePlacement: (id, x, y) => ({ ...screenPlacement(id, x, y), radius: 80 }),
+    centered: false, physical: false,
+    compFields: [['mode', 'field.clock_mode', 'clockmode'], ['show_seconds', 'field.show_seconds', 'bool'],
+                 ['color', 'field.color', 'color'],
+                 ['font', 'field.font', 'font'], ['font_family', 'field.font_family', 'fontfamily']],
+    placeFields: [['anchor', 'field.anchor', 'anchor'], ['dx', 'field.dx', 'num'], ['dy', 'field.dy', 'num'],
+                  ['radius', 'field.radius', 'num', 80]],
+    mockFields: [],
+    build: (comp, pl) => buildClock(comp, pl),
   },
   image: {
     label: 'comp.image',

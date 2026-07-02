@@ -179,14 +179,24 @@ test('resolveIcon : champ omis dans une bande retombe sur la base', () => {
   assert.deepEqual(resolveIcon(comp2, 0), { symbol: 'close', color: '#FFFFFF' });
 });
 
-test('render : buildSlider/buildArc/buildRoller exportés', () => {
+test('render : buildSlider/buildArc/buildRoller/buildClock exportés', () => {
   assert.equal(typeof render.buildSlider, 'function');
   assert.equal(typeof render.buildArc, 'function');
   assert.equal(typeof render.buildRoller, 'function');
+  assert.equal(typeof render.buildClock, 'function');
 });
 
 test('render : MOCKS a slider/arc/roller', () => {
   assert.ok('slider' in render.MOCKS);
   assert.ok('arc' in render.MOCKS);
   assert.ok('roller' in render.MOCKS);
+});
+
+// buildClock (assemblage DOM/SVG) suit la convention du fichier : non exécuté ici (pas de `document` dans
+// l'environnement de test Node — aucun autre buildX du fichier n'est invoqué par les tests, cf. en-tête
+// "les builders DOM sont vérifiés au navigateur"). Seule la partie pure (texte digital) est unitaire ici ;
+// le rendu analog (aiguilles SVG) se vérifie au navigateur comme les autres widgets.
+test('clockDigitalText : HH:MM, +secondes si show_seconds', () => {
+  assert.equal(render.clockDigitalText({ show_seconds: false }), '10:10');
+  assert.equal(render.clockDigitalText({ show_seconds: true }), '10:10:36');
 });
