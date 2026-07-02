@@ -7,7 +7,7 @@ test('defaultSettings: valeurs de référence', () => {
     lang: 'en',
     theme: 'amber',
     ghostOpacity: 0.38, gridShow: false, gridSnap: false, gridStep: 10,
-    logActivity: true, logJs: false, logNet: false, deviceContext: false,
+    logActivity: true, logJs: false, logNet: false, deviceContext: false, deviceWifi: false,
   });
 });
 

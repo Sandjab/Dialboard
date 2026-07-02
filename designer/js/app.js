@@ -17,6 +17,7 @@ import { createCarousel } from './carousel.js';
 import { bindFileIO } from './file-io.js';
 import { createSources } from './sources.js';
 import { createSinks } from './sinks.js';
+import { createWifiPanel } from './wifi.js';
 import { stripPhysicalPlacements, ensurePhysicals, pruneOrphans } from './physical.js';
 import { showToast, makeToast } from './toast.js';
 import { withConfirm } from './confirm.js';
@@ -82,6 +83,7 @@ async function main() {
     saveSettings(settingsState);
     applyVisualSettings(settingsState);
     dconsole.refreshTabs();   // un réglage de journal peut masquer/montrer un onglet de console (closure : dconsole défini plus bas)
+    $('wifi-panel').hidden = !settingsState.deviceWifi;   // idem pour le panneau WiFi (élément DOM, pas de closure requise)
   };
 
   // Sélection partagée (canvas ↔ inspecteur ↔ futur arbre). Coordinateur = garde F1 centralisé :
@@ -270,6 +272,11 @@ async function main() {
   };
   const dconsole = createConsole($('console'), model, { validate, logs, getSettings, pullDeviceContext });
   createStatusbar($('statusbar'), model, { selection, validate, onValidClick: () => dconsole.open('problems') });
+
+  // Panneau WiFi (liste/ajout/suppression de réseaux device) — gaté par le réglage deviceWifi,
+  // reflété sur .hidden dans setSettings ci-dessus (comme dconsole.refreshTabs() pour l'onglet Device).
+  createWifiPanel($('wifi-panel'), { getBase: () => $('base').value, t, toast: showToast });
+  $('wifi-panel').hidden = !settingsState.deviceWifi;   // sync initiale (settingsState peut venir de localStorage)
 
   const syncUndo = () => { $('undo').disabled = !model.canUndo(); $('redo').disabled = !model.canRedo(); };
   model.subscribe(syncUndo); syncUndo();

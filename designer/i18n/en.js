@@ -405,6 +405,11 @@ export default {
   'settings.log_js': 'JS log (browser console)',
   'settings.log_net': 'Network log (device)',
   'settings.device_context': 'Device context tab',
+  'wifi.title': 'WiFi',
+  'wifi.add': 'Add',
+  'wifi.removed': 'Network removed',
+  'wifi.added': 'Network added',
+  'wifi.err': 'Device WiFi error',
   'settings.new_layout': 'New (blank layout)',
   'settings.reset': 'Reset settings',
   // --- Desktop (Electron) : titre de fenêtre + picker mDNS (poussés au preload CommonJS) ---

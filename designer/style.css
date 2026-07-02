@@ -204,6 +204,9 @@ main > .col:last-child { border-right: 0; }
 .console-devout { flex: 1 1 auto; min-height: 0; overflow: auto; }
 .console-devctx[hidden] { display: none; }   /* display:flex (auteur) l'emporterait sinon sur [hidden] (UA) */
 
+/* Panneau WiFi (liste/ajout/suppression de réseaux device), gaté par le réglage deviceWifi. */
+.console-wifi[hidden] { display: none; }   /* même gotcha que .console-devctx : display auteur l'emporterait sur [hidden] (UA) */
+
 /* --- Plan B : webfont + canvas --- */
 @font-face {
   font-family: 'Montserrat';
