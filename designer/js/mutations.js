@@ -292,8 +292,10 @@ export function renameComponent(state, oldId, newId) {
 // --- Sources (pull reseau, P3). Top-level state.sources (array d'objets plats). ---
 
 // Nom libre <source><n> : 1er entier sans collision avec les noms existants.
+// Array.isArray (pas `|| []`) : un import malformé peut poser state.sources non-tableau ; on le
+// traite alors comme vide plutôt que de throw (durcissement symétrique sources+sinks, cf. revue #25).
 export function uniqueSourceName(state) {
-  const used = new Set((state.sources || []).map(s => s.name));
+  const used = new Set((Array.isArray(state.sources) ? state.sources : []).map(s => s.name));
   let n = 1;
   while (used.has(`source${n}`)) n++;
   return `source${n}`;
@@ -302,11 +304,12 @@ export function uniqueSourceName(state) {
 // Ajoute une source en fin de liste. url absente volontairement (l'utilisateur la saisit ;
 // url requise par le schema => signalee invalide tant qu'elle est vide).
 export function addSource(state, name) {
-  (state.sources ||= []).push({ name, interval_s: 60 });
+  if (!Array.isArray(state.sources)) state.sources = [];   // réinitialise un import malformé plutôt que throw
+  state.sources.push({ name, interval_s: 60 });
 }
 
 export function removeSource(state, index) {
-  if (!state.sources) return;
+  if (!Array.isArray(state.sources)) return;
   state.sources.splice(index, 1);
 }
 
@@ -337,8 +340,9 @@ export function setSourceVars(state, index, vars) {
 // --- Sinks (push réactif ; miroir des sources) ---
 
 // Nom libre <sink><n> : 1er entier sans collision avec les noms existants.
+// Array.isArray : miroir du durcissement des sources (un import malformé -> traité comme vide, pas de throw).
 export function uniqueSinkName(state) {
-  const used = new Set((state.sinks || []).map(s => s.name));
+  const used = new Set((Array.isArray(state.sinks) ? state.sinks : []).map(s => s.name));
   let n = 1;
   while (used.has(`sink${n}`)) n++;
   return `sink${n}`;
@@ -347,11 +351,12 @@ export function uniqueSinkName(state) {
 // Ajoute un sink en fin de liste. watch/url absents volontairement (l'utilisateur les saisit ;
 // requis par le schema => signalés invalides tant qu'ils sont vides).
 export function addSink(state, name) {
-  (state.sinks ||= []).push({ name, watch: '', url: '', debounce_ms: 0 });
+  if (!Array.isArray(state.sinks)) state.sinks = [];   // réinitialise un import malformé plutôt que throw
+  state.sinks.push({ name, watch: '', url: '', debounce_ms: 0 });
 }
 
 export function removeSink(state, index) {
-  if (!state.sinks) return;
+  if (!Array.isArray(state.sinks)) return;
   state.sinks.splice(index, 1);
 }
 

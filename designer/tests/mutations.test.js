@@ -376,6 +376,23 @@ test('removeSink : retire par index', () => {
   assert.deepEqual(s.sinks, [{ name: 'b' }]);
 });
 
+// Durcissement Array.isArray (revue #25) : un import malformé peut poser sources/sinks non-tableau ;
+// les mutations doivent le traiter comme vide (réinitialisation à l'ajout) sans throw — symétrique.
+test('mutations sources/sinks : tolèrent un import malformé (non-tableau) sans throw', () => {
+  for (const key of ['sources', 'sinks']) {
+    const uniqueName = key === 'sources' ? uniqueSourceName : uniqueSinkName;
+    const add        = key === 'sources' ? addSource       : addSink;
+    const remove     = key === 'sources' ? removeSource    : removeSink;
+    for (const bad of [{}, 'oops', 42, null]) {
+      const s = { [key]: bad };
+      assert.doesNotThrow(() => remove(s, 0));                 // no-op, pas de throw
+      assert.match(uniqueName(s), /1$/);                       // non-tableau traité comme vide → premier nom
+      add(s, 'x');
+      assert.ok(Array.isArray(s[key]) && s[key].length === 1); // réinitialisé en tableau puis peuplé
+    }
+  }
+});
+
 test('placeComponentCopy : id neuf, copie indépendante, offset, ref re-pointé', () => {
   const s = fresh();
   s.components.bar1 = { type: 'bar', color: '#38BDF8', label: 'CPU' };

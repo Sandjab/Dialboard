@@ -78,7 +78,7 @@ export function createSinks(root, model) {
     const ae = document.activeElement;
     if (ae && root.contains(ae) && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)) return;
     root.replaceChildren();
-    const sinks = model.state.sinks || [];
+    const sinks = Array.isArray(model.state.sinks) ? model.state.sinks : [];   // import malformé -> panneau vide, pas de throw
 
     sinks.forEach((snk, i) => {
       const card = document.createElement('div'); card.className = 'src-card';

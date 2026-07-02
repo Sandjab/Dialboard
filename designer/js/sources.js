@@ -50,7 +50,7 @@ export function createSources(root, model) {
     const ae = document.activeElement;
     if (ae && root.contains(ae) && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)) return;
     root.replaceChildren();
-    const sources = model.state.sources || [];
+    const sources = Array.isArray(model.state.sources) ? model.state.sources : [];   // import malformé -> panneau vide, pas de throw
 
     sources.forEach((src, i) => {
       const card = document.createElement('div'); card.className = 'src-card';
