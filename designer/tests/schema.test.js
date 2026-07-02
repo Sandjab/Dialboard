@@ -467,3 +467,38 @@ test('schema : comp_button accepte value nombre ET chaîne ; comp_switch minimal
     assert.equal(r.valid, true, JSON.stringify(r.errors));
   }
 });
+
+test('schema : comp_button accepte momentary', () => {
+  const withMom = { components: { b: { type: 'button', text: 'Ring', bind: 'bell', momentary: true } }, pages: [{ name: 'p', place: [] }] };
+  assert.equal(validate(withMom).valid, true, JSON.stringify(validate(withMom).errors));
+});
+test('schema : comp_slider valide (minimal + complet)', () => {
+  const pages = [{ name: 'p', place: [] }];
+  const min = { components: { s: { type: 'slider' } }, pages };
+  const full = { components: { s: { type: 'slider', bind: 'vol', min: 0, max: 10, step: 2, orientation: 'vertical', color: '#38BDF8' } }, pages };
+  assert.equal(validate(min).valid, true, JSON.stringify(validate(min).errors));
+  assert.equal(validate(full).valid, true, JSON.stringify(validate(full).errors));
+});
+test('schema : comp_arc valide + mode/rounded', () => {
+  const full = { components: { a: { type: 'arc', bind: 'dim', min: 0, max: 100, step: 5, mode: 'symmetrical', rounded: false, color: '#38BDF8' } }, pages: [{ name: 'p', place: [] }] };
+  const r = validate(full);
+  assert.equal(r.valid, true, JSON.stringify(r.errors));
+});
+test('schema : comp_roller exige options', () => {
+  const pages = [{ name: 'p', place: [] }];
+  const ok = { components: { r: { type: 'roller', options: ['OFF', 'ON'], rows: 3, bind: 'src' } }, pages };
+  const noOpts = { components: { r: { type: 'roller', rows: 3 } }, pages };
+  assert.equal(validate(ok).valid, true, JSON.stringify(validate(ok).errors));
+  assert.equal(validate(noOpts).valid, false);
+});
+test('schema : enums invalides rejetés', () => {
+  const pages = [{ name: 'p', place: [] }];
+  const badOrient = { components: { s: { type: 'slider', orientation: 'diagonal' } }, pages };
+  const badMode = { components: { a: { type: 'arc', mode: 'wild' } }, pages };
+  assert.equal(validate(badOrient).valid, false);
+  assert.equal(validate(badMode).valid, false);
+});
+test('schema : additionalProperties inconnu rejeté (slider)', () => {
+  const bad = { components: { s: { type: 'slider', bogus: 1 } }, pages: [{ name: 'p', place: [] }] };
+  assert.equal(validate(bad).valid, false);
+});

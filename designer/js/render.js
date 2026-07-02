@@ -14,7 +14,10 @@ export const MOCKS = {
   meter:   { value: 60 },
   led:     { value: 1 },
   led_ring:{ value: 50 },
-  icon:    { value: 0 }
+  icon:    { value: 0 },
+  slider:  { value: 50 },
+  arc:     { value: 50 },
+  roller:  { value: 0 }
 };
 
 // Réglages PRIMAIRES du rendu LED réaliste (réglés au playground ; cf. spec led-look-realiste),
@@ -663,4 +666,97 @@ export function buildButton(comp, placement = {}) {
   lbl.textContent = comp.text || 'Button';
   n.appendChild(lbl);
   return n;
+}
+
+// slider : piste + indicateur (couleur) + knob, à la position d'aperçu. Orientation h/v (pas de swap
+// W/H : le firmware oriente le widget dans la boîte width×height telle quelle, view.cpp:588-591).
+export function buildSlider(comp, placement = {}, mock = MOCKS.slider) {
+  const w = placement.width || 200, h = placement.height || 16;
+  const vert = comp.orientation === 'vertical';
+  const wrap = document.createElement('div');
+  wrap.className = 'w w-slider';
+  wrap.style.width = w + 'px';
+  wrap.style.height = h + 'px';
+  const track = document.createElement('div');
+  track.className = 'w-slider-track';
+  const ind = document.createElement('div');
+  ind.className = 'w-slider-ind';
+  ind.style.background = comp.color || '#38BDF8';
+  const frac = barFill(mock.value, comp.min ?? 0, comp.max ?? 100);   // 0..1
+  const knob = document.createElement('div');
+  knob.className = 'w-slider-knob';
+  const kd = vert ? w : h;                          // knob = épaisseur de la piste
+  knob.style.width = kd + 'px';
+  knob.style.height = kd + 'px';
+  if (vert) {                                       // remplit depuis le bas
+    ind.style.left = '0'; ind.style.width = '100%';
+    ind.style.bottom = '0'; ind.style.height = (frac * 100) + '%';
+    knob.style.left = '50%';
+    knob.style.bottom = `calc(${frac * 100}% - ${kd / 2}px)`;
+    knob.style.transform = 'translateX(-50%)';
+  } else {                                          // remplit depuis la gauche
+    ind.style.top = '0'; ind.style.height = '100%';
+    ind.style.left = '0'; ind.style.width = (frac * 100) + '%';
+    knob.style.top = '50%';
+    knob.style.left = `calc(${frac * 100}% - ${kd / 2}px)`;
+    knob.style.transform = 'translateY(-50%)';
+  }
+  track.appendChild(ind);
+  wrap.appendChild(track);
+  wrap.appendChild(knob);
+  return wrap;
+}
+
+// arc : effecteur circulaire. Réutilise ringPaths (piste + indicateur) ; pas de centre/cap (≠ ring).
+// Piste MAIN gris #1F2937 (view.cpp:613), indicateur comp.color. Invariant pointer-events : seuls les
+// paths peints captent le clic (CSS .w-arc) → un clic au centre vide désélectionne.
+export function buildArc(comp, placement = {}, mock = MOCKS.arc) {
+  const r = placement.radius || 80;
+  const th = placement.thickness || 16;
+  const gap = placement.gap_deg ?? 70;
+  const size = r * 2;
+  const wrap = document.createElement('div');
+  wrap.className = 'w w-arc';
+  wrap.style.width = size + 'px';
+  wrap.style.height = size + 'px';
+  const svg = document.createElementNS(SVGNS, 'svg');
+  svg.setAttribute('width', size);
+  svg.setAttribute('height', size);
+  svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
+  const { track, indicator } = ringPaths(r, th, gap, mock.value, comp.min ?? 0, comp.max ?? 100, comp.mode || 'normal');
+  const cap = (comp.rounded ?? true) ? 'round' : 'butt';
+  const mk = (cls, d, stroke) => {
+    const p = document.createElementNS(SVGNS, 'path');
+    p.setAttribute('class', cls);
+    p.setAttribute('d', d);
+    p.setAttribute('fill', 'none');
+    p.setAttribute('stroke', stroke);
+    p.setAttribute('stroke-width', th);
+    p.setAttribute('stroke-linecap', cap);
+    return p;
+  };
+  svg.appendChild(mk('arc-track', track, '#1F2937'));
+  svg.appendChild(mk('arc-ind', indicator, comp.color || '#38BDF8'));
+  wrap.appendChild(svg);
+  return wrap;
+}
+
+// roller : colonne d'options, la sélectionnée (index d'aperçu) surlignée. width via placement (auto sinon).
+// L'aperçu montre toutes les options seedées ; le firmware n'en montre que `rows` (limite d'aperçu assumée).
+export function buildRoller(comp, placement = {}, mock = MOCKS.roller) {
+  const opts = Array.isArray(comp.options) ? comp.options : [];
+  const wrap = document.createElement('div');
+  wrap.className = 'w w-roller';
+  if (placement.width) wrap.style.width = placement.width + 'px';
+  const sel = Math.max(0, Math.min(opts.length - 1, mock.value | 0));
+  const list = document.createElement('div');
+  list.className = 'w-roller-list';
+  opts.forEach((o, i) => {
+    const d = document.createElement('div');
+    d.className = 'w-roller-opt' + (i === sel ? ' selected' : '');
+    d.textContent = o;
+    list.appendChild(d);
+  });
+  wrap.appendChild(list);
+  return wrap;
 }

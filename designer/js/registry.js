@@ -8,7 +8,7 @@
 // défaut (default.*) est localisé À LA CRÉATION via t() — Latin-1 garanti (contrat WS-2).
 import { snapPlacement } from './geometry.js';
 import { t } from './i18n.js';
-import { buildLabel, buildReadout, buildBar, buildRing, buildChart, buildMeter, buildImage, buildImageAnim, buildLed, buildRect, buildCircle, buildLine, buildIcon, buildSwitch, buildButton } from './render.js';
+import { buildLabel, buildReadout, buildBar, buildRing, buildChart, buildMeter, buildImage, buildImageAnim, buildLed, buildRect, buildCircle, buildLine, buildIcon, buildSwitch, buildButton, buildSlider, buildArc, buildRoller } from './render.js';
 
 // Modes de l'anneau LED physique (value firmware → clé i18n du libellé). Partagé designer/firmware via le schéma.
 export const LED_MODES = [
@@ -163,11 +163,46 @@ export const COMPONENTS = {
     defaults: () => ({ type: 'button', text: t('default.button.text'), value: 'on' }),
     makePlacement: (id, x, y) => ({ ...screenPlacement(id, x, y), width: 100, height: 44 }),
     centered: false, physical: false,
-    compFields: [['text', 'field.text', 'latintext'], ['value', 'field.value', 'value'], ['bind', 'field.bind', 'idtext']],
+    compFields: [['text', 'field.text', 'latintext'], ['value', 'field.value', 'value'], ['momentary', 'field.momentary', 'bool'], ['bind', 'field.bind', 'idtext']],
     placeFields: [['anchor', 'field.anchor', 'anchor'], ['dx', 'field.dx', 'num'], ['dy', 'field.dy', 'num'],
                   ['width', 'field.width', 'num', 100], ['height', 'field.height', 'num', 44]],  // 4e = défaut firmware (view.cpp:565)
     mockFields: [],
     build: (comp, pl) => buildButton(comp, pl),
+  },
+  slider: {
+    label: 'comp.slider',
+    defaults: () => ({ type: 'slider', min: 0, max: 100, color: '#38BDF8' }),
+    makePlacement: (id, x, y) => ({ ...screenPlacement(id, x, y), width: 200, height: 16 }),
+    centered: false, physical: false,
+    compFields: [['bind', 'field.bind', 'idtext'], ['min', 'field.min', 'num'], ['max', 'field.max', 'num'],
+                 ['step', 'field.step', 'num'], ['orientation', 'field.orientation', 'orient'], ['color', 'field.color', 'color']],
+    placeFields: [['anchor', 'field.anchor', 'anchor'], ['dx', 'field.dx', 'num'], ['dy', 'field.dy', 'num'],
+                  ['width', 'field.width', 'num', 200], ['height', 'field.height', 'num', 16]],
+    mockFields: [['value', 'field.mock_value']],
+    build: (comp, pl, mock) => buildSlider(comp, pl, mock),
+  },
+  arc: {
+    label: 'comp.arc',
+    defaults: () => ({ type: 'arc', min: 0, max: 100, color: '#38BDF8' }),
+    makePlacement: (id, x, y) => ({ ...screenPlacement(id, x, y), radius: 80, thickness: 16, gap_deg: 70 }),
+    centered: false, physical: false,
+    compFields: [['bind', 'field.bind', 'idtext'], ['min', 'field.min', 'num'], ['max', 'field.max', 'num'],
+                 ['step', 'field.step', 'num'], ['mode', 'field.mode', 'arcmode'], ['rounded', 'field.rounded', 'bool'], ['color', 'field.color', 'color']],
+    placeFields: [['anchor', 'field.anchor', 'anchor'], ['dx', 'field.dx', 'num'], ['dy', 'field.dy', 'num'],
+                  ['radius', 'field.radius', 'num'], ['thickness', 'field.thickness', 'num'], ['gap_deg', 'field.gap_deg', 'num'], ['start_angle', 'field.start_angle', 'num']],
+    mockFields: [['value', 'field.mock_value']],
+    build: (comp, pl, mock) => buildArc(comp, pl, mock),
+  },
+  roller: {
+    label: 'comp.roller',
+    defaults: () => ({ type: 'roller', options: ['OFF', 'ON'], rows: 3 }),
+    makePlacement: (id, x, y) => ({ ...screenPlacement(id, x, y), width: 120 }),
+    centered: false, physical: false,
+    compFields: [['bind', 'field.bind', 'idtext'], ['options', 'field.options', 'options'], ['rows', 'field.rows', 'num']],
+    placeFields: [['anchor', 'field.anchor', 'anchor'], ['dx', 'field.dx', 'num'], ['dy', 'field.dy', 'num'],
+                  ['width', 'field.width', 'num', 120]],
+    mockFields: [['value', 'field.mock_value']],
+    build: (comp, pl, mock) => buildRoller(comp, pl, mock),
   },
   rect: {
     label: 'comp.rect',

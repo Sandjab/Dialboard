@@ -310,6 +310,14 @@ main > .col:last-child { border-right: 0; }
 .w-switch-knob { position: absolute; border-radius: 50%; background: #FFFFFF; }
 .w-button { box-sizing: border-box; display: flex; align-items: center; justify-content: center; background: #4B5563; border-radius: 6px; }
 .w-button-label { color: #FFFFFF; white-space: nowrap; line-height: 1; }
+.w-slider-track { position: absolute; inset: 0; background: #1F2937; border-radius: 999px; overflow: hidden; }
+.w-slider-ind { position: absolute; border-radius: 999px; }
+.w-slider-knob { position: absolute; border-radius: 50%; background: #FFFFFF; box-shadow: 0 0 2px rgba(0,0,0,.4); }
+.w-arc svg { display: block; }
+.w-roller { box-sizing: border-box; background: #1F2937; border-radius: 6px; overflow: hidden; }
+.w-roller-list { display: flex; flex-direction: column; }
+.w-roller-opt { padding: 2px 12px; color: #9AA0AA; text-align: center; line-height: 1.5; }
+.w-roller-opt.selected { color: #FFFFFF; background: #374151; }
 
 .w-ring { cursor: default; }       /* ring centré, non déplaçable (view.cpp:51) */
 .w-ring svg { display: block; }
@@ -321,6 +329,8 @@ main > .col:last-child { border-right: 0; }
 .w-ring, .w-ring svg { pointer-events: none; }
 .w-ring .ring-track, .w-ring .ring-ind,
 .w-ring .w-ring-center, .w-ring .w-ring-cap, .w-ring .handle { pointer-events: auto; }
+.w-arc, .w-arc svg { pointer-events: none; }
+.w-arc .arc-track, .w-arc .arc-ind, .w-arc .handle { pointer-events: auto; }
 .w-ring-center {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
   white-space: nowrap;                                          /* lecture centrale center_pct (view.cpp:89) */
@@ -384,6 +394,7 @@ main > .col:last-child { border-right: 0; }
 .insp-label { flex: 0 0 96px; color: #9aa0aa; }
 .insp-row input[type="text"], .insp-row input[type="number"], .insp-row select { flex: 1; min-width: 0; background: var(--panel-2); border: 1px solid var(--line); color: var(--ink); border-radius: 4px; padding: 2px 5px; }
 .insp-row input[type="color"] { width: 36px; height: 22px; padding: 0; border: 1px solid var(--line); background: none; }
+.insp-options { width: 100%; box-sizing: border-box; resize: vertical; font: inherit; background: var(--panel-2); border: 1px solid var(--line); color: var(--ink); border-radius: 4px; padding: 2px 5px; }
 .insp-row.disabled { opacity: .45; }
 /* Affordance "Source" : la ligne bind (donnée poussée/tirée) ressort. */
 .insp-source .insp-label { color: var(--accent); }
