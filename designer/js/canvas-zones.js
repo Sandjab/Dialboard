@@ -29,14 +29,14 @@ const HX = Math.sqrt(Math.max(0, INNER * INNER - GY * GY));   // intersection ce
 const W = BOARD_W, H = BOARD_H;
 
 // 4 quadrants : bande de pose des icônes (hors écran) + côté d'ancrage + clé i18n de famille.
-// `family` nomme le regroupement implicite : distribute() remplit les zones DANS L'ORDRE du registre,
-// qui est curé thématiquement (texte/données → riche → spécial → primitives). Si l'ordre du registre
-// change matériellement, ajuster ces libellés (ou passer à un mapping type→famille explicite).
+// Chaque zone regroupe les composants d'UNE famille (mapping FAMILY explicite ci-dessous), pas une
+// tranche mécanique de l'ordre du registre → les effecteurs restent groupés (« Effecteurs ») quel
+// que soit l'ordre/le nombre de types. Le suffixe de la clé `family` = le nom de groupe (data/…).
 const ZONES = [
-  { id: 'TL', bandX0: 0,        bandX1: CX - INNER, y0: 0,       y1: CY - GY, side: 'left',  family: 'palette.family.data'    },
-  { id: 'TR', bandX0: CX + INNER, bandX1: W,        y0: 0,       y1: CY - GY, side: 'right', family: 'palette.family.rich'    },
-  { id: 'BL', bandX0: 0,        bandX1: CX - INNER, y0: CY + GY, y1: H,       side: 'left',  family: 'palette.family.special' },
-  { id: 'BR', bandX0: CX + INNER, bandX1: W,        y0: CY + GY, y1: H,       side: 'right', family: 'palette.family.shapes'  },
+  { id: 'TL', bandX0: 0,        bandX1: CX - INNER, y0: 0,       y1: CY - GY, side: 'left',  family: 'palette.family.data'      },
+  { id: 'TR', bandX0: CX + INNER, bandX1: W,        y0: 0,       y1: CY - GY, side: 'right', family: 'palette.family.rich'      },
+  { id: 'BL', bandX0: 0,        bandX1: CX - INNER, y0: CY + GY, y1: H,       side: 'left',  family: 'palette.family.effectors' },
+  { id: 'BR', bandX0: CX + INNER, bandX1: W,        y0: CY + GY, y1: H,       side: 'right', family: 'palette.family.shapes'    },
 ];
 
 // Sommets (sens horaire) ; un sommet `arc` = arête entrante tracée en arc de l'écran (rayon INNER).
@@ -75,11 +75,16 @@ function zonePath(id) {
 
 // Types glissables = composants non physiques, dans l'ordre du registre.
 const TYPES = Object.entries(COMPONENTS).filter(([, d]) => !d.physical).map(([t, d]) => [t, d.label]);
-function distribute(arr, k) {
-  const base = Math.floor(arr.length / k), extra = arr.length % k, out = [];
-  let i = 0; for (let z = 0; z < k; z++) { const c = base + (z < extra ? 1 : 0); out.push(arr.slice(i, i + c)); i += c; }
-  return out;
-}
+
+// Famille de chaque type = quadrant de la palette. EXPLICITE (≠ tranche mécanique) : garantit que les
+// effecteurs (saisie) restent groupés. Le nom de groupe = suffixe de la clé i18n `family` d'une ZONE.
+// Un type absent de la carte retombe dans « shapes » (jamais perdu) ; l'ajouter ici pour le classer.
+export const FAMILY = {
+  label: 'data', readout: 'data', bar: 'data', chart: 'data', meter: 'data', ring: 'data',
+  image: 'rich', image_anim: 'rich', led: 'rich', icon: 'rich',
+  switch: 'effectors', button: 'effectors', slider: 'effectors', arc: 'effectors', roller: 'effectors',
+  rect: 'shapes', circle: 'shapes', line: 'shapes',
+};
 
 const NS = 'http://www.w3.org/2000/svg';
 
@@ -104,7 +109,8 @@ export function renderZones(board) {
   }
 
   board.querySelectorAll('.iconzone').forEach(n => n.remove());
-  const slices = distribute(TYPES, ZONES.length);
+  // Regroupe par famille (ordre du registre préservé au sein d'un quadrant). Type non classé → « shapes ».
+  const slices = ZONES.map(z => TYPES.filter(([type]) => (FAMILY[type] || 'shapes') === z.family.split('.').pop()));
   ZONES.forEach((z, zi) => {
     const grid = document.createElement('div');
     grid.className = 'iconzone';

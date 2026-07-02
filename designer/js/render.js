@@ -132,21 +132,22 @@ export function arcPath(cx, cy, r, startDeg, sweepDeg) {
 // la bande comme le firmware (lv_arclabel_set_radius = q.radius − q.thickness/2, view.cpp). Le texte
 // est centré sur cet arc (dominant-baseline:central ↔ vertical_align CENTER), donc le milieu des
 // lettres tombe sur le cercle médian de l'anneau quelles que soient l'épaisseur et la fonte.
-// Centre du wrap = (r, r). Le designer ignore start_angle (ouverture toujours en bas, comme ringPaths).
-export function capArcPath(r, th, gap) {
+// Centre du wrap = (r, r). L'ouverture est rotée par start_angle (défaut 0 = bas), en parité avec le
+// firmware (lv_arclabel_set_angle_start(90 + start_angle - gap/2), view.cpp) et ringPaths.
+export function capArcPath(r, th, gap, startAngle = 0) {
   const br = r - th / 2;
   const half = gap / 2;
-  const [x1, y1] = pointOnArc(r, r, br, 90 + half);   // extrémité gauche-bas
-  const [x2, y2] = pointOnArc(r, r, br, 90 - half);   // extrémité droite-bas
+  const [x1, y1] = pointOnArc(r, r, br, 90 + startAngle + half);   // extrémité gauche de l'ouverture (rotée par start_angle)
+  const [x2, y2] = pointOnArc(r, r, br, 90 + startAngle - half);   // extrémité droite de l'ouverture
   const f = n => n.toFixed(2);
   return `M ${f(x1)} ${f(y1)} A ${br} ${br} 0 0 0 ${f(x2)} ${f(y2)}`;
 }
 
 // ring : chemins fond + indicateur (rayon de tracé au milieu de la bande). Centralise la géométrie
 // d'arc partagée par buildRing (initial) et canvas.js paintRing (live resize). Miroir view.cpp:54.
-export function ringPaths(r, th, gap, value, min, max, mode = 'normal') {
-  const rr = r - th / 2;           // rayon au centre de la bande
-  const start = 90 + gap / 2;      // lv_arc_set_bg_angles(arc, 90 + gap/2, 90 − gap/2)
+export function ringPaths(r, th, gap, value, min, max, mode = 'normal', startAngle = 0) {
+  const rr = r - th / 2;                    // rayon au centre de la bande
+  const start = 90 + startAngle + gap / 2;  // lv_arc_set_bg_angles(arc, 90 + start_angle + gap/2, …) (view.cpp)
   const span = 360 - gap;
   const ind = arcIndicatorAngles(mode, start, span, barFill(value, min, max));
   return {
@@ -264,7 +265,8 @@ export function buildRing(comp, placement, mock = MOCKS.ring) {
   svg.setAttribute('width', size);
   svg.setAttribute('height', size);
   svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
-  const { track, indicator } = ringPaths(r, th, gap, mock.value, comp.min ?? 0, comp.max ?? 100, comp.mode || 'normal');
+  const sa = placement.start_angle ?? 0;
+  const { track, indicator } = ringPaths(r, th, gap, mock.value, comp.min ?? 0, comp.max ?? 100, comp.mode || 'normal', sa);
   const col = pickThresholdColor(comp.thresholds, mock.value, comp.color || '#38BDF8');
   const cap = (comp.rounded ?? true) ? 'round' : 'butt';   // arc_rounded firmware (défaut arrondi)
   const mk = (cls, d, stroke) => {
@@ -294,7 +296,7 @@ export function buildRing(comp, placement, mock = MOCKS.ring) {
     const path = document.createElementNS(SVGNS, 'path');
     path.setAttribute('id', capId);
     path.setAttribute('class', 'cap-arc');
-    path.setAttribute('d', capArcPath(r, th, gap));
+    path.setAttribute('d', capArcPath(r, th, gap, sa));
     path.setAttribute('fill', 'none');
     const text = document.createElementNS(SVGNS, 'text');
     text.setAttribute('class', 'w-ring-cap');
@@ -681,7 +683,7 @@ export function buildSlider(comp, placement = {}, mock = MOCKS.slider) {
   track.className = 'w-slider-track';
   const ind = document.createElement('div');
   ind.className = 'w-slider-ind';
-  ind.style.background = comp.color || '#38BDF8';
+  ind.style.background = comp.color || '#FFFFFF';   // fallback = défaut firmware (dashboard.cpp: color | "#FFFFFF")
   const frac = barFill(mock.value, comp.min ?? 0, comp.max ?? 100);   // 0..1
   const knob = document.createElement('div');
   knob.className = 'w-slider-knob';
@@ -714,6 +716,7 @@ export function buildArc(comp, placement = {}, mock = MOCKS.arc) {
   const r = placement.radius || 80;
   const th = placement.thickness || 16;
   const gap = placement.gap_deg ?? 70;
+  const sa = placement.start_angle ?? 0;
   const size = r * 2;
   const wrap = document.createElement('div');
   wrap.className = 'w w-arc';
@@ -723,7 +726,7 @@ export function buildArc(comp, placement = {}, mock = MOCKS.arc) {
   svg.setAttribute('width', size);
   svg.setAttribute('height', size);
   svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
-  const { track, indicator } = ringPaths(r, th, gap, mock.value, comp.min ?? 0, comp.max ?? 100, comp.mode || 'normal');
+  const { track, indicator } = ringPaths(r, th, gap, mock.value, comp.min ?? 0, comp.max ?? 100, comp.mode || 'normal', sa);
   const cap = (comp.rounded ?? true) ? 'round' : 'butt';
   const mk = (cls, d, stroke) => {
     const p = document.createElementNS(SVGNS, 'path');
@@ -736,7 +739,7 @@ export function buildArc(comp, placement = {}, mock = MOCKS.arc) {
     return p;
   };
   svg.appendChild(mk('arc-track', track, '#1F2937'));
-  svg.appendChild(mk('arc-ind', indicator, comp.color || '#38BDF8'));
+  svg.appendChild(mk('arc-ind', indicator, comp.color || '#FFFFFF'));   // fallback = défaut firmware (color | "#FFFFFF")
   wrap.appendChild(svg);
   return wrap;
 }

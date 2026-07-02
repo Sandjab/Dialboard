@@ -75,6 +75,11 @@ test('ringPaths expose rayon de tracé et angle de départ', () => {
   assert.ok(p.indicator.startsWith('M'));
 });
 
+test('ringPaths : start_angle décale l’angle de départ (parité firmware 90 + start_angle + gap/2)', () => {
+  assert.equal(ringPaths(80, 16, 70, 72, 0, 100).start, 125);              // défaut start_angle=0 : 90 + 70/2
+  assert.equal(ringPaths(80, 16, 70, 72, 0, 100, 'normal', 30).start, 155); // 90 + 30 + 70/2
+});
+
 test('sparklinePoints : points SVG normalises (x reparti, y inverse)', () => {
   assert.equal(sparklinePoints([0, 50, 100], 0, 100, 100, 100),
     '0.00,100.00 50.00,50.00 100.00,0.00');
@@ -103,6 +108,13 @@ test('capArcPath : arc inférieur symétrique, rayon r−th/2 (milieu de bande)'
   assert.ok(Math.abs((x1 + x2) / 2 - 80) < 1e-6, 'extrémités symétriques autour du centre (x=r)');
   assert.ok(Math.abs(y1 - y2) < 1e-6, 'extrémités à même hauteur');
   assert.ok(y1 > 80, 'baseline dans la moitié basse (y > r)');
+});
+
+test('capArcPath : start_angle fait tourner l’ouverture (chemin différent, rayon médian inchangé)', () => {
+  const d0 = capArcPath(80, 16, 70);
+  const d  = capArcPath(80, 16, 70, 45);
+  assert.notEqual(d, d0, 'un start_angle non nul décale l’arc du cap');
+  assert.match(d, /A 72 72 /, 'rayon médian (r − th/2) inchangé');
 });
 
 test('barGeometry normal : du bord (0) à la fraction', () => {

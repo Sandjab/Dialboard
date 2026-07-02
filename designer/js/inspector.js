@@ -34,6 +34,15 @@ export function parseOptions(text) {
   return (text ?? '').split('\n').map(s => s.trim()).filter(Boolean);
 }
 
+// Le firmware stocke les options jointes par '\n' dans char roller_options[ROLLER_OPTS_LEN] (config.h),
+// et TRONQUE silencieusement au-delà de ROLLER_OPTS_LEN-1 octets (dashboard.cpp bloc COMP_ROLLER).
+// On avertit l'éditeur avant la troncature. Octets UTF-8 (le buffer firmware est en octets, pas en chars).
+export const ROLLER_OPTS_MAX = 159;   // config.h ROLLER_OPTS_LEN (160) − 1 (octet de fin '\0')
+export function rollerOptionsTooLong(opts) {
+  const joined = (Array.isArray(opts) ? opts : []).join('\n');
+  return new TextEncoder().encode(joined).length > ROLLER_OPTS_MAX;
+}
+
 const deviceHidden = new Set();   // refs poussées cachées sur le device (état de bascule du bouton)
 
 // Œil de visibilité : icône SVG en data-URI (img), couleur baked-in (clair = visible, rouge = caché).
@@ -467,12 +476,17 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     ta.rows = 4;
     ta.value = Array.isArray(c.options) ? c.options.join('\n') : '';
     const warn = document.createElement('span'); warn.className = 'insp-warn';
-    warn.textContent = t('inspector.warn.options_empty');
-    warn.style.display = parseOptions(ta.value).length ? 'none' : '';
+    // Met à jour l'avertissement ; renvoie true si l'on peut committer (options non vides). Vide → bloque
+    // (invalide) ; trop long → avertit MAIS committe (données valides, la troncature firmware est signalée).
+    const refreshWarn = (opts) => {
+      if (!opts.length) { warn.textContent = t('inspector.warn.options_empty'); warn.style.display = ''; return false; }
+      if (rollerOptionsTooLong(opts)) { warn.textContent = t('inspector.warn.options_too_long', { max: ROLLER_OPTS_MAX }); warn.style.display = ''; return true; }
+      warn.style.display = 'none'; return true;
+    };
+    refreshWarn(parseOptions(ta.value));
     ta.addEventListener('change', () => {
       const opts = parseOptions(ta.value);
-      if (!opts.length) { warn.style.display = ''; return; }   // vide : avertir, pas de commit
-      warn.style.display = 'none';
+      if (!refreshWarn(opts)) return;   // vide : avertir, pas de commit
       model.commit(s => setComponentProp(s, ref, 'options', opts));
     });
     row.append(ta, warn);

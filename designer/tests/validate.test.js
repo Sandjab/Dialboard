@@ -99,6 +99,34 @@ test('bind avec variable de source déclarée → pas d\'avertissement', () => {
   assert.deepEqual(r.warnings, []);
 });
 
+test("bind d'un effecteur → pas d'avertissement (l'effecteur produit sa variable)", () => {
+  const r = validate({
+    components: { sw: { type: 'switch', bind: 'lamp' } },
+    pages: [{ name: 'p', place: [{ ref: 'sw', anchor: 'CENTER' }] }]
+  });
+  assert.equal(r.valid, true);
+  assert.deepEqual(r.warnings, []);
+});
+
+test('afficheur lié à une var produite par un effecteur → pas d\'avertissement', () => {
+  const r = validate({
+    components: { sw: { type: 'switch', bind: 'lamp' }, rd: { type: 'readout', bind: 'lamp' } },
+    pages: [{ name: 'p', place: [{ ref: 'sw', anchor: 'CENTER' }, { ref: 'rd', anchor: 'TOP_MID' }] }]
+  });
+  assert.equal(r.valid, true);
+  assert.deepEqual(r.warnings, []);
+});
+
+test('afficheur lié à une var observée par un sink → pas d\'avertissement', () => {
+  const r = validate({
+    components: { rd: { type: 'readout', bind: 'lamp' } },
+    sinks: [{ watch: 'lamp', url: 'http://x' }],
+    pages: [{ name: 'p', place: [{ ref: 'rd', anchor: 'CENTER' }] }]
+  });
+  assert.equal(r.valid, true);
+  assert.deepEqual(r.warnings, []);
+});
+
 test('layout avec formes (rect/circle/line) est valide', () => {
   const l = structuredClone(DEFAULT_LAYOUT);
   l.components.r1 = { type: 'rect', fill: '#FF0000', border_width: 2, border_color: '#FFFFFF' };

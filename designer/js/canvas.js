@@ -362,17 +362,18 @@ export function createCanvas({ stage }, model, { selection, setSelection, onLive
     const svg = node.querySelector('svg');
     svg.setAttribute('width', size); svg.setAttribute('height', size);
     svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
-    const p = ringPaths(g.r, g.th, g.gap, mockVal, comp.min ?? 0, comp.max ?? 100, comp.mode || 'normal');
+    const sa = g.sa ?? 0;
+    const p = ringPaths(g.r, g.th, g.gap, mockVal, comp.min ?? 0, comp.max ?? 100, comp.mode || 'normal', sa);
     const col = pickThresholdColor(comp.thresholds, mockVal, comp.color || '#38BDF8');
     const t = svg.querySelector('.ring-track'), ind = svg.querySelector('.ring-ind');
     t.setAttribute('d', p.track); t.setAttribute('stroke-width', g.th);
     ind.setAttribute('d', p.indicator); ind.setAttribute('stroke-width', g.th); ind.setAttribute('stroke', col);
-    const capArc = svg.querySelector('.cap-arc'); if (capArc) capArc.setAttribute('d', capArcPath(g.r, g.th, g.gap));
+    const capArc = svg.querySelector('.cap-arc'); if (capArc) capArc.setAttribute('d', capArcPath(g.r, g.th, g.gap, sa));
     positionRingHandles(node, g);
   }
 
   function addRingHandles(node, i, comp, pl) {
-    const geo = () => ({ r: pl.radius || 80, th: pl.thickness || 16, gap: pl.gap_deg ?? 70 });
+    const geo = () => ({ r: pl.radius || 80, th: pl.thickness || 16, gap: pl.gap_deg ?? 70, sa: pl.start_angle ?? 0 });
     for (const kind of ['radius', 'thick', 'gap']) {
       const h = document.createElement('div');
       h.className = 'handle handle-' + kind;

@@ -6,6 +6,10 @@ import Ajv from '../vendor/ajv.min.js';
 import { humanizeAjvError } from './humanize.js';
 import { t } from './i18n.js';
 
+// Composants effecteurs (saisie tactile) : leur `bind` est la variable qu'ils ÉCRIVENT (produisent),
+// pas qu'ils consomment. Miroir des types à callback d'écriture UI du firmware (view.cpp *_event_cb).
+const EFFECTOR_TYPES = new Set(['switch', 'button', 'slider', 'arc', 'roller']);
+
 export function createValidator(schema) {
   const ajv = new Ajv({ allErrors: true, strict: false });
   const validateShape = ajv.compile(schema);
@@ -42,15 +46,25 @@ export function createValidator(schema) {
       const bytes = (c.w || 0) * (c.h || 0) * 3 * (c.frames || 0);
       if (bytes > 1572864) errors.push(t('validate.pack_too_large', { id, bytes }));
     });
-    // Avertissements (non bloquants) : un bind sans variable de source correspondante reste valide
-    // (la variable peut être alimentée par POST /context), mais on le signale.
+    // Avertissements (non bloquants) : un bind sans PRODUCTEUR de sa variable reste valide (elle peut
+    // être alimentée par POST /context), mais on le signale. Les variables « connues » (donc alimentées) :
+    //  - vars d'une source (pull réseau) ;
+    //  - watch d'un sink (push réactif : la variable est censée porter une valeur) ;
+    //  - bind d'un EFFECTEUR : l'effecteur ÉCRIT sa variable depuis l'UI → il la produit. Sans ça, tout
+    //    switch/slider/etc. bruiterait un unbound_bind (sa var est rarement une var de source).
     const warnings = [];
-    const srcVars = new Set();
+    const knownVars = new Set();
     (Array.isArray(layout?.sources) ? layout.sources : []).forEach(s => {
-      if (s && s.vars && typeof s.vars === 'object') Object.keys(s.vars).forEach(v => srcVars.add(v));
+      if (s && s.vars && typeof s.vars === 'object') Object.keys(s.vars).forEach(v => knownVars.add(v));
     });
+    (Array.isArray(layout?.sinks) ? layout.sinks : []).forEach(s => {
+      if (s && typeof s.watch === 'string' && s.watch) knownVars.add(s.watch);
+    });
+    for (const c of Object.values(layout?.components || {})) {
+      if (c && EFFECTOR_TYPES.has(c.type) && typeof c.bind === 'string' && c.bind) knownVars.add(c.bind);
+    }
     for (const [id, c] of Object.entries(layout?.components || {})) {
-      if (c && typeof c.bind === 'string' && c.bind && !srcVars.has(c.bind))
+      if (c && typeof c.bind === 'string' && c.bind && !knownVars.has(c.bind))
         warnings.push(t('validate.unbound_bind', { id, bind: c.bind }));
     }
     // valid ne dépend QUE des errors ; les warnings ne bloquent pas le push.

@@ -38,7 +38,7 @@ export default {
   'canvas.drag_hint': 'Drag a component onto the screen',
   'palette.family.data': 'Text & data',
   'palette.family.rich': 'Rich',
-  'palette.family.special': 'Special',
+  'palette.family.effectors': 'Effectors',
   'palette.family.shapes': 'Primitives',
   'drawer.sources.aria': 'Sources',
   'drawer.sources.title': 'Sources',
@@ -215,6 +215,7 @@ export default {
   'field.momentary': 'Momentary',
   'inspector.tip.value_mode': 'Set: written on tap (radio reflect). Momentary: pulse then reset.',
   'inspector.warn.options_empty': 'At least one option required',
+  'inspector.warn.options_too_long': 'Options exceed the device limit ({max} bytes) — will be truncated',
   // --- Messages partagés id/page (arbre + carousel) ---
   'id.invalid': 'Invalid id: letters, digits, _ only',
   'id.taken': 'Id « {id} » is already taken',
