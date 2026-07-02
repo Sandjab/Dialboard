@@ -148,6 +148,11 @@ export function createSettings(root, { toggleBtn, onOpen, getSettings, setSettin
     netRow.querySelector('.set-line').appendChild(checkbox(s.logNet, v => setSettings({ logNet: v })));
     pane.appendChild(netRow);
 
+    // Onglet « Device » (dump contexte, debug source/sink) — montre/masque l'onglet console
+    const devCtxRow = settingRow(t('settings.device_context'));
+    devCtxRow.querySelector('.set-line').appendChild(checkbox(s.deviceContext, v => setSettings({ deviceContext: v })));
+    pane.appendChild(devCtxRow);
+
     // Actions
     const actions = document.createElement('div'); actions.className = 'set-actions';
     const neww = document.createElement('button'); neww.className = 'set-btn'; neww.type = 'button'; neww.textContent = t('settings.new_layout');
