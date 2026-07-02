@@ -29,6 +29,10 @@
 #define WIFI_BOOT_TIMEOUT_MS    20000
 #define LAYOUT_PATH             "/layout.json"
 #define SECRETS_PATH            "/secrets.json"
+#define MAX_WIFI_NETS           5           // réseaux WiFi stockés (NVS)
+#define WIFI_ATTEMPT_TIMEOUT_MS 8000        // timeout par réseau au boot
+#define WIFI_AP_PREFIX          "Dialboard-" // nom softAP = préfixe + 6 hex MAC
+#define WIFI_STORE_NS           "dbwifi"     // namespace Preferences (NVS)
 
 #define BG_IMG_W       360
 #define BG_IMG_H       360
