@@ -1054,3 +1054,36 @@ void view_sync(Dashboard* d) {
     for (int k = 0; k < s_deferred_n; k++) s_deferred[k]->dirty = true;
     if (s_deferred_n) d->values_dirty = true;
 }
+
+// Écran de provisioning WiFi : montré une fois au boot (avant tout dashboard), donc c'est un vrai
+// nouvel écran LVGL (pas un conteneur de plus dans le modèle multi-pages de view_rebuild, qui n'existe
+// pas encore à ce stade). lv_timer_handler() force le rendu immédiat, comme ailleurs dans setup().
+void view_show_provisioning(const char* ap_name) {
+    lv_obj_t* scr = lv_obj_create(NULL);
+    lv_obj_set_style_bg_color(scr, lv_color_hex(0x0B0F14), 0);
+
+    lv_obj_t* box = lv_obj_create(scr);
+    lv_obj_remove_style_all(box);
+    lv_obj_set_size(box, 300, 300);
+    lv_obj_center(box);
+    lv_obj_set_flex_flow(box, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(box, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+
+    lv_obj_t* title = lv_label_create(box);
+    lv_label_set_text(title, "Configuration WiFi");
+    lv_obj_set_style_text_font(title, get_font(FAMILY_MONTSERRAT, 22, true, false), 0);
+    lv_obj_set_style_text_color(title, lv_color_hex(0xE5E7EB), 0);
+
+    lv_obj_t* ssid = lv_label_create(box);
+    lv_label_set_text_fmt(ssid, "Rejoins le WiFi :\n%s", ap_name);
+    lv_obj_set_style_text_align(ssid, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_style_text_color(ssid, lv_color_hex(0xE5E7EB), 0);
+
+    lv_obj_t* hint = lv_label_create(box);
+    lv_label_set_text(hint, "puis ouvre http://192.168.4.1");
+    lv_obj_set_style_text_align(hint, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_style_text_color(hint, lv_color_hex(0xE5E7EB), 0);
+
+    lv_screen_load(scr);
+    lv_timer_handler();
+}
