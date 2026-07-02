@@ -8,3 +8,5 @@ void view_show_page(Dashboard* d, int idx);
 // (sens du glissé, conditionne la direction visuelle). Repli instantané si page_count<=1 / idx==courant.
 void view_show_page_anim(Dashboard* d, int idx, int delta);
 const char* view_default_layout();
+// Affiche un écran plein « configuration WiFi » (mode provisioning AP). ap_name = SSID du softAP.
+void view_show_provisioning(const char* ap_name);

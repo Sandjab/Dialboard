@@ -17,6 +17,7 @@ import { createCarousel } from './carousel.js';
 import { bindFileIO } from './file-io.js';
 import { createSources } from './sources.js';
 import { createSinks } from './sinks.js';
+import { createWifiPanel } from './wifi.js';
 import { stripPhysicalPlacements, ensurePhysicals, pruneOrphans } from './physical.js';
 import { showToast, makeToast } from './toast.js';
 import { withConfirm } from './confirm.js';
@@ -81,7 +82,7 @@ async function main() {
     settingsState = normalizeSettings({ ...settingsState, ...partial });
     saveSettings(settingsState);
     applyVisualSettings(settingsState);
-    dconsole.refreshTabs();   // un réglage de journal peut masquer/montrer un onglet de console (closure : dconsole défini plus bas)
+    dconsole.refreshTabs();   // un réglage de journal (ou de l'onglet Device/WiFi) peut masquer/montrer un onglet de console (closure : dconsole défini plus bas)
   };
 
   // Sélection partagée (canvas ↔ inspecteur ↔ futur arbre). Coordinateur = garde F1 centralisé :
@@ -268,7 +269,10 @@ async function main() {
     const s = (status && typeof status === 'object') ? status : {};
     return { vars, sources: s.sources || [], sinks: s.sinks || [], uptime_s: s.uptime_s };
   };
-  const dconsole = createConsole($('console'), model, { validate, logs, getSettings, pullDeviceContext });
+  const dconsole = createConsole($('console'), model, {
+    validate, logs, getSettings, pullDeviceContext,
+    mountWifi: (el) => createWifiPanel(el, { getBase: () => $('base').value, t, toast: showToast }),
+  });
   createStatusbar($('statusbar'), model, { selection, validate, onValidClick: () => dconsole.open('problems') });
 
   const syncUndo = () => { $('undo').disabled = !model.canUndo(); $('redo').disabled = !model.canRedo(); };

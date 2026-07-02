@@ -11,7 +11,7 @@ export function defaultSettings() {
   return { lang: 'en',
            theme: 'amber',
            ghostOpacity: 0.38, gridShow: false, gridSnap: false, gridStep: 10,
-           logActivity: true, logJs: false, logNet: false, deviceContext: false };
+           logActivity: true, logJs: false, logNet: false, deviceContext: false, deviceWifi: false };
 }
 
 export function normalizeSettings(raw) {
@@ -29,6 +29,7 @@ export function normalizeSettings(raw) {
     logJs: typeof r.logJs === 'boolean' ? r.logJs : d.logJs,
     logNet: typeof r.logNet === 'boolean' ? r.logNet : d.logNet,
     deviceContext: typeof r.deviceContext === 'boolean' ? r.deviceContext : d.deviceContext,
+    deviceWifi: typeof r.deviceWifi === 'boolean' ? r.deviceWifi : d.deviceWifi,
   };
 }
 
@@ -152,6 +153,11 @@ export function createSettings(root, { toggleBtn, onOpen, getSettings, setSettin
     const devCtxRow = settingRow(t('settings.device_context'));
     devCtxRow.querySelector('.set-line').appendChild(checkbox(s.deviceContext, v => setSettings({ deviceContext: v })));
     pane.appendChild(devCtxRow);
+
+    // Panneau WiFi (liste/ajout/suppression de réseaux device) — montre/masque le panneau
+    const wifiRow = settingRow(t('wifi.title'));
+    wifiRow.querySelector('.set-line').appendChild(checkbox(s.deviceWifi, v => setSettings({ deviceWifi: v })));
+    pane.appendChild(wifiRow);
 
     // Actions
     const actions = document.createElement('div'); actions.className = 'set-actions';

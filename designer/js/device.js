@@ -45,6 +45,35 @@ export async function getContext(base, vars) {
   return r.json();
 }
 
+// GET /wifi : { nets:[ssid,…], connected }. SSID seuls — les pass ne sont jamais renvoyés.
+export async function getWifi(base) {
+  const r = await devFetch(base, '/wifi');
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+// GET /wifi/scan : [{ssid,rssi},…] réseaux visibles.
+export async function scanWifi(base) {
+  const r = await devFetch(base, '/wifi/scan');
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+// POST /wifi : ajoute/maj {ssid,pass}. Le pass part vers le device, jamais relu.
+export async function addWifi(base, ssid, pass) {
+  const r = await devFetch(base, '/wifi', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ssid, pass })
+  });
+  const b = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return b;
+}
+// DELETE /wifi?ssid=… : retire un réseau stocké.
+export async function removeWifi(base, ssid) {
+  const r = await devFetch(base, '/wifi?ssid=' + encodeURIComponent(ssid), { method: 'DELETE' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json().catch(() => ({}));
+}
+
 // POST /page : navigue la page affichée SUR LE DEVICE. body = {dir:'next'|'prev'} | {index:N} | {name:'…'}.
 export async function setDevicePage(base, body) {
   const r = await devFetch(base, '/page', {

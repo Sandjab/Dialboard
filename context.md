@@ -289,12 +289,23 @@ Deux modes selon `body` :
 Deux mécanismes **distincts**, pour deux besoins différents. Aucun secret ne transite par le layout
 public : celui-ci ne contient que des **références**.
 
-### a) Identifiants WiFi — au *build*, dans le binaire
+### a) Identifiants WiFi — provisionnés au *runtime* (NVS)
 
-- `src/secrets.h` : `#define WIFI_SSID / WIFI_PASS` (gabarit `secrets.h.example` → `cp secrets.h.example secrets.h`).
-- **Gitignoré** (`.gitignore` : `src/secrets.h`) ; seul l'exemple est committé.
-- Compilé *en dur*, utilisé une fois au boot : `WiFi.begin(WIFI_SSID, WIFI_PASS)` (`main.cpp:30`).
-- ⚠️ Étant dans le binaire, un **dump du firmware révèle le WiFi** — hors dépôt, mais pas chiffré.
+Plus de `secrets.h` compilé (supprimé) : les identifiants WiFi vivent en **NVS** et sont saisis à
+l'exécution. Détails : `docs/superpowers/specs/2026-07-02-wifi-captive-portal-design.md`.
+
+- **Stockage** : `Preferences` (NVS, namespace `dbwifi`), une **liste** d'au plus `MAX_WIFI_NETS`
+  réseaux `{ssid, pass}`. Cœur pur `src/wifi_list.{h,cpp}` (testé natif) + enrobage NVS
+  `src/wifi_store.{h,cpp}`. **Survit à `uploadfs`** (NVS = partition distincte de LittleFS).
+- **Boot** : `wifi_prov_connect()` (`src/wifi_prov.cpp`) essaie chaque réseau **dans l'ordre** ; si
+  aucun ne répond (ou liste vide), repli sur un **portail captif** — softAP ouvert `Dialboard-XXXXXX`
+  + `DNSServer` + page de saisie, puis reboot après enregistrement (`view_show_provisioning` affiche
+  l'invite à l'écran).
+- **Gestion designer** : onglet console **« WiFi »** → routes `/wifi` (§9). **Pass write-only**
+  (jamais relus), comme `/secrets`.
+- ⚠️ NVS **en clair** (pas de chiffrement au repos) ; serveur web non authentifié sur le LAN ; AP de
+  provisioning ouvert (éphémère). Bénéfice vs l'ancien `secrets.h` : les identifiants WiFi ne sont
+  **plus dans le binaire** (un dump firmware ne les fuite plus).
 
 ### b) Secrets d'API (headers HTTP) — au *runtime*, store write-only
 
@@ -436,6 +447,10 @@ flowchart TB
 | `/context` | POST | applique `{nom: valeur, …}` au blackboard (`dash_set_context`). N'arme **pas** de sink. | `{"ok":true}` (même si vars perdues) |
 | `/status` | GET | santé + télémétrie : `ip, uptime_s, page, pages, components, sd, sources[], sinks[]`. | objet JSON |
 | `/secrets` | POST | merge de secrets d'API `{nom: valeur, …}` dans `/secrets.json` (§5). **Pas de `GET`** (write-only). | `{"ok":true}` |
+| `/wifi` | GET | liste des réseaux WiFi stockés (SSID seuls) + SSID connecté (§5.a). | `{nets:[…], connected}` |
+| `/wifi` | POST | ajoute/maj un réseau `{ssid, pass}` en NVS. **Pass jamais ré-écho.** | `{"ok":true}` / 507 si plein |
+| `/wifi` | DELETE | retire un réseau (`?ssid=…`). | `{"ok":true}` / 404 |
+| `/wifi/scan` | GET | réseaux visibles (`WiFi.scanNetworks`). | `[{ssid,rssi}, …]` |
 
 - `unknown` (réponse `/update`) = **id de composants introuvables**, **sans rapport** avec le plein
   du contexte.

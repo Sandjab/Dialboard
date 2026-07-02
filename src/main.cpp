@@ -4,7 +4,6 @@
 #include <ESPmDNS.h>
 #include "k718_lvgl.h"
 #include "config.h"
-#include "secrets.h"
 #include "view.h"
 #include "api.h"
 #include "led_ring_comp.h"
@@ -16,6 +15,8 @@
 #include "asset_fs.h"
 #include "net_pull.h"
 #include "net_push.h"
+#include "wifi_prov.h"
+#include "wifi_store.h"
 #include "freertos/semphr.h"
 
 static WebServer server(HTTP_PORT);
@@ -23,18 +24,6 @@ static Dashboard g_dash;
 static bool g_wifi_up = false;
 String g_layout_json;
 SemaphoreHandle_t g_ctx_mutex = nullptr;   // sérialise l'accès à g_dash.ctx / g_dash.sources / g_dash.sinks
-
-static bool wifi_connect() {
-    WiFi.mode(WIFI_STA);
-    WiFi.setAutoReconnect(true);
-    WiFi.begin(WIFI_SSID, WIFI_PASS);
-    uint32_t start = millis();
-    while (WiFi.status() != WL_CONNECTED && millis() - start < WIFI_BOOT_TIMEOUT_MS) {
-        delay(200); Serial.print("."); lv_timer_handler();
-    }
-    Serial.println();
-    return WiFi.status() == WL_CONNECTED;
-}
 
 static void start_services() {
     static bool started = false;
@@ -58,6 +47,7 @@ void setup() {
     char err[80];
     persist_begin();
     secret_store_begin();   // LittleFS déjà monté par persist_begin()
+    wifi_store_begin();
     asset_fs_init();        // monte la SD (si présente) + crée /dialboard/{bg,img,aimg}
     if (!persist_load(g_layout_json) ||
         !dash_set_layout(&g_dash, g_layout_json.c_str(), err, sizeof(err))) {
@@ -68,12 +58,16 @@ void setup() {
     led_ring_begin();
     sound_begin();
     nav_begin();
-    g_wifi_up = wifi_connect();
-    if (g_wifi_up) {
-        Serial.printf("[wifi] IP=%s\n", WiFi.localIP().toString().c_str());
+    const char* ssid = wifi_prov_connect();
+    if (ssid) {
+        g_wifi_up = true;
+        Serial.printf("[wifi] IP=%s (%s)\n", WiFi.localIP().toString().c_str(), ssid);
         start_services();
     } else {
-        Serial.println("[wifi] ECHEC (verifie secrets.h)");
+        char apn[33]; wifi_prov_ap_name(apn, sizeof(apn));
+        Serial.printf("[wifi] aucun reseau connu -> provisioning AP '%s'\n", apn);
+        view_show_provisioning(apn);
+        wifi_prov_start_ap();   // ne revient pas (reboot après enregistrement)
     }
 }
 
