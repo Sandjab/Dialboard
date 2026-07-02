@@ -23,6 +23,9 @@
 #define TEXT_LEN                32
 #define CAPTION_LEN             24
 #define UNKNOWN_CSV_LEN         128
+#define TZ_LEN                  48    // chaîne TZ POSIX (ex. "CET-1CEST,M3.5.0,M10.5.0")
+#define MAX_RING_TRACKS         3     // pistes concentriques d'un composant rings
+#define MAX_SEG_OPTS            4     // segments d'un contrôle segmented
 
 #define HTTP_PORT               80
 #define MDNS_HOST               "dialboard"
