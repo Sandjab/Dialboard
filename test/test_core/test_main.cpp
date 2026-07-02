@@ -7,6 +7,7 @@
 #include "context.h"
 #include "asset_path.h"
 #include "sink.h"
+#include "wifi_list.h"
 #include <ArduinoJson.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1383,6 +1384,48 @@ void test_ctx_to_json_str(void) {
     TEST_ASSERT_EQUAL_STRING("{\"host\":\"srv1\"}", out);
 }
 
+// --- wifi_list (cœur pur du provisioning WiFi) ---
+void test_wifi_upsert_append_and_replace(void) {
+    WifiNet n[5]; int c = 0;
+    TEST_ASSERT_EQUAL_INT(0, wifi_list_upsert(n, &c, 5, "home", "pw1"));
+    TEST_ASSERT_EQUAL_INT(1, c);
+    TEST_ASSERT_EQUAL_INT(0, wifi_list_upsert(n, &c, 5, "home", "pw2"));  // même SSID -> remplace
+    TEST_ASSERT_EQUAL_INT(1, c);                                         // pas d'ajout
+    TEST_ASSERT_EQUAL_STRING("pw2", n[0].pass);
+}
+void test_wifi_upsert_full_rejects(void) {
+    WifiNet n[2]; int c = 0;
+    wifi_list_upsert(n, &c, 2, "a", "");
+    wifi_list_upsert(n, &c, 2, "b", "");
+    TEST_ASSERT_EQUAL_INT(-1, wifi_list_upsert(n, &c, 2, "c", ""));      // plein -> -1
+    TEST_ASSERT_EQUAL_INT(2, c);
+}
+void test_wifi_remove(void) {
+    WifiNet n[3]; int c = 0;
+    wifi_list_upsert(n, &c, 3, "a", "");
+    wifi_list_upsert(n, &c, 3, "b", "");
+    TEST_ASSERT_TRUE(wifi_list_remove(n, &c, "a"));
+    TEST_ASSERT_EQUAL_INT(1, c);
+    TEST_ASSERT_EQUAL_STRING("b", n[0].ssid);                           // décalage vers le bas
+    TEST_ASSERT_FALSE(wifi_list_remove(n, &c, "zzz"));                  // absent -> false
+}
+void test_wifi_roundtrip(void) {
+    WifiNet n[5]; int c = 0;
+    wifi_list_upsert(n, &c, 5, "home", "secret");
+    wifi_list_upsert(n, &c, 5, "cafe", "");
+    char json[256]; wifi_list_serialize(n, c, json, sizeof(json));
+    WifiNet m[5]; int mc = wifi_list_parse(json, m, 5);
+    TEST_ASSERT_EQUAL_INT(2, mc);
+    TEST_ASSERT_EQUAL_STRING("home", m[0].ssid);
+    TEST_ASSERT_EQUAL_STRING("secret", m[0].pass);
+    TEST_ASSERT_EQUAL_STRING("cafe", m[1].ssid);
+}
+void test_wifi_parse_garbage_empty(void) {
+    WifiNet m[5];
+    TEST_ASSERT_EQUAL_INT(0, wifi_list_parse("not json", m, 5));        // corrompu -> 0
+    TEST_ASSERT_EQUAL_INT(0, wifi_list_parse("{}", m, 5));              // pas de clé nets -> 0
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_remaining_seconds);
@@ -1465,6 +1508,11 @@ int main(int, char**) {
     RUN_TEST(test_ctx_set_find_num);
     RUN_TEST(test_ctx_overwrite_keeps_one_slot);
     RUN_TEST(test_ctx_full_rejects);
+    RUN_TEST(test_wifi_upsert_append_and_replace);
+    RUN_TEST(test_wifi_upsert_full_rejects);
+    RUN_TEST(test_wifi_remove);
+    RUN_TEST(test_wifi_roundtrip);
+    RUN_TEST(test_wifi_parse_garbage_empty);
     RUN_TEST(test_ptr_nested_object);
     RUN_TEST(test_ptr_array_index);
     RUN_TEST(test_ptr_missing_is_null);
