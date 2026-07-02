@@ -1,9 +1,9 @@
-// Console bas repliable (Phase 6, spec §5) : onglets [Problèmes | Source] + journaux optionnels
-// [Activité | Log JS | Log réseau]. Cachée (corps replié) par défaut ; le bandeau (onglets + ▲▼) reste
-// comme poignée. S'abonne au modèle (problèmes/source) ET au store de logs (3 journaux). Les onglets de
-// journaux sont MASQUÉS quand leur case (settings) est décochée ; si l'onglet actif disparaît → Problèmes.
-// Câblage DOM, vérifié navigateur (pas de test node). refreshTabs() est appelé par app.js quand un réglage
-// de journal change.
+// Console bas repliable (Phase 6, spec §5) : onglets [Problèmes | Source] + optionnels
+// [Activité | Log JS | Log réseau | Device]. Cachée (corps replié) par défaut ; le bandeau (onglets + ▲▼)
+// reste comme poignée. S'abonne au modèle (problèmes/source) ET au store de logs (3 journaux). Les onglets
+// optionnels (journaux + Device) sont MASQUÉS quand leur case (settings) est décochée ; si l'onglet actif
+// disparaît → Problèmes. Câblage DOM, vérifié navigateur (pas de test node). refreshTabs() est appelé par
+// app.js quand un réglage (journal ou onglet Device) change.
 import { t } from './i18n.js';
 import { formatDeviceDump } from './device.js';
 
@@ -155,7 +155,10 @@ export function createConsole(root, model, { validate, logs, getSettings, pullDe
       const line = document.createElement('div'); line.className = 'console-logline';
       const n = document.createElement('span'); n.className = 'console-logtime'; n.textContent = r.name || '?';
       const st = document.createElement('span');
-      st.className = (r.status === 200 || r.status === 204) ? 'console-log-ok' : (r.errors ? 'console-log-err' : '');
+      // ok = 2xx ; err = erreur transport (err_count) OU statut non-2xx (un sink en 404/500 a err_count=0
+      // côté firmware mais reste un échec à signaler — c'est ce que ce panneau sert à débugger) ; neutre = jamais tiré/màj.
+      st.className = (r.status === 200 || r.status === 204) ? 'console-log-ok'
+                   : (r.errors || r.status != null) ? 'console-log-err' : '';
       const agePart = r.age === null ? '—' : (r.age + 's');
       st.textContent = `${r.status == null ? '—' : r.status} · err${r.errors} · ${agePart}`;
       line.append(n, st); return line;

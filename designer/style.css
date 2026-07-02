@@ -195,12 +195,12 @@ main > .col:last-child { border-right: 0; }
 
 /* Device (Pull + rendu vars/sources/sinks) : barre d'outils en flux (pas d'un seul bouton flottant
    comme .console-source), donc .console-copy y perd son position:absolute hérité. */
-.console-devctx { display: flex; flex-direction: column; height: 100%; overflow: auto; }
-.console-devbar { display: flex; gap: 8px; align-items: center; padding: 4px 6px; }
+.console-devctx { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden; }
+.console-devbar { display: flex; gap: 8px; align-items: center; padding: 4px 6px; flex: 0 0 auto; }
 .console-devbar .console-copy { position: static; }
 .console-devauto { display: inline-flex; align-items: center; gap: 2px; font-size: 12px; opacity: .85; }
 .console-devsec { font-weight: 600; opacity: .7; margin: 6px 6px 2px; text-transform: uppercase; font-size: 11px; }
-.console-devout { overflow: auto; }
+.console-devout { flex: 1 1 auto; min-height: 0; overflow: auto; }
 
 /* --- Plan B : webfont + canvas --- */
 @font-face {
