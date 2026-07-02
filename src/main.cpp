@@ -92,6 +92,8 @@ void loop() {
         last_sec += elapsed * 1000;
         dash_tick_countdown(&g_dash, elapsed);
     }
+    static uint32_t last_clock = 0;
+    if (now_ms - last_clock >= 1000) { last_clock = now_ms; dash_tick_clock(&g_dash); }
     static uint32_t last_ctx = 0;
     if (millis() - last_ctx >= 100) {
         last_ctx = millis();

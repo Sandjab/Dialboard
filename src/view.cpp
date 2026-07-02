@@ -5,7 +5,9 @@
 #include <string.h>
 #include <cstdio>
 #include <math.h>
+#include <time.h>
 #include "format.h"
+#include "clock_geom.h"
 #include <LittleFS.h>
 #include "esp_heap_caps.h"
 #include "config.h"
@@ -43,6 +45,10 @@ static lv_image_dsc_t* s_aimg_dsc[MAX_COMPONENTS] = {0};   // tableau de c.aimg_
 // Doivent survivre au widget -> statiques. Un style par (composant, bande) pour le tricolore.
 static lv_style_t s_meter_section_style[MAX_COMPONENTS][MAX_THRESHOLDS];
 static bool       s_meter_section_init[MAX_COMPONENTS][MAX_THRESHOLDS] = {{0}};
+
+// clock : aiguilles = lv_line, mêmes contraintes de pointeur persistant que s_line_pts.
+// Indexé par composant (comme s_meter_section_style) : [comp][hour/min/sec][2 points].
+static lv_point_precise_t s_clock_pts[MAX_COMPONENTS][3][2];
 
 // led : descripteurs de gradient persistants (lv_obj_set_style_bg_grad stocke le pointeur).
 static lv_grad_dsc_t s_led_dome_grad[MAX_COMPONENTS];
@@ -650,6 +656,85 @@ static void sync_roller(Component& c, Placement&, lv_obj_t* w, lv_obj_t*, lv_obj
     lv_roller_set_selected(w, (uint16_t)idx, LV_ANIM_OFF);
 }
 
+// clock : cadran analogique (conteneur + 4 ticks cardinaux décoratifs + aiguilles lv_line)
+// ou digital (label HH:MM[:SS]). Heure lue sur le device (NTP, cf. configTzTime au boot) ;
+// tant que non synchronisée (epoch < ~2023), digital affiche "--:--" et analogique ne bouge pas.
+static void build_clock(lv_obj_t* parent, Component& c, Placement& q,
+                        lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
+    if (!c.clock_analog) {                                   // DIGITAL
+        lv_obj_t* l = lv_label_create(parent);
+        lv_obj_set_style_text_font(l, get_font(c.font_family, c.font, c.bold, c.italic), 0);
+        lv_obj_set_style_text_color(l, lv_color_hex(c.color), 0);
+        lv_label_set_text(l, "--:--");
+        lv_obj_align(l, ALIGN_MAP[q.anchor], q.dx, q.dy);
+        *main = l;
+        return;
+    }
+    int r = q.radius ? q.radius : 80;
+    lv_obj_t* box = lv_obj_create(parent);
+    lv_obj_remove_style_all(box);
+    lv_obj_set_size(box, r * 2, r * 2);
+    lv_obj_center(box);
+    lv_obj_clear_flag(box, LV_OBJ_FLAG_SCROLLABLE);
+    // 4 ticks cardinaux (décoratifs, non synchronisés) : petits rectangles au bord du cadran.
+    static const lv_align_t TICK_ALIGN[4] = {
+        LV_ALIGN_TOP_MID, LV_ALIGN_BOTTOM_MID, LV_ALIGN_LEFT_MID, LV_ALIGN_RIGHT_MID
+    };
+    for (int i = 0; i < 4; i++) {
+        lv_obj_t* tick = lv_obj_create(box);
+        lv_obj_remove_style_all(tick);
+        lv_obj_set_style_bg_color(tick, lv_color_hex(c.color), 0);
+        lv_obj_set_style_bg_opa(tick, LV_OPA_COVER, 0);
+        bool vertical = (i < 2);   // top/bottom : marque radiale verticale ; left/right : horizontale
+        lv_obj_set_size(tick, vertical ? 4 : 10, vertical ? 10 : 4);
+        lv_obj_align(tick, TICK_ALIGN[i], 0, 0);
+    }
+    int idx = q.comp_index;
+    int nlines = c.show_seconds ? 3 : 2;
+    for (int k = 0; k < nlines; k++) {
+        lv_obj_t* ln = lv_line_create(box);
+        lv_obj_set_style_line_width(ln, k == 0 ? 6 : (k == 1 ? 4 : 2), 0);
+        lv_obj_set_style_line_color(ln, lv_color_hex(k == 2 ? 0x38BDF8 : c.color), 0);
+        lv_obj_set_style_line_rounded(ln, true, 0);
+        if (idx >= 0 && idx < MAX_COMPONENTS) {
+            s_clock_pts[idx][k][0] = (lv_point_precise_t){ (lv_value_precise_t)r, (lv_value_precise_t)r };
+            s_clock_pts[idx][k][1] = (lv_point_precise_t){ (lv_value_precise_t)r, (lv_value_precise_t)r };
+            lv_line_set_points(ln, s_clock_pts[idx][k], 2);
+        }
+    }
+    *main = box;
+}
+static void sync_clock(Component& c, Placement& q, lv_obj_t* w, lv_obj_t*, lv_obj_t*) {
+    time_t now = time(nullptr);
+    struct tm tm; localtime_r(&now, &tm);
+    bool synced = (now > 1700000000);   // epoch grossier : NTP pas encore obtenu tant que < ~nov. 2023
+    if (!c.clock_analog) {
+        if (!synced) { lv_label_set_text(w, "--:--"); return; }
+        char buf[24];
+        clock_format_digital(tm.tm_hour, tm.tm_min, tm.tm_sec, c.show_seconds, buf, sizeof(buf));
+        lv_label_set_text(w, buf);
+        return;
+    }
+    if (!synced) return;
+    int r = q.radius ? q.radius : 80;
+    int idx = q.comp_index;
+    if (idx < 0 || idx >= MAX_COMPONENTS) return;
+    float ah, am, as; clock_hand_angles(tm.tm_hour, tm.tm_min, tm.tm_sec, &ah, &am, &as);
+    const float DEG2RAD = 3.14159265f / 180.0f;
+    struct { float deg; float len; int k; } hands[3] = {
+        { ah, r * 0.5f, 0 }, { am, r * 0.72f, 1 }, { as, r * 0.8f, 2 },
+    };
+    int nlines = c.show_seconds ? 3 : 2;
+    int child0 = lv_obj_get_child_count(w) - nlines;
+    for (int j = 0; j < nlines; j++) {
+        float rad = hands[j].deg * DEG2RAD;
+        s_clock_pts[idx][j][1].x = (lv_value_precise_t)(r + hands[j].len * sinf(rad));
+        s_clock_pts[idx][j][1].y = (lv_value_precise_t)(r - hands[j].len * cosf(rad));
+        lv_obj_t* ln = lv_obj_get_child(w, child0 + j);
+        if (ln) lv_line_set_points(ln, s_clock_pts[idx][j], 2);
+    }
+}
+
 // Vtable vue indexée par CompType. Types physiques (led_ring/sound) : build/sync = nullptr
 // (rendus par leur tick dédié -> le moteur les saute). label/readout partagent build_text.
 struct ViewVTable {
@@ -680,6 +765,7 @@ static const ViewVTable VIEW[] = {
     /* COMP_SLIDER   */ { build_slider, sync_slider },
     /* COMP_ARC      */ { build_arc,    sync_arc    },
     /* COMP_ROLLER   */ { build_roller, sync_roller },
+    /* COMP_CLOCK    */ { build_clock,  sync_clock  },
 };
 static_assert(sizeof(VIEW) / sizeof(VIEW[0]) == COMP_COUNT,
               "VIEW desync avec CompType : ajoute la ligne du nouveau type");

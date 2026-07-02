@@ -38,6 +38,7 @@ static const struct { const char* name; CompType type; } COMP_NAMES[] = {
     { "slider", COMP_SLIDER },
     { "arc",    COMP_ARC    },
     { "roller", COMP_ROLLER },
+    { "clock",  COMP_CLOCK  },
 };
 
 static uint8_t parse_font_family(const char *s) {
@@ -229,6 +230,11 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
                 is.color      = is.has_color ? parse_hex_color(s["color"], 0xFFFFFF) : 0;
                 c.icon_state_count++;
             }
+        }
+        if (c.type == COMP_CLOCK) {
+            c.clock_analog = (strcmp(o["mode"] | "analog", "digital") != 0);
+            c.show_seconds = o["show_seconds"] | false;
+            c.show_date    = o["show_date"] | false;
         }
         if (c.type == COMP_LED_RING) {                    // config -> état initial du driver (boot vivant)
             c.led_color      = c.color;                   // (sinon le driver retombe sur blanc tant qu'aucun /update)
@@ -479,6 +485,7 @@ static const comp_apply_fn APPLY[] = {
     /* COMP_SLIDER   */ nullptr,             // effecteur : reflet via context_apply
     /* COMP_ARC      */ nullptr,
     /* COMP_ROLLER   */ nullptr,
+    /* COMP_CLOCK    */ nullptr,             // heure = device, pas de push-by-id
 };
 static_assert(sizeof(APPLY) / sizeof(APPLY[0]) == COMP_COUNT,
               "APPLY desync avec CompType : ajoute la ligne du nouveau type");
@@ -668,6 +675,14 @@ void dash_tick_countdown(Dashboard* d, uint32_t elapsed_s) {
         c.reset_in_s = (c.reset_in_s > elapsed_s) ? c.reset_in_s - elapsed_s : 0;
         format_remaining(c.reset_in_s, c.caption, sizeof(c.caption));
         c.dirty = true;
+        d->values_dirty = true;
+    }
+}
+
+void dash_tick_clock(Dashboard* d) {
+    for (int i = 0; i < d->comp_count; i++) {
+        if (d->components[i].type != COMP_CLOCK) continue;
+        d->components[i].dirty = true;
         d->values_dirty = true;
     }
 }

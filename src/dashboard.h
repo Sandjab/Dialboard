@@ -4,7 +4,7 @@
 #include "config.h"
 #include "context.h"
 
-enum CompType { COMP_NONE, COMP_LABEL, COMP_READOUT, COMP_BAR, COMP_RING, COMP_LED_RING, COMP_SOUND, COMP_CHART, COMP_METER, COMP_IMAGE, COMP_IMAGE_ANIM, COMP_LED, COMP_RECT, COMP_CIRCLE, COMP_LINE, COMP_ICON, COMP_SWITCH, COMP_BUTTON, COMP_SLIDER, COMP_ARC, COMP_ROLLER, COMP_COUNT };
+enum CompType { COMP_NONE, COMP_LABEL, COMP_READOUT, COMP_BAR, COMP_RING, COMP_LED_RING, COMP_SOUND, COMP_CHART, COMP_METER, COMP_IMAGE, COMP_IMAGE_ANIM, COMP_LED, COMP_RECT, COMP_CIRCLE, COMP_LINE, COMP_ICON, COMP_SWITCH, COMP_BUTTON, COMP_SLIDER, COMP_ARC, COMP_ROLLER, COMP_CLOCK, COMP_COUNT };
 enum LedMode  { LED_OFF, LED_SOLID, LED_PROGRESS, LED_SPINNER, LED_BLINK, LED_BREATHE };
 enum BarMode  { BAR_NORMAL, BAR_SYMMETRICAL };               // bar : lv_bar_set_mode
 enum ArcMode  { ARC_NORMAL, ARC_SYMMETRICAL, ARC_REVERSE };  // ring : lv_arc_set_mode
@@ -94,6 +94,11 @@ struct Component {
     // roller : libelles joints par '\n' + rangees visibles
     char     roller_options[ROLLER_OPTS_LEN];
     uint8_t  roller_rows;
+
+    // clock : cadran analogique (aiguilles) ou digital (label HH:MM[:SS]) ; heure = device (NTP), pas de push-by-id
+    bool     clock_analog;    // true=cadran, false=digital (défaut true)
+    bool     show_seconds;
+    bool     show_date;
 
     // --- etat (modifie par /update) ---
     int32_t  value;
@@ -190,6 +195,7 @@ int  dash_find(const Dashboard* d, const char* id);
 bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn);
 int  dash_apply_update(Dashboard* d, const char* json, char* unknown_csv, size_t n);
 void dash_tick_countdown(Dashboard* d, uint32_t elapsed_s);
+void dash_tick_clock(Dashboard* d);   // marque les composants clock dirty (à appeler chaque seconde)
 void dash_tick_aimg(Dashboard* d, uint32_t now_ms);   // image_anim : avance la frame des composants en lecture
 void dash_set_context(Dashboard* d, const char* json, uint32_t now);
 // Écriture du contexte d'ORIGINE UI (effecteur) : écrit la var ET arme les sinks qui l'observent.
