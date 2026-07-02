@@ -8,6 +8,7 @@
 #include "view.h"
 #include "persist.h"
 #include "secret_store.h"
+#include "wifi_store.h"
 #include "freertos/semphr.h"
 #include <lvgl.h>
 #include "esp_heap_caps.h"
@@ -60,6 +61,47 @@ static void h_set_secrets() {
     if (!S->hasArg("plain")) { S->send(400, "text/plain", "Empty body\n"); return; }
     if (!secret_store_merge(S->arg("plain").c_str())) { S->send(400, "text/plain", "Invalid JSON\n"); return; }
     S->send(200, "application/json", "{\"ok\":true}\n");   // ne renvoie JAMAIS le contenu
+}
+
+static void h_wifi_get() {
+    char ssids[MAX_WIFI_NETS][33];
+    int n = wifi_store_list_ssids(ssids, MAX_WIFI_NETS);
+    JsonDocument doc;
+    JsonArray arr = doc["nets"].to<JsonArray>();
+    for (int i = 0; i < n; i++) arr.add(ssids[i]);
+    doc["connected"] = WiFi.isConnected() ? WiFi.SSID() : String();
+    String out; serializeJson(doc, out); out += "\n";
+    S->send(200, "application/json", out);
+}
+
+static void h_wifi_post() {
+    if (!S->hasArg("plain")) { S->send(400, "text/plain", "Empty body\n"); return; }
+    JsonDocument doc;
+    if (deserializeJson(doc, S->arg("plain"))) { S->send(400, "text/plain", "Invalid JSON\n"); return; }
+    const char* ssid = doc["ssid"] | "";
+    if (!ssid[0]) { S->send(400, "text/plain", "Missing ssid\n"); return; }
+    if (!wifi_store_upsert(ssid, doc["pass"] | "")) { S->send(507, "text/plain", "Store full\n"); return; }
+    S->send(200, "application/json", "{\"ok\":true}\n");   // ne renvoie JAMAIS le pass
+}
+
+static void h_wifi_delete() {
+    String ssid = S->hasArg("ssid") ? S->arg("ssid") : String();
+    if (!ssid.length())                   { S->send(400, "text/plain", "Missing ssid\n"); return; }
+    if (!wifi_store_remove(ssid.c_str())) { S->send(404, "text/plain", "Not found\n");   return; }
+    S->send(200, "application/json", "{\"ok\":true}\n");
+}
+
+static void h_wifi_scan() {
+    int n = WiFi.scanNetworks();
+    JsonDocument doc;
+    JsonArray arr = doc.to<JsonArray>();
+    for (int i = 0; i < n; i++) {
+        JsonObject o = arr.add<JsonObject>();
+        o["ssid"] = WiFi.SSID(i);
+        o["rssi"] = WiFi.RSSI(i);
+    }
+    String out; serializeJson(doc, out); out += "\n";
+    S->send(200, "application/json", out);
 }
 
 static void h_status() {
@@ -449,6 +491,10 @@ void api_register(WebServer& server, Dashboard* d) {
     server.on("/context", HTTP_GET,  h_get_context);
     server.on("/context", HTTP_POST, h_set_context);
     server.on("/secrets", HTTP_POST, h_set_secrets);   // pas de route GET : write-only par conception
+    server.on("/wifi",      HTTP_GET,    h_wifi_get);
+    server.on("/wifi",      HTTP_POST,   h_wifi_post);
+    server.on("/wifi",      HTTP_DELETE, h_wifi_delete);
+    server.on("/wifi/scan", HTTP_GET,    h_wifi_scan);
     server.on("/status", HTTP_GET,  h_status);
     server.on("/layout", HTTP_POST, h_set_layout);
     server.on("/layout", HTTP_GET,  h_get_layout);
