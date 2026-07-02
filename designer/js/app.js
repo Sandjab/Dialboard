@@ -3,7 +3,7 @@ import { createValidator } from './validate.js';
 import { createStatusbar } from './statusbar.js';
 import { createConsole } from './console.js';
 import { createDrawer } from './drawer.js';
-import { loadLayout, pushLayout, captureScreenshot, getStatus, setDevicePage, pushValues, uploadBgImage, fetchBgImage, uploadImage, fetchImage, uploadAimg, fetchAimg, formatDeviceStatus } from './device.js';
+import { loadLayout, pushLayout, captureScreenshot, getStatus, getContext, setDevicePage, pushValues, uploadBgImage, fetchBgImage, uploadImage, fetchImage, uploadAimg, fetchAimg, formatDeviceStatus } from './device.js';
 import { referencedKeys, cacheBytes, cachePut, previewUrl } from './bg-image.js';
 import { referencedImageKeys, cacheBytes as imageCacheBytes, previewUrl as imagePreviewUrl, rehydrate as rehydrateImage } from './image-asset.js';
 import { referencedAimgKeys, packBytes as aimgPackBytes, previewUrl as aimgPreviewUrl, rehydrate as rehydrateAimg } from './image-anim-asset.js';
@@ -260,7 +260,13 @@ async function main() {
     },
   });
 
-  const dconsole = createConsole($('console'), model, { validate, logs, getSettings });
+  // Pull on-demand pour l'onglet Device : /context (blackboard) + /status (télémétrie + uptime pour l'âge).
+  const pullDeviceContext = async () => {
+    const base = $('base').value;
+    const [vars, status] = await Promise.all([getContext(base), getStatus(base)]);
+    return { vars, sources: status.sources || [], sinks: status.sinks || [], uptime_s: status.uptime_s };
+  };
+  const dconsole = createConsole($('console'), model, { validate, logs, getSettings, pullDeviceContext });
   createStatusbar($('statusbar'), model, { selection, validate, onValidClick: () => dconsole.open('problems') });
 
   const syncUndo = () => { $('undo').disabled = !model.canUndo(); $('redo').disabled = !model.canRedo(); };
