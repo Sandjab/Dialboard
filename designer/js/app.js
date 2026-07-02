@@ -263,8 +263,10 @@ async function main() {
   // Pull on-demand pour l'onglet Device : /context (blackboard) + /status (télémétrie + uptime pour l'âge).
   const pullDeviceContext = async () => {
     const base = $('base').value;
+    if (!base) throw new Error(t('toast.device_url_q'));   // même garde que les autres actions device (doPull l'affiche inline)
     const [vars, status] = await Promise.all([getContext(base), getStatus(base)]);
-    return { vars, sources: status.sources || [], sinks: status.sinks || [], uptime_s: status.uptime_s };
+    const s = (status && typeof status === 'object') ? status : {};
+    return { vars, sources: s.sources || [], sinks: s.sinks || [], uptime_s: s.uptime_s };
   };
   const dconsole = createConsole($('console'), model, { validate, logs, getSettings, pullDeviceContext });
   createStatusbar($('statusbar'), model, { selection, validate, onValidClick: () => dconsole.open('problems') });

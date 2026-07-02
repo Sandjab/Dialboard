@@ -65,3 +65,10 @@ test('formatDeviceDump : sources/sinks non-tableau → vides (intent : firmware 
   assert.deepEqual(r.sources, []);
   assert.deepEqual(r.sinks, []);
 });
+
+test('formatDeviceDump : élément sources/sinks null ou non-objet toléré (intent : réponse firmware partielle ne casse pas le rendu — revue Gemini)', () => {
+  const r = formatDeviceDump({ uptime_s: 10, sources: [null, 'x', { name: 's', last_status: 200, updated_at: 5000 }] });
+  assert.equal(r.sources.length, 3);
+  assert.deepEqual(r.sources[0], { name: undefined, status: undefined, errors: 0, age: null });
+  assert.deepEqual(r.sources[2], { name: 's', status: 200, errors: 0, age: 5 });
+});

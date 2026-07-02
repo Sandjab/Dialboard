@@ -149,8 +149,9 @@ export function formatDeviceDump(dump) {
   const vars = (d.vars && typeof d.vars === 'object' && !Array.isArray(d.vars))
     ? Object.keys(d.vars).sort().map(name => ({ name, value: d.vars[name] }))
     : [];
-  const tele = (arr, tsKey) => (Array.isArray(arr) ? arr : []).map(o => ({
-    name: o.name, status: o.last_status, errors: o.err_count || 0, age: age(o[tsKey]),
-  }));
+  const tele = (arr, tsKey) => (Array.isArray(arr) ? arr : []).map(o => {
+    const obj = (o && typeof o === 'object') ? o : {};   // élément null/non-objet toléré (réponse firmware partielle)
+    return { name: obj.name, status: obj.last_status, errors: obj.err_count || 0, age: age(obj[tsKey]) };
+  });
   return { vars, sources: tele(d.sources, 'updated_at'), sinks: tele(d.sinks, 'fired_at') };
 }
