@@ -317,7 +317,7 @@ main > .col:last-child { border-right: 0; }
 .w-roller { box-sizing: border-box; background: #1F2937; border-radius: 6px; overflow: hidden; }
 .w-roller-list { display: flex; flex-direction: column; }
 .w-roller-opt { padding: 2px 12px; color: #9AA0AA; text-align: center; line-height: 1.5; }
-.w-roller-opt--sel { color: #FFFFFF; background: #374151; }
+.w-roller-opt.selected { color: #FFFFFF; background: #374151; }
 
 .w-ring { cursor: default; }       /* ring centré, non déplaçable (view.cpp:51) */
 .w-ring svg { display: block; }

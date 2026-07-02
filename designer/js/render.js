@@ -753,7 +753,7 @@ export function buildRoller(comp, placement = {}, mock = MOCKS.roller) {
   list.className = 'w-roller-list';
   opts.forEach((o, i) => {
     const d = document.createElement('div');
-    d.className = 'w-roller-opt' + (i === sel ? ' w-roller-opt--sel' : '');
+    d.className = 'w-roller-opt' + (i === sel ? ' selected' : '');
     d.textContent = o;
     list.appendChild(d);
   });
