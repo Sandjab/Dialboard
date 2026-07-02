@@ -130,3 +130,19 @@ export function formatDeviceStatus(s) {
     + (srcs ? ` · sources ${srcs}` : '');
   return { label, tooltip };
 }
+
+// Présentation de {vars, sources, sinks, uptime_s} (pull de GET /context + GET /status) pour l'onglet
+// Device — séparée du transport → testable node. L'âge se calcule contre l'uptime DEVICE (updated_at/
+// fired_at sont des millis() device, pas navigateur). Tolère vars/sources/sinks non conformes (Array.isArray).
+export function formatDeviceDump(dump) {
+  const d = (dump && typeof dump === 'object') ? dump : {};
+  const nowMs = (Number(d.uptime_s) || 0) * 1000;
+  const age = (ts) => (Number.isFinite(ts) && ts > 0) ? Math.max(0, Math.round((nowMs - ts) / 1000)) : null;
+  const vars = (d.vars && typeof d.vars === 'object' && !Array.isArray(d.vars))
+    ? Object.keys(d.vars).sort().map(name => ({ name, value: d.vars[name] }))
+    : [];
+  const tele = (arr, tsKey) => (Array.isArray(arr) ? arr : []).map(o => ({
+    name: o.name, status: o.last_status, errors: o.err_count || 0, age: age(o[tsKey]),
+  }));
+  return { vars, sources: tele(d.sources, 'updated_at'), sinks: tele(d.sinks, 'fired_at') };
+}
