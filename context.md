@@ -51,7 +51,7 @@ flowchart LR
 
 > À ne pas confondre : `POST /update` **ne touche pas le contexte**. Il écrit *directement* la
 > valeur d'un composant par son `id` (mode « push par id », `bind` vide). Le contexte n'entre en
-> jeu que pour les composants dont le `bind` nomme une variable. Voir §7.
+> jeu que pour les composants dont le `bind` nomme une variable. Voir §8.
 
 ---
 
@@ -104,7 +104,7 @@ flowchart TD
 Quand `count >= MAX_CTX_VARS` (32), `ctx_slot` renvoie `nullptr` et `ctx_set_*` renvoient `false`
 (`src/context.cpp:14,22,29`). **Mais aucun appelant ne remonte ce `false`** : une 33ᵉ variable est
 **silencieusement abandonnée** — pas de log, pas de code d'erreur HTTP, pas de compteur exposé.
-`POST /context` répond quand même `{"ok":true}`. Voir aussi §8.
+`POST /context` répond quand même `{"ok":true}`. Voir aussi §9.
 
 ---
 
@@ -284,7 +284,66 @@ Deux modes selon `body` :
 
 ---
 
-## 5. Concurrence — 3 tâches, 1 mutex
+## 5. Secrets
+
+Deux mécanismes **distincts**, pour deux besoins différents. Aucun secret ne transite par le layout
+public : celui-ci ne contient que des **références**.
+
+### a) Identifiants WiFi — au *build*, dans le binaire
+
+- `src/secrets.h` : `#define WIFI_SSID / WIFI_PASS` (gabarit `secrets.h.example` → `cp secrets.h.example secrets.h`).
+- **Gitignoré** (`.gitignore` : `src/secrets.h`) ; seul l'exemple est committé.
+- Compilé *en dur*, utilisé une fois au boot : `WiFi.begin(WIFI_SSID, WIFI_PASS)` (`main.cpp:30`).
+- ⚠️ Étant dans le binaire, un **dump du firmware révèle le WiFi** — hors dépôt, mais pas chiffré.
+
+### b) Secrets d'API (headers HTTP) — au *runtime*, store write-only
+
+Pour que sources (pull) et sinks (push) s'authentifient auprès d'API tierces sans écrire la clé dans
+le layout. Défini dans `src/secret_store.{h,cpp}`.
+
+| Aspect | Détail |
+|--------|--------|
+| Stockage | LittleFS `/secrets.json` (`SECRETS_PATH`, `config.h:31`), séparé du layout |
+| Écriture | `POST /secrets` avec `{ "nom": "valeur", … }` → `secret_store_merge` (merge ; **chaînes uniquement**) |
+| Lecture | **aucune route `GET`** (`api.cpp:451`, *write-only by design*) ; le handler ne renvoie **jamais** le contenu, seulement `{"ok":true}` (`api.cpp:62`) |
+| Qui lit vraiment | seuls `net_pull`/`net_push`, via `secret_store_get`, au moment du fetch |
+| Robustesse | store absent/corrompu ⇒ objet vide, jamais d'échec dur (`load_doc`) ; `secret_store_begin` crée `{}` au boot (`main.cpp:60`) |
+
+### Résolution `$ref`
+
+Dans un header de source **ou** de sink, la **valeur** est soit un littéral, soit `"$nom"` (référence
+à un secret). La substitution a lieu dans le snapshot sous mutex, juste **avant** le HTTP —
+la clé n'apparaît ni dans les logs, ni dans une réponse, ni dans le layout.
+
+```mermaid
+flowchart LR
+    L["layout.json (public)<br/>header value = &quot;$apikey&quot;"] --> R["resolve_header()<br/>net_pull.cpp:19 / net_push.cpp:19"]
+    S[("/secrets.json<br/>{ apikey: &quot;sk-…&quot; }")] --> R
+    R --> H["header HTTP réel<br/>Authorization: sk-…"]
+```
+
+`resolve_header` : si la valeur commence par `$`, elle est résolue via `secret_store_get(nom)` ;
+sinon copiée telle quelle. **Le designer ne gère pas les secrets** : il laisse seulement saisir
+`"$nom"` comme valeur de header (`sources.js:70`, `sinks.js:100`) ; le `POST /secrets` est **manuel**
+(`sources.js:4`).
+
+### Ce qui protège — et ce qui ne protège pas
+
+✅ Couvert : le layout ne contient que des `$ref` (committable publiquement) ; `GET /context`,
+`/status`, `/layout` n'exposent aucun secret ; `/secrets` n'a pas de `GET`.
+
+⚠️ Limites (modèle de menace réel) :
+
+- **`/secrets.json` est en clair** sur LittleFS — pas de chiffrement au repos ; un dump physique le lit.
+- **Serveur web non authentifié** : sur le LAN, n'importe qui peut `POST /secrets` (il ne peut pas les
+  *relire* via l'API, mais il peut les **écraser**).
+- **HTTPS sortant en `setInsecure()`** (`net_pull.cpp:65`, `net_push.cpp:60`) : certificat non vérifié
+  → un `$secret` en header est chiffré en transit mais reste exposé à un MITM.
+- `uploadfs` réécrit tout LittleFS ⇒ **efface `/secrets.json`** ; re-`POST /secrets` après un flash FS.
+
+---
+
+## 6. Concurrence — 3 tâches, 1 mutex
 
 Le contexte, les sources et les sinks sont partagés par **trois tâches** ; l'accès est sérialisé
 par **`g_ctx_mutex`** (`src/main.cpp:25`).
@@ -318,7 +377,7 @@ Règles :
 
 ---
 
-## 6. Consommation par les composants — `bind`
+## 7. Consommation par les composants — `bind`
 
 Un composant d'affichage peut porter un **`bind`** = le nom d'une variable du contexte
 (`Component.bind`, `src/dashboard.h:60`). La boucle **`context_apply`** (`dashboard.cpp:559`)
@@ -334,7 +393,7 @@ flowchart LR
     D -- oui --> E["mappe selon le type<br/>(num → value, str → vstr…)"]
 ```
 
-- `bind` **vide** ⇒ le composant est piloté **par son id** via `POST /update` (voir §7).
+- `bind` **vide** ⇒ le composant est piloté **par son id** via `POST /update` (voir §8).
 - `bind` **renseigné** ⇒ le composant **lit le contexte** ; si la variable est absente, il garde sa
   dernière valeur (pas de clignotement).
 
@@ -344,7 +403,7 @@ un slider de suivre une valeur poussée par ailleurs.
 
 ---
 
-## 7. Deux façons de piloter un afficheur
+## 8. Deux façons de piloter un afficheur
 
 ```mermaid
 flowchart TB
@@ -368,7 +427,7 @@ flowchart TB
 
 ---
 
-## 8. API HTTP
+## 9. API HTTP
 
 | Route | Méthode | Effet | Réponse |
 |-------|---------|-------|---------|
@@ -376,6 +435,7 @@ flowchart TB
 | `/context` | GET | dump du blackboard `{nom: valeur, …}`. Filtre optionnel `?vars=a,b,c`. | objet JSON |
 | `/context` | POST | applique `{nom: valeur, …}` au blackboard (`dash_set_context`). N'arme **pas** de sink. | `{"ok":true}` (même si vars perdues) |
 | `/status` | GET | santé + télémétrie : `ip, uptime_s, page, pages, components, sd, sources[], sinks[]`. | objet JSON |
+| `/secrets` | POST | merge de secrets d'API `{nom: valeur, …}` dans `/secrets.json` (§5). **Pas de `GET`** (write-only). | `{"ok":true}` |
 
 - `unknown` (réponse `/update`) = **id de composants introuvables**, **sans rapport** avec le plein
   du contexte.
@@ -385,7 +445,7 @@ flowchart TB
 
 ---
 
-## 9. Dimensionnement (`src/config.h`)
+## 10. Dimensionnement (`src/config.h`)
 
 | Constante | Valeur | Rôle |
 |-----------|--------|------|
