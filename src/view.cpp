@@ -549,6 +549,17 @@ static void button_event_cb(lv_event_t* e);
 static void slider_event_cb(lv_event_t* e);
 static void arc_event_cb(lv_event_t* e);
 static void roller_event_cb(lv_event_t* e);
+
+// Reflets d'effecteurs différés pendant l'appui : un sync_* sous LV_STATE_PRESSED n'arrache pas le doigt
+// mais NE DOIT PAS perdre la valeur du contexte. On enregistre le composant ici ; view_sync le re-marque
+// dirty après le clear groupé -> il est réappliqué dès la relâche (au lieu d'attendre la valeur distincte
+// suivante). Un seul doigt en pratique ; le tableau majore. Réinitialisé à chaque view_sync.
+static Component* s_deferred[8];
+static int        s_deferred_n = 0;
+static void defer_sync(Component& c) {
+    if (s_deferred_n < (int)(sizeof(s_deferred) / sizeof(s_deferred[0]))) s_deferred[s_deferred_n++] = &c;
+}
+
 static void build_switch(lv_obj_t* parent, Component& c, Placement& q,
                          lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
     lv_obj_t* sw = lv_switch_create(parent);
@@ -596,7 +607,7 @@ static void build_slider(lv_obj_t* parent, Component& c, Placement& q,
     *main = s;
 }
 static void sync_slider(Component& c, Placement&, lv_obj_t* w, lv_obj_t*, lv_obj_t*) {
-    if (lv_obj_has_state(w, LV_STATE_PRESSED)) return;   // anti-conflit : ne pas arracher le doigt
+    if (lv_obj_has_state(w, LV_STATE_PRESSED)) { defer_sync(c); return; }   // anti-conflit : ne pas arracher le doigt (reflet différé à la relâche)
     lv_slider_set_value(w, c.value, LV_ANIM_OFF);
 }
 static void build_arc(lv_obj_t* parent, Component& c, Placement& q,
@@ -617,7 +628,7 @@ static void build_arc(lv_obj_t* parent, Component& c, Placement& q,
     *main = a;
 }
 static void sync_arc(Component& c, Placement&, lv_obj_t* w, lv_obj_t*, lv_obj_t*) {
-    if (lv_obj_has_state(w, LV_STATE_PRESSED)) return;
+    if (lv_obj_has_state(w, LV_STATE_PRESSED)) { defer_sync(c); return; }
     lv_arc_set_value(w, c.value);
 }
 static void build_roller(lv_obj_t* parent, Component& c, Placement& q,
@@ -632,8 +643,11 @@ static void build_roller(lv_obj_t* parent, Component& c, Placement& q,
     *main = r;
 }
 static void sync_roller(Component& c, Placement&, lv_obj_t* w, lv_obj_t*, lv_obj_t*) {
-    if (lv_obj_has_state(w, LV_STATE_PRESSED)) return;
-    lv_roller_set_selected(w, (uint16_t)(c.value < 0 ? 0 : c.value), LV_ANIM_OFF);
+    if (lv_obj_has_state(w, LV_STATE_PRESSED)) { defer_sync(c); return; }
+    uint32_t cnt = lv_roller_get_option_count(w);
+    int32_t idx = c.value < 0 ? 0 : c.value;
+    if (cnt && idx >= (int32_t)cnt) idx = (int32_t)cnt - 1;   // clamp au dernier : évite le wrap uint16 sur une valeur aberrante (ctx externe)
+    lv_roller_set_selected(w, (uint16_t)idx, LV_ANIM_OFF);
 }
 
 // Vtable vue indexée par CompType. Types physiques (led_ring/sound) : build/sync = nullptr
@@ -715,6 +729,7 @@ static void slider_event_cb(lv_event_t* e) {
     Component* c = (Component*)lv_obj_get_user_data(w);
     if (!c || !s_dash || !c->bind[0]) return;
     int32_t val = slider_quantize(lv_slider_get_value(w), c->vmin, c->vmax, c->step);
+    c->value = val;   // suit le widget immédiatement (≠ lag context_apply 100 ms) -> reflet différé sans flicker à la relâche
     if (g_ctx_mutex) xSemaphoreTake(g_ctx_mutex, portMAX_DELAY);
     dash_ctx_write_ui_num(s_dash, c->bind, val, millis());
     if (g_ctx_mutex) xSemaphoreGive(g_ctx_mutex);
@@ -724,6 +739,7 @@ static void arc_event_cb(lv_event_t* e) {
     Component* c = (Component*)lv_obj_get_user_data(w);
     if (!c || !s_dash || !c->bind[0]) return;
     int32_t val = slider_quantize(lv_arc_get_value(w), c->vmin, c->vmax, c->step);
+    c->value = val;   // idem slider : c.value suit le drag -> pas de flicker au relâchement
     if (g_ctx_mutex) xSemaphoreTake(g_ctx_mutex, portMAX_DELAY);
     dash_ctx_write_ui_num(s_dash, c->bind, val, millis());
     if (g_ctx_mutex) xSemaphoreGive(g_ctx_mutex);
@@ -733,6 +749,7 @@ static void roller_event_cb(lv_event_t* e) {
     Component* c = (Component*)lv_obj_get_user_data(w);
     if (!c || !s_dash || !c->bind[0]) return;
     uint16_t sel = lv_roller_get_selected(w);            // lecture widget hors mutex (comme slider/arc)
+    c->value = (int32_t)sel;   // c.value suit la sélection -> pas de flicker au relâchement
     if (g_ctx_mutex) xSemaphoreTake(g_ctx_mutex, portMAX_DELAY);
     dash_ctx_write_ui_num(s_dash, c->bind, (double)sel, millis());
     if (g_ctx_mutex) xSemaphoreGive(g_ctx_mutex);
@@ -1008,6 +1025,7 @@ void view_show_page(Dashboard* d, int idx) {
 }
 
 void view_sync(Dashboard* d) {
+    s_deferred_n = 0;   // collecté par les sync_* d'effecteurs sous PRESSED (ci-dessous)
     for (int p = 0; p < d->page_count; p++) {
         for (int i = 0; i < d->pages[p].place_count; i++) {
             Placement& q = d->pages[p].places[i];
@@ -1031,4 +1049,8 @@ void view_sync(Dashboard* d) {
     }
     for (int i = 0; i < d->comp_count; i++) d->components[i].dirty = false;
     d->values_dirty = false;
+    // Reflets différés sous PRESSED : on re-marque dirty (le clear groupé vient de les effacer) pour
+    // retenter au tour suivant -> la valeur du contexte est réappliquée dès que le doigt se lève.
+    for (int k = 0; k < s_deferred_n; k++) s_deferred[k]->dirty = true;
+    if (s_deferred_n) d->values_dirty = true;
 }
