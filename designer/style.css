@@ -176,6 +176,7 @@ main > .col:last-child { border-right: 0; }
 .console-toggle { padding: 2px 8px; font-family: var(--font-mono); font-size: 10px; }
 .console-body { max-height: 30vh; overflow: auto; padding: 8px 12px; }
 .console-problems { display: flex; flex-direction: column; gap: 3px; font: 12px/1.4 var(--font-mono); }
+.console-problems[hidden] { display: none; }   /* idem .console-devctx : display auteur l'emporterait sur [hidden] UA */
 .console-empty { color: var(--muted); font-style: italic; }
 .console-err { color: var(--err); white-space: pre-wrap; }
 .console-warn { color: var(--warn); white-space: pre-wrap; }
@@ -192,6 +193,16 @@ main > .col:last-child { border-right: 0; }
 .console-log-error, .console-log-err { color: var(--err); }
 .console-log-warn { color: var(--warn); }
 .console-log-info, .console-log-log, .console-log-ok { color: var(--ink); }
+
+/* Device (Pull + rendu vars/sources/sinks) : barre d'outils en flux (pas d'un seul bouton flottant
+   comme .console-source), donc .console-copy y perd son position:absolute hérité. */
+.console-devctx { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden; }
+.console-devbar { display: flex; gap: 8px; align-items: center; padding: 4px 6px; flex: 0 0 auto; }
+.console-devbar .console-copy { position: static; }
+.console-devauto { display: inline-flex; align-items: center; gap: 2px; font-size: 12px; opacity: .85; }
+.console-devsec { font-weight: 600; opacity: .7; margin: 6px 6px 2px; text-transform: uppercase; font-size: 11px; }
+.console-devout { flex: 1 1 auto; min-height: 0; overflow: auto; }
+.console-devctx[hidden] { display: none; }   /* display:flex (auteur) l'emporterait sinon sur [hidden] (UA) */
 
 /* --- Plan B : webfont + canvas --- */
 @font-face {

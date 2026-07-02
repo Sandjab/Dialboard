@@ -7,7 +7,7 @@ test('defaultSettings: valeurs de référence', () => {
     lang: 'en',
     theme: 'amber',
     ghostOpacity: 0.38, gridShow: false, gridSnap: false, gridStep: 10,
-    logActivity: true, logJs: false, logNet: false,
+    logActivity: true, logJs: false, logNet: false, deviceContext: false,
   });
 });
 
@@ -74,4 +74,14 @@ test('normalizeSettings: champ partiel mergé sur les défauts', () => {
   assert.equal(r.gridShow, true);
   assert.equal(r.gridSnap, false);
   assert.equal(r.gridStep, 10);
+});
+
+test('settings: deviceContext défaut OFF (intent : onglet debug caché tant qu\'on n\'en a pas besoin)', () => {
+  assert.equal(defaultSettings().deviceContext, false);
+  assert.equal(normalizeSettings({}).deviceContext, false);
+});
+
+test('settings: deviceContext booléen respecté ; non-booléen → défaut (intent : pas d\'état tiers)', () => {
+  assert.equal(normalizeSettings({ deviceContext: true }).deviceContext, true);
+  assert.equal(normalizeSettings({ deviceContext: 'x' }).deviceContext, false);
 });
