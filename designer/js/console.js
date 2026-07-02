@@ -177,6 +177,21 @@ export function createConsole(root, model, { validate, logs, getSettings, pullDe
   };
   pullBtn.onclick = doPull;
 
+  let autoOn = false;          // toggle éphémère (non persisté ; off à chaque session)
+  let autoTimer = null;
+  const AUTO_MS = 2000;
+  const autoShouldRun = () => autoOn && isOpen && tab === 'deviceCtx' && !!tabVisible().deviceCtx;
+  // Réassigne le stub `let syncAuto` : (re)démarre/arrête l'unique intervalle selon TOUTES les conditions.
+  // Fermer la console, changer d'onglet, décocher la case (settings) ou couper Auto → clearInterval (pas de timer orphelin).
+  syncAuto = () => {
+    if (autoShouldRun()) {
+      if (!autoTimer) autoTimer = setInterval(() => { if (!pullInFlight) doPull(); }, AUTO_MS);
+    } else if (autoTimer) {
+      clearInterval(autoTimer); autoTimer = null;
+    }
+  };
+  autoChk.onchange = () => { autoOn = autoChk.checked; if (autoOn) doPull(); syncAuto(); };
+
   let devCopyTimer = null;
   devCopy.onclick = async () => {
     if (devCopyTimer) clearTimeout(devCopyTimer);
@@ -219,8 +234,8 @@ export function createConsole(root, model, { validate, logs, getSettings, pullDe
     copyTimer = setTimeout(() => { copyBtn.textContent = t('console.copy'); copyTimer = null; }, 1500);
   };
 
-  const selectTab = (t) => { tab = t; isOpen = true; if (t in LOG_TABS) renderLog(t); syncView(); };
-  toggle.onclick = () => { isOpen = !isOpen; syncView(); };
+  const selectTab = (t) => { tab = t; isOpen = true; if (t in LOG_TABS) renderLog(t); syncAuto(); syncView(); };
+  toggle.onclick = () => { isOpen = !isOpen; syncAuto(); syncView(); };
 
   model.subscribe(() => { renderProblems(); renderSource(); });
   logs.subscribe(() => { if (tab in LOG_TABS) renderLog(tab); });   // nouvelle ligne pendant qu'on regarde un journal
