@@ -297,7 +297,7 @@ export const COMPONENTS = {
     centered: false, physical: false,
     compFields: [['bind', 'field.bind', 'idtext'], ['text', 'field.text', 'latintext'], ['color', 'field.color', 'color']],
     placeFields: [['anchor', 'field.anchor', 'anchor'], ['dx', 'field.dx', 'num'], ['dy', 'field.dy', 'num'],
-                  ['size', 'field.size', 'num', 140]],
+                  ['size', 'field.qr_size', 'num', 140]],
     mockFields: [],
     build: (comp, pl) => buildQr(comp, pl),
   },

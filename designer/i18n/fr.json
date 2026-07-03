@@ -194,6 +194,7 @@
   "field.specular": "Reflet",
   "field.off_glass": "Reflet éteint",
   "field.size": "Diamètre",
+  "field.qr_size": "Taille",
   "field.symbol": "Symbole",
   "field.font_size": "Taille",
   "field.fill": "Fond",

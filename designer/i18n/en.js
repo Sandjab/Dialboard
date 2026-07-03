@@ -201,6 +201,7 @@ export default {
   'field.specular': 'Reflection',
   'field.off_glass': 'Off reflection',
   'field.size': 'Diameter',
+  'field.qr_size': 'Size',
   'field.symbol': 'Symbol',
   'field.font_size': 'Size',
   'field.fill': 'Fill',
