@@ -12,21 +12,25 @@ export function slugify(name) {
 }
 
 // fields → { valid, missing:[...] }. Requis non vides + domaine dans l'enum.
-export function validateMeta(fields = {}) {
-  const missing = REQUIRED.filter(k => !fields[k] || !String(fields[k]).trim());
-  if (fields.domain && !DOMAINS.includes(fields.domain) && !missing.includes('domain')) missing.push('domain');
+// Défensif (fonction exportée, cf. convention projet) : un arg non-objet est traité comme {}, jamais throw.
+export function validateMeta(fields) {
+  const f = (fields && typeof fields === 'object') ? fields : {};
+  const missing = REQUIRED.filter(k => !f[k] || !String(f[k]).trim());
+  if (f.domain && !DOMAINS.includes(f.domain) && !missing.includes('domain')) missing.push('domain');
   return { valid: missing.length === 0, missing };
 }
 
 // Formulaire → bloc meta propre (tags CSV → array sans vides, champs trimés).
+// Défensif : arg non-objet → {} ; chaque champ passé par String(… || '') avant .trim() (pas de throw).
 export function buildMeta(fields) {
+  const f = (fields && typeof fields === 'object') ? fields : {};
   return {
-    name: fields.name.trim(),
-    author: fields.author.trim(),
-    description: fields.description.trim(),
-    domain: fields.domain,
-    tags: String(fields.tags || '').split(',').map(t => t.trim()).filter(Boolean),
-    requires: String(fields.requires || '').trim(),
+    name: String(f.name || '').trim(),
+    author: String(f.author || '').trim(),
+    description: String(f.description || '').trim(),
+    domain: f.domain,
+    tags: String(f.tags || '').split(',').map(t => t.trim()).filter(Boolean),
+    requires: String(f.requires || '').trim(),
   };
 }
 

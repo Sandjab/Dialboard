@@ -32,3 +32,10 @@ test('fitsPrefill : petit → true, gros → false (intent : basculer prefill/re
   assert.equal(fitsPrefill('{"a":1}'), true);
   assert.equal(fitsPrefill('x'.repeat(PREFILL_MAX + 1)), false);
 });
+
+test('validateMeta/buildMeta : arg non-objet ne throw pas (intent : robustesse des fonctions exportées, convention projet)', () => {
+  assert.equal(validateMeta(null).valid, false);          // null traité comme {} → tout manquant
+  assert.equal(validateMeta(undefined).valid, false);
+  assert.deepEqual(buildMeta(null).tags, []);             // pas de throw sur .name.trim()
+  assert.equal(buildMeta(undefined).name, '');
+});

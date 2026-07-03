@@ -8,8 +8,9 @@ import { t } from './i18n.js';
 
 const STORE_REPO_URL = 'https://github.com/Sandjab/dialboard-store';   // dépôt (≠ base CDN de la galerie)
 
-export function mountPublishDialog(model, { openBtn, overlay } = {}) {
-  if (!openBtn || !overlay) return;
+export function mountPublishDialog(model, options) {
+  const { openBtn, overlay } = options || {};   // défensif : options null/absent ne throw pas (cf. convention projet)
+  if (!model || typeof model !== 'object' || !openBtn || !overlay) return;
   const $ = id => overlay.querySelector('#' + id);
   const fieldsEls = { name: $('pub-name'), author: $('pub-author'), description: $('pub-description'),
     domain: $('pub-domain'), tags: $('pub-tags'), requires: $('pub-requires') };
