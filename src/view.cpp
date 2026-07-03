@@ -8,6 +8,7 @@
 #include <time.h>
 #include "format.h"
 #include "clock_geom.h"
+#include "ring_geom.h"
 #include <LittleFS.h>
 #include "esp_heap_caps.h"
 #include "config.h"
@@ -257,6 +258,39 @@ static void sync_ring(Component& c, Placement& q, lv_obj_t* w, lv_obj_t* sub1, l
         }
     }
     ring_place_labels(sub2, c, q);
+}
+
+// rings : 1..MAX_RING_TRACKS arcs concentriques dans un même conteneur (main = box, pas de cap/sub2).
+static void build_rings(lv_obj_t* parent, Component& c, Placement& q,
+                        lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
+    int outer = q.radius ? q.radius : 90;
+    int th = q.thickness ? q.thickness : 14;
+    lv_obj_t* box = lv_obj_create(parent);
+    lv_obj_remove_style_all(box);
+    lv_obj_set_size(box, outer * 2, outer * 2);
+    lv_obj_center(box);
+    lv_obj_clear_flag(box, LV_OBJ_FLAG_SCROLLABLE);
+    for (int t = 0; t < c.track_count; t++) {
+        int r = ring_track_radius(t, outer, th, 4);
+        lv_obj_t* arc = lv_arc_create(box);
+        lv_obj_set_size(arc, r * 2, r * 2);
+        lv_obj_center(arc);
+        lv_obj_remove_style(arc, NULL, LV_PART_KNOB);
+        lv_obj_clear_flag(arc, LV_OBJ_FLAG_CLICKABLE);
+        lv_arc_set_bg_angles(arc, 90, 90 + 359);   // anneau quasi complet ; ajuster si gap voulu
+        lv_arc_set_range(arc, c.tracks[t].vmin, c.tracks[t].vmax);
+        lv_obj_set_style_arc_width(arc, th, LV_PART_MAIN);
+        lv_obj_set_style_arc_width(arc, th, LV_PART_INDICATOR);
+        lv_obj_set_style_arc_color(arc, lv_color_hex(0x1F2937), LV_PART_MAIN);
+        lv_obj_set_style_arc_color(arc, lv_color_hex(c.tracks[t].color), LV_PART_INDICATOR);
+        lv_obj_set_style_pad_all(arc, 0, LV_PART_MAIN);
+        lv_obj_set_style_arc_rounded(arc, true, LV_PART_INDICATOR);
+    }
+    *main = box;
+}
+static void sync_rings(Component& c, Placement&, lv_obj_t* box, lv_obj_t*, lv_obj_t*) {
+    for (int t = 0; t < c.track_count && t < (int)lv_obj_get_child_count(box); t++)
+        lv_arc_set_value(lv_obj_get_child(box, t), c.tracks[t].value);
 }
 
 // --- chart : l'historique vit dans le modèle (Component.hist) ; build crée le widget,
@@ -769,6 +803,7 @@ static const ViewVTable VIEW[] = {
     /* COMP_ARC      */ { build_arc,    sync_arc    },
     /* COMP_ROLLER   */ { build_roller, sync_roller },
     /* COMP_CLOCK    */ { build_clock,  sync_clock  },
+    /* COMP_RINGS    */ { build_rings,  sync_rings  },
 };
 static_assert(sizeof(VIEW) / sizeof(VIEW[0]) == COMP_COUNT,
               "VIEW desync avec CompType : ajoute la ligne du nouveau type");

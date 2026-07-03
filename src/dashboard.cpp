@@ -39,6 +39,7 @@ static const struct { const char* name; CompType type; } COMP_NAMES[] = {
     { "arc",    COMP_ARC    },
     { "roller", COMP_ROLLER },
     { "clock",  COMP_CLOCK  },
+    { "rings",  COMP_RINGS  },
 };
 
 static uint8_t parse_font_family(const char *s) {
@@ -256,6 +257,19 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
             }
             c.momentary = o["momentary"] | false;
         }
+        if (c.type == COMP_RINGS) {
+            JsonArrayConst arr = o["tracks"].as<JsonArrayConst>();
+            c.track_count = 0;
+            for (JsonObjectConst t : arr) {
+                if (c.track_count >= MAX_RING_TRACKS) break;
+                RingTrack& rt = c.tracks[c.track_count++];
+                strlcpy(rt.bind, t["bind"] | "", sizeof(rt.bind));
+                rt.vmin = t["min"] | 0;
+                rt.vmax = t["max"] | 100;
+                rt.color = parse_hex_color(t["color"] | "#38BDF8", 0x38BDF8);
+                rt.value = rt.vmin;
+            }
+        }
         if (c.type == COMP_ROLLER) {
             size_t ro = 0;
             for (JsonVariantConst ov : o["options"].as<JsonArrayConst>()) {
@@ -462,6 +476,12 @@ static void apply_image_anim(Component& c, JsonVariantConst v) {
     }
 }
 
+static void apply_rings(Component& c, JsonVariantConst v) {
+    JsonArrayConst arr = v.is<JsonArrayConst>() ? v.as<JsonArrayConst>() : v["tracks"].as<JsonArrayConst>();
+    int i = 0;
+    for (JsonVariantConst e : arr) { if (i >= c.track_count) break; c.tracks[i++].value = e.as<int>(); }
+}
+
 static const comp_apply_fn APPLY[] = {
     /* COMP_NONE     */ nullptr,
     /* COMP_LABEL    */ apply_label,
@@ -485,6 +505,7 @@ static const comp_apply_fn APPLY[] = {
     /* COMP_ARC      */ nullptr,
     /* COMP_ROLLER   */ nullptr,
     /* COMP_CLOCK    */ nullptr,             // heure = device, pas de push-by-id
+    /* COMP_RINGS    */ apply_rings,
 };
 static_assert(sizeof(APPLY) / sizeof(APPLY[0]) == COMP_COUNT,
               "APPLY desync avec CompType : ajoute la ligne du nouveau type");
@@ -566,6 +587,22 @@ int32_t slider_quantize(int32_t val, int32_t vmin, int32_t vmax, int32_t step) {
 void context_apply(Dashboard* d) {
     for (int i = 0; i < d->comp_count; i++) {
         Component& c = d->components[i];
+        if (c.type == COMP_RINGS) {           // pistes : bind par piste (pas de bind au niveau composant)
+            bool rings_changed = false;
+            for (int t = 0; t < c.track_count; t++) {
+                RingTrack& rt = c.tracks[t];
+                if (rt.bind[0] == '\0') continue;
+                int ti = ctx_find(&d->ctx, rt.bind);
+                if (ti < 0) continue;
+                const CtxVar& tv = d->ctx.vars[ti];
+                if (tv.type == CTX_NUM) {
+                    int32_t nv = (int32_t)tv.num;
+                    if (rt.value != nv) { rt.value = nv; rings_changed = true; }
+                }
+            }
+            if (rings_changed) { c.dirty = true; d->values_dirty = true; }
+            continue;
+        }
         if (c.bind[0] == '\0') continue;                // pas de bind -> push par id
         int vi = ctx_find(&d->ctx, c.bind);
         if (vi < 0) continue;                           // variable absente -> garde la derniere valeur

@@ -4,7 +4,7 @@
 #include "config.h"
 #include "context.h"
 
-enum CompType { COMP_NONE, COMP_LABEL, COMP_READOUT, COMP_BAR, COMP_RING, COMP_LED_RING, COMP_SOUND, COMP_CHART, COMP_METER, COMP_IMAGE, COMP_IMAGE_ANIM, COMP_LED, COMP_RECT, COMP_CIRCLE, COMP_LINE, COMP_ICON, COMP_SWITCH, COMP_BUTTON, COMP_SLIDER, COMP_ARC, COMP_ROLLER, COMP_CLOCK, COMP_COUNT };
+enum CompType { COMP_NONE, COMP_LABEL, COMP_READOUT, COMP_BAR, COMP_RING, COMP_LED_RING, COMP_SOUND, COMP_CHART, COMP_METER, COMP_IMAGE, COMP_IMAGE_ANIM, COMP_LED, COMP_RECT, COMP_CIRCLE, COMP_LINE, COMP_ICON, COMP_SWITCH, COMP_BUTTON, COMP_SLIDER, COMP_ARC, COMP_ROLLER, COMP_CLOCK, COMP_RINGS, COMP_COUNT };
 enum LedMode  { LED_OFF, LED_SOLID, LED_PROGRESS, LED_SPINNER, LED_BLINK, LED_BREATHE };
 enum BarMode  { BAR_NORMAL, BAR_SYMMETRICAL };               // bar : lv_bar_set_mode
 enum ArcMode  { ARC_NORMAL, ARC_SYMMETRICAL, ARC_REVERSE };  // ring : lv_arc_set_mode
@@ -19,6 +19,8 @@ struct Threshold { float limit; uint32_t color; };
 struct IconState { float at; uint8_t symbol; uint32_t color; bool has_symbol; bool has_color; };
 // Nombre de symboles du set curaté (ICON_SYMBOL_NAMES dans dashboard.cpp == ICON_GLYPHS dans view.cpp).
 static constexpr int ICON_SYMBOL_COUNT = 23;
+
+struct RingTrack { char bind[ID_LEN]; int vmin, vmax; uint32_t color; int32_t value; };
 
 struct Component {
     char     id[ID_LEN];
@@ -56,6 +58,8 @@ struct Component {
     int      bar_anim_ms;            // bar : duree d'anim de la valeur (ms ; 0 = instantane)
     ArcMode  arc_mode;               // ring : normal | symmetrical | reverse (lv_arc_set_mode)
     bool     arc_rounded;            // ring : extremites d'indicateur arrondies (defaut true)
+    RingTrack tracks[MAX_RING_TRACKS];   // rings : pistes concentriques (config)
+    int       track_count;
     uint8_t  led_brightness_cfg;
     char     bind[ID_LEN];           // nom de variable du contexte (pull) ; vide = push par id
     int      chart_points;           // chart : longueur de la fenêtre d'historique (défaut 30, borné CHART_MAX_POINTS)
