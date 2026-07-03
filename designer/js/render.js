@@ -789,12 +789,16 @@ export function buildSegmented(comp, placement = {}, mock = { value: 0 }) {
 export function buildStepper(comp, placement = {}, mock = { value: 21 }) {
   const wrap = document.createElement('div');
   wrap.className = 'w w-stepper';
-  const mk = (txt) => { const b = document.createElement('div'); b.className = 'w-step-btn'; b.textContent = txt; return b; };
+  wrap.style.width = (placement.width || 200) + 'px';
+  wrap.style.height = (placement.height || 80) + 'px';
+  const bs = (placement.height || 80) + 'px';               // boutons carrés = hauteur du conteneur (parité build_stepper)
+  const bf = font(comp.font_family, comp.bold, comp.italic, pickFontPx(comp.font ?? 20));
+  const mk = (txt) => { const b = document.createElement('div'); b.className = 'w-step-btn'; b.style.width = bs; b.style.height = bs; b.style.font = bf; b.textContent = txt; return b; };
   const val = document.createElement('div'); val.className = 'w-step-val';
-  val.style.font = font(comp.font_family, comp.bold, comp.italic, pickFontPx(comp.font ?? 32));
+  val.style.font = bf;
   val.style.color = comp.color || '#FFFFFF';
   val.textContent = `${mock.value}${comp.unit || ''}`;
-  wrap.append(mk('−'), val, mk('+'));
+  wrap.append(mk('-'), val, mk('+'));
   return wrap;
 }
 

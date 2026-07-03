@@ -758,18 +758,24 @@ static void build_stepper(lv_obj_t* parent, Component& c, Placement& q,
     lv_obj_set_flex_flow(box, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(box, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_align(box, ALIGN_MAP[q.anchor], q.dx, q.dy);
+    int bs = q.height ? q.height : 80;                       // boutons carrés = hauteur du conteneur -> cible tactile franche
+    const lv_font_t* bf = get_font(c.font_family, c.font, c.bold, c.italic);
     lv_obj_t* minus = lv_button_create(box);
+    lv_obj_set_size(minus, bs, bs);
     lv_obj_set_user_data(minus, &c);
     lv_obj_add_event_cb(minus, stepper_minus_cb, LV_EVENT_CLICKED, nullptr);
     lv_obj_t* ml = lv_label_create(minus); lv_label_set_text(ml, "-");
+    lv_obj_set_style_text_font(ml, bf, 0); lv_obj_center(ml);
     lv_obj_t* val = lv_label_create(box);
-    lv_obj_set_style_text_font(val, get_font(c.font_family, c.font, c.bold, c.italic), 0);
+    lv_obj_set_style_text_font(val, bf, 0);
     lv_obj_set_style_text_color(val, lv_color_hex(c.color), 0);
     char b[24]; stepper_label_text(c, b, sizeof(b)); lv_label_set_text(val, b);
     lv_obj_t* plus = lv_button_create(box);
+    lv_obj_set_size(plus, bs, bs);
     lv_obj_set_user_data(plus, &c);
     lv_obj_add_event_cb(plus, stepper_plus_cb, LV_EVENT_CLICKED, nullptr);
     lv_obj_t* pl = lv_label_create(plus); lv_label_set_text(pl, "+");
+    lv_obj_set_style_text_font(pl, bf, 0); lv_obj_center(pl);
     *main = box;
     *sub1 = val;   // le label central (sync)
 }
