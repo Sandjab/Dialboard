@@ -622,3 +622,19 @@ main > .col:last-child { border-right: 0; }
 .store-install.confirm { border-color: #E4572E; color: #E4572E; }
 .store-install:disabled { opacity: .5; cursor: default; }
 .store-empty { opacity: .6; padding: 24px 8px; text-align: center; }
+
+/* --- Publier (dialogue de dépose Store) --- */
+.drawer-head-btn { margin-left: auto; margin-right: 8px; padding: 4px 10px; border-radius: 8px; cursor: pointer;
+  font: inherit; font-size: 12px; font-weight: 600; border: 1px solid currentColor; background: transparent; color: inherit; opacity: .85; }
+.drawer-head-btn:hover { opacity: 1; }
+.publish-box { background: var(--panel, #1a1a1f); color: inherit; border-radius: 12px; padding: 20px; width: min(420px, 92vw);
+  display: flex; flex-direction: column; gap: 10px; max-height: 90vh; overflow: auto; }
+.publish-box h2 { margin: 0 0 4px; font-size: 16px; }
+.pub-field { display: flex; flex-direction: column; gap: 3px; font-size: 12px; opacity: .9; }
+.pub-field input, .pub-field select, .pub-field textarea { font: inherit; padding: 6px 8px; border-radius: 8px;
+  border: 1px solid rgba(127,127,127,.35); background: transparent; color: inherit; box-sizing: border-box; width: 100%; }
+.publish-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+.publish-actions button { padding: 6px 14px; border-radius: 8px; cursor: pointer; font: inherit; font-size: 13px;
+  border: 1px solid rgba(127,127,127,.35); background: transparent; color: inherit; }
+#pub-submit { font-weight: 600; border-color: currentColor; }
+#pub-submit:disabled { opacity: .4; cursor: default; }
