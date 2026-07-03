@@ -40,6 +40,7 @@ static const struct { const char* name; CompType type; } COMP_NAMES[] = {
     { "roller", COMP_ROLLER },
     { "clock",  COMP_CLOCK  },
     { "rings",  COMP_RINGS  },
+    { "qr",     COMP_QR     },
 };
 
 static uint8_t parse_font_family(const char *s) {
@@ -482,6 +483,11 @@ static void apply_rings(Component& c, JsonVariantConst v) {
     for (JsonVariantConst e : arr) { if (i >= c.track_count) break; c.tracks[i++].value = e.as<int>(); }
 }
 
+static void apply_qr(Component& c, JsonVariantConst v) {
+    JsonVariantConst out;
+    if (value_present(v, out) && out.is<const char*>()) strlcpy(c.vstr, out.as<const char*>(), sizeof(c.vstr));
+}
+
 static const comp_apply_fn APPLY[] = {
     /* COMP_NONE     */ nullptr,
     /* COMP_LABEL    */ apply_label,
@@ -506,6 +512,7 @@ static const comp_apply_fn APPLY[] = {
     /* COMP_ROLLER   */ nullptr,
     /* COMP_CLOCK    */ nullptr,             // heure = device, pas de push-by-id
     /* COMP_RINGS    */ apply_rings,
+    /* COMP_QR       */ apply_qr,
 };
 static_assert(sizeof(APPLY) / sizeof(APPLY[0]) == COMP_COUNT,
               "APPLY desync avec CompType : ajoute la ligne du nouveau type");
@@ -666,6 +673,12 @@ void context_apply(Dashboard* d) {
                 if (c.value != nv) { c.value = nv; changed = true; }
                 break;
             }
+            case COMP_QR:                               // str -> vstr tel quel (pas de format numerique, cf readout)
+                if (v.type == CTX_STR && strncmp(c.vstr, v.str, sizeof(c.vstr)) != 0) {
+                    strlcpy(c.vstr, v.str, sizeof(c.vstr));
+                    changed = true;
+                }
+                break;
             default: break;                            // led_ring/sound : pas de bind
         }
         if (changed) { c.dirty = true; d->values_dirty = true; }

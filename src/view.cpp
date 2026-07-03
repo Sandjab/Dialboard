@@ -772,6 +772,28 @@ static void sync_clock(Component& c, Placement& q, lv_obj_t* w, lv_obj_t*, lv_ob
     }
 }
 
+// --- qr : affichage seul (lv_qrcode = lv_canvas). Texte = vstr (bind/push) ; vide -> URL device. ---
+static void qr_effective_text(Component& c, char* out, size_t n) {
+    if (c.vstr[0]) strlcpy(out, c.vstr, n);
+    else snprintf(out, n, "http://%s.local", MDNS_HOST);   // vide -> URL device calculee
+}
+static void build_qr(lv_obj_t* parent, Component& c, Placement& q,
+                     lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
+    lv_obj_t* qr = lv_qrcode_create(parent);
+    int sz = q.size ? q.size : (q.width ? q.width : 140);
+    lv_qrcode_set_size(qr, sz);
+    lv_qrcode_set_dark_color(qr, lv_color_hex(c.color ? c.color : 0x05070D));
+    lv_qrcode_set_light_color(qr, lv_color_hex(c.fill_set ? c.fill : 0xE8EEF7));
+    char txt[TEXT_LEN]; qr_effective_text(c, txt, sizeof(txt));
+    lv_qrcode_update(qr, txt, strlen(txt));
+    lv_obj_align(qr, ALIGN_MAP[q.anchor], q.dx, q.dy);
+    *main = qr;
+}
+static void sync_qr(Component& c, Placement&, lv_obj_t* w, lv_obj_t*, lv_obj_t*) {
+    char txt[TEXT_LEN]; qr_effective_text(c, txt, sizeof(txt));
+    lv_qrcode_update(w, txt, strlen(txt));
+}
+
 // Vtable vue indexée par CompType. Types physiques (led_ring/sound) : build/sync = nullptr
 // (rendus par leur tick dédié -> le moteur les saute). label/readout partagent build_text.
 struct ViewVTable {
@@ -804,6 +826,7 @@ static const ViewVTable VIEW[] = {
     /* COMP_ROLLER   */ { build_roller, sync_roller },
     /* COMP_CLOCK    */ { build_clock,  sync_clock  },
     /* COMP_RINGS    */ { build_rings,  sync_rings  },
+    /* COMP_QR       */ { build_qr,     sync_qr     },
 };
 static_assert(sizeof(VIEW) / sizeof(VIEW[0]) == COMP_COUNT,
               "VIEW desync avec CompType : ajoute la ligne du nouveau type");
