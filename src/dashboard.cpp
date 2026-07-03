@@ -42,6 +42,7 @@ static const struct { const char* name; CompType type; } COMP_NAMES[] = {
     { "rings",  COMP_RINGS  },
     { "qr",     COMP_QR     },
     { "stepper", COMP_STEPPER },
+    { "segmented", COMP_SEGMENTED },
 };
 
 static uint8_t parse_font_family(const char *s) {
@@ -272,7 +273,7 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
                 rt.value = rt.vmin;
             }
         }
-        if (c.type == COMP_ROLLER) {
+        if (c.type == COMP_ROLLER || c.type == COMP_SEGMENTED) {
             size_t ro = 0;
             for (JsonVariantConst ov : o["options"].as<JsonArrayConst>()) {
                 const char* opt = ov.is<const char*>() ? ov.as<const char*>() : "";
@@ -515,6 +516,7 @@ static const comp_apply_fn APPLY[] = {
     /* COMP_RINGS    */ apply_rings,
     /* COMP_QR       */ apply_qr,
     /* COMP_STEPPER  */ nullptr,             // effecteur : reflet via context_apply
+    /* COMP_SEGMENTED */ nullptr,            // effecteur : reflet via context_apply
 };
 static_assert(sizeof(APPLY) / sizeof(APPLY[0]) == COMP_COUNT,
               "APPLY desync avec CompType : ajoute la ligne du nouveau type");
@@ -656,8 +658,9 @@ void context_apply(Dashboard* d) {
                 break;
             case COMP_SLIDER:
             case COMP_ARC:
-            case COMP_ROLLER:                           // effecteur : scalaire -> valeur (index pour roller)
+            case COMP_ROLLER:                           // effecteur : scalaire -> valeur (index pour roller/segmented)
             case COMP_STEPPER:
+            case COMP_SEGMENTED:
                 if (v.type == CTX_NUM) {
                     int32_t nv = (int32_t)v.num;
                     if (c.value != nv) { c.value = nv; changed = true; }

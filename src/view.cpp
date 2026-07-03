@@ -18,6 +18,7 @@
 #include "freertos/semphr.h"
 #include "dashboard.h"               // dash_ctx_write_ui_num/str (deja tire via view.h, explicite ici)
 #include "stepper_logic.h"
+#include "segmented_logic.h"
 
 extern SemaphoreHandle_t g_ctx_mutex;   // defini dans main.cpp, sérialise l'accès au contexte
 
@@ -57,6 +58,13 @@ static lv_point_precise_t s_clock_pts[MAX_PAGES][MAX_PLACEMENTS_PER_PAGE][3][2];
 // led : descripteurs de gradient persistants (lv_obj_set_style_bg_grad stocke le pointeur).
 static lv_grad_dsc_t s_led_dome_grad[MAX_COMPONENTS];
 static lv_grad_dsc_t s_led_spec_grad[MAX_COMPONENTS];
+
+// segmented : lv_buttonmatrix exige un const char* map[] persistant (LVGL garde le pointeur).
+// Indexé par COMPOSANT (pas par placement, contrairement à s_clock_pts) : roller_options est
+// identique pour tous les placements d'un même id -> partager par comp_index est sûr.
+static char        s_seg_buf[MAX_COMPONENTS][ROLLER_OPTS_LEN];   // copie mutable (on découpe en place)
+static const char* s_seg_map[MAX_COMPONENTS][MAX_SEG_OPTS + 1];  // map buttonmatrix ("" final)
+static uint8_t     s_seg_n[MAX_COMPONENTS];                      // nb de segments (pas de lv_buttonmatrix_get_button_count en 9.5)
 
 static const lv_align_t ALIGN_MAP[] = {
     LV_ALIGN_CENTER, LV_ALIGN_TOP_MID, LV_ALIGN_BOTTOM_MID, LV_ALIGN_LEFT_MID,
@@ -594,6 +602,7 @@ static void arc_event_cb(lv_event_t* e);
 static void roller_event_cb(lv_event_t* e);
 static void stepper_minus_cb(lv_event_t* e);
 static void stepper_plus_cb(lv_event_t* e);
+static void segmented_event_cb(lv_event_t* e);
 
 // Reflets d'effecteurs différés pendant l'appui : un sync_* sous LV_STATE_PRESSED n'arrache pas le doigt
 // mais NE DOIT PAS perdre la valeur du contexte. On enregistre le composant ici ; view_sync le re-marque
@@ -693,6 +702,42 @@ static void sync_roller(Component& c, Placement&, lv_obj_t* w, lv_obj_t*, lv_obj
     int32_t idx = c.value < 0 ? 0 : c.value;
     if (cnt && idx >= (int32_t)cnt) idx = (int32_t)cnt - 1;   // clamp au dernier : évite le wrap uint16 sur une valeur aberrante (ctx externe)
     lv_roller_set_selected(w, (uint16_t)idx, LV_ANIM_OFF);
+}
+// segmented : choix exclusif entre 2-4 segments (lv_buttonmatrix en mode "one checked"), écrit l'index.
+// Réutilise c.roller_options (segments séparés par '\n', comme le roller) et c.value (index sélectionné).
+static int seg_build_map(int idx, const char* options) {
+    strlcpy(s_seg_buf[idx], options, ROLLER_OPTS_LEN);
+    int n = 0; char* p = s_seg_buf[idx];
+    s_seg_map[idx][n++] = p;
+    for (; *p && n <= MAX_SEG_OPTS; p++) {
+        if (*p == '\n') { *p = '\0'; if (n < MAX_SEG_OPTS) s_seg_map[idx][n++] = p + 1; }
+    }
+    s_seg_map[idx][n] = "";     // sentinelle fin de map
+    s_seg_n[idx] = (uint8_t)n;
+    return n;
+}
+static void build_segmented(lv_obj_t* parent, Component& c, Placement& q,
+                            lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
+    lv_obj_t* bm = lv_buttonmatrix_create(parent);
+    int idx = q.comp_index;
+    int n = (idx >= 0 && idx < MAX_COMPONENTS) ? seg_build_map(idx, c.roller_options) : 0;
+    if (n > 0) lv_buttonmatrix_set_map(bm, s_seg_map[idx]);
+    lv_buttonmatrix_set_one_checked(bm, true);
+    for (int i = 0; i < n; i++) lv_buttonmatrix_set_button_ctrl(bm, i, LV_BUTTONMATRIX_CTRL_CHECKABLE);
+    int sel = segmented_clamp(c.value, n);
+    if (n > 0) lv_buttonmatrix_set_button_ctrl(bm, sel, LV_BUTTONMATRIX_CTRL_CHECKED);
+    lv_obj_set_size(bm, q.width ? q.width : 240, q.height ? q.height : 56);
+    lv_obj_align(bm, ALIGN_MAP[q.anchor], q.dx, q.dy);
+    lv_obj_set_user_data(bm, &c);
+    lv_obj_add_event_cb(bm, segmented_event_cb, LV_EVENT_VALUE_CHANGED, nullptr);
+    *main = bm;
+}
+static void sync_segmented(Component& c, Placement& q, lv_obj_t* w, lv_obj_t*, lv_obj_t*) {
+    if (lv_obj_has_state(w, LV_STATE_PRESSED)) { defer_sync(c); return; }
+    int idx = q.comp_index;
+    int n = (idx >= 0 && idx < MAX_COMPONENTS) ? s_seg_n[idx] : 0;
+    int sel = segmented_clamp(c.value, n);
+    if (n > 0) lv_buttonmatrix_set_button_ctrl(w, sel, LV_BUTTONMATRIX_CTRL_CHECKED);
 }
 static void stepper_label_text(Component& c, char* out, size_t n) {
     if (c.unit[0]) snprintf(out, n, "%d%s", (int)c.value, c.unit);
@@ -861,6 +906,7 @@ static const ViewVTable VIEW[] = {
     /* COMP_RINGS    */ { build_rings,  sync_rings  },
     /* COMP_QR       */ { build_qr,     sync_qr     },
     /* COMP_STEPPER  */ { build_stepper, sync_stepper },
+    /* COMP_SEGMENTED */ { build_segmented, sync_segmented },
 };
 static_assert(sizeof(VIEW) / sizeof(VIEW[0]) == COMP_COUNT,
               "VIEW desync avec CompType : ajoute la ligne du nouveau type");
@@ -933,6 +979,17 @@ static void roller_event_cb(lv_event_t* e) {
     c->value = (int32_t)sel;   // c.value suit la sélection -> pas de flicker au relâchement
     if (g_ctx_mutex) xSemaphoreTake(g_ctx_mutex, portMAX_DELAY);
     dash_ctx_write_ui_num(s_dash, c->bind, (double)sel, millis());
+    if (g_ctx_mutex) xSemaphoreGive(g_ctx_mutex);
+}
+static void segmented_event_cb(lv_event_t* e) {
+    lv_obj_t* w = lv_event_get_target_obj(e);
+    Component* c = (Component*)lv_obj_get_user_data(w);
+    if (!c || !s_dash || !c->bind[0]) return;
+    uint32_t id = lv_buttonmatrix_get_selected_button(w);
+    if (id == LV_BUTTONMATRIX_BUTTON_NONE) return;
+    c->value = (int32_t)id;
+    if (g_ctx_mutex) xSemaphoreTake(g_ctx_mutex, portMAX_DELAY);
+    dash_ctx_write_ui_num(s_dash, c->bind, (double)id, millis());
     if (g_ctx_mutex) xSemaphoreGive(g_ctx_mutex);
 }
 static void stepper_apply(Component* c, int dir) {
