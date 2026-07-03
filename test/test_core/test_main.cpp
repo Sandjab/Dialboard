@@ -1,3 +1,4 @@
+#include "ring_geom.h"
 #include "clock_geom.h"
 #include <unity.h>
 #include <string.h>
@@ -1477,6 +1478,14 @@ void test_clock_parse_digital_seconds(void) {
     TEST_ASSERT_TRUE(d.components[i].show_seconds);
 }
 
+// --- ring_geom : rayon (au centre de la bande) d'une piste concentrique ---
+void test_ring_track_radius(void) {
+    // outer=90, thickness=16, gap entre pistes=4 → piste 0 centrée à 90-8=82
+    TEST_ASSERT_EQUAL_INT(82, ring_track_radius(0, 90, 16, 4));
+    TEST_ASSERT_EQUAL_INT(62, ring_track_radius(1, 90, 16, 4));   // -(16+4)
+    TEST_ASSERT_EQUAL_INT(42, ring_track_radius(2, 90, 16, 4));
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_remaining_seconds);
@@ -1655,5 +1664,6 @@ int main(int, char**) {
     RUN_TEST(test_clock_digital);
     RUN_TEST(test_clock_parse_defaults);
     RUN_TEST(test_clock_parse_digital_seconds);
+    RUN_TEST(test_ring_track_radius);
     return UNITY_END();
 }
