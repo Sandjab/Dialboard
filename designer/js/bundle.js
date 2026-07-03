@@ -22,16 +22,16 @@ function b64ToBytes(s) {
 const mapVals = (m, f) => Object.fromEntries(Object.entries(m || {}).map(([k, v]) => [k, f(v)]));
 
 // layoutText (string JSON) + assets {bg,image,aimg : {key:Uint8Array}} → string .dboard.
-export function encodeBundle(layoutText, assets = {}) {
-  return JSON.stringify({
-    version: 1,
-    layout: JSON.parse(layoutText),
-    assets: {
-      bg: mapVals(assets.bg, bytesToB64),
-      image: mapVals(assets.image, bytesToB64),
-      aimg: mapVals(assets.aimg, bytesToB64),
-    },
-  });
+export function encodeBundle(layoutText, assets = {}, meta = null) {
+  const bundle = { version: meta ? 2 : 1 };
+  if (meta) bundle.meta = meta;                       // v2 : bloc meta juste après version
+  bundle.layout = JSON.parse(layoutText);
+  bundle.assets = {
+    bg: mapVals(assets.bg, bytesToB64),
+    image: mapVals(assets.image, bytesToB64),
+    aimg: mapVals(assets.aimg, bytesToB64),
+  };
+  return JSON.stringify(bundle);
 }
 
 // string .dboard → { layout: string JSON, assets:{bg,image,aimg : {key:Uint8Array}} }. Throw si invalide.
