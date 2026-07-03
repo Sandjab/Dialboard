@@ -1,6 +1,7 @@
 #include "ring_geom.h"
 #include "clock_geom.h"
 #include "stepper_logic.h"
+#include "segmented_logic.h"
 #include <unity.h>
 #include <string.h>
 #include "format.h"
@@ -1555,6 +1556,14 @@ void test_stepper_step(void) {
     TEST_ASSERT_EQUAL_INT(21, stepper_step(20, +1, 0, 0, 100));   // step<=0 → 1
 }
 
+// --- segmented_logic : clamp d'index sélectionné ---
+void test_segmented_clamp(void) {
+    TEST_ASSERT_EQUAL_INT(0, segmented_clamp(-1, 3));
+    TEST_ASSERT_EQUAL_INT(2, segmented_clamp(5, 3));
+    TEST_ASSERT_EQUAL_INT(1, segmented_clamp(1, 3));
+    TEST_ASSERT_EQUAL_INT(0, segmented_clamp(0, 0));   // aucune option
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_remaining_seconds);
@@ -1738,5 +1747,6 @@ int main(int, char**) {
     RUN_TEST(test_clock_parse_digital_seconds);
     RUN_TEST(test_ring_track_radius);
     RUN_TEST(test_stepper_step);
+    RUN_TEST(test_segmented_clamp);
     return UNITY_END();
 }
