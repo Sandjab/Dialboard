@@ -584,3 +584,7 @@ main > .col:last-child { border-right: 0; }
 .insp-row input[type="number"] { cursor: ew-resize; border-left: 3px solid var(--accent); }
 /* Focus net : le liseré ambre = affordance « glisser pour ajuster » (numdrag) ; en édition, anneau franc. */
 .insp-row input[type="number"]:focus { cursor: text; outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+
+/* Miniatures de la gallery de modèles : disque rond, contenu positionné en unités écran (360) et réduit. */
+.tpl-thumb { position: relative; overflow: hidden; border-radius: 50%; flex: none; pointer-events: none; }
+.tpl-thumb-stage { position: relative; overflow: hidden; border-radius: 50%; }
