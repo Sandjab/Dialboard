@@ -164,7 +164,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { validateEntry } from '../build-index.mjs';
 
-const goodLayout = { title: 'Clock', background: '#000', components: { a: { type: 'label', text: 'Hi', font: 18, color: '#fff' } }, pages: [{ name: 'p', place: [{ ref: 'a', anchor: 'CENTER' }] }] };
+const goodLayout = { title: 'Clock', background: '#000000', components: { a: { type: 'label', text: 'Hi', font: 18, color: '#ffffff' } }, pages: [{ name: 'p', place: [{ ref: 'a', anchor: 'CENTER' }] }] };   // hex 6 chiffres (le schéma impose ^#[0-9A-Fa-f]{6}$)
 const goodMeta = { name: 'Horloge', author: 'me', description: 'demo', domain: 'time', tags: ['clock'], requires: '' };
 const dboard = (over = {}) => ({ version: 2, meta: goodMeta, layout: goodLayout, assets: { bg: {}, image: {}, aimg: {} }, ...over });
 
