@@ -8,6 +8,10 @@ export default {
   'toolbar.export.title': 'Save the layout to a local .json file',
   'toolbar.import.tip': 'Import JSON',
   'toolbar.import.title': 'Load a layout from a local .json file',
+  'toolbar.export_bundle.tip': 'Export .dboard',
+  'toolbar.export_bundle.title': 'Save the layout and images to a local .dboard file',
+  'toolbar.import_bundle.tip': 'Import .dboard',
+  'toolbar.import_bundle.title': 'Load a layout and images from a local .dboard file',
   'toolbar.undo.tip': 'Undo (Ctrl+Z)',
   'toolbar.undo.title': 'Undo (Ctrl+Z)',
   'toolbar.redo.tip': 'Redo',
@@ -446,4 +450,7 @@ export default {
   'activity.layout_imported': 'Layout imported (file)',
   'toast.import_failed': 'Import failed: {msg}',
   'bundle.invalid': 'Invalid .dboard bundle or unsupported version',
+  'activity.bundle_exported': 'Bundle exported (file)',
+  'activity.bundle_imported': 'Bundle imported (file)',
+  'toast.bundle_missing_assets': '{n} image(s) not included (missing from cache)',
 };

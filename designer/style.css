@@ -542,6 +542,7 @@ main > .col:last-child { border-right: 0; }
 .toast.show { opacity: 1; transform: translateY(0); }
 .toast-ok { border-color: var(--ok); color: var(--ok); }
 .toast-err { border-color: var(--err); color: var(--err); }
+.toast-warn { border-color: var(--warn); color: var(--warn); }
 .toast-progress { border-color: var(--line); color: var(--muted); }
 .toast-spinner { flex: none; width: 13px; height: 13px; border-radius: 50%;
   border: 2px solid var(--line); border-top-color: var(--accent); animation: toast-spin .7s linear infinite; }
