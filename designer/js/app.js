@@ -15,6 +15,7 @@ import { createInspector } from './inspector.js';
 import { createTree } from './tree.js';
 import { createCarousel } from './carousel.js';
 import { bindFileIO } from './file-io.js';
+import { bindBundleIO } from './bundle-io.js';
 import { createSources } from './sources.js';
 import { createSinks } from './sinks.js';
 import { createWifiPanel } from './wifi.js';
@@ -199,6 +200,10 @@ async function main() {
   const onLoad = () => { model.commit(s => { stripPhysicalPlacements(s); ensurePhysicals(s); pruneOrphans(s); }); canvas.setPage(0); tree.render(); };
   bindFileIO(model, {
     exportBtn: $('export'), importBtn: $('import'), importInput: $('import-file'),
+    onLoad,
+  });
+  bindBundleIO(model, {
+    exportBtn: $('export-bundle'), importBtn: $('import-bundle'), importInput: $('import-bundle-file'),
     onLoad,
   });
 

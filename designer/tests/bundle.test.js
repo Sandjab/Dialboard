@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { encodeBundle, decodeBundle } from '../js/bundle.js';
+import { encodeBundle, decodeBundle, missingKeys } from '../js/bundle.js';
 
 const layout = { title: 'X', pages: [{ name: 'p', place: [] }] };
 const assets = {
@@ -29,4 +29,26 @@ test('decodeBundle : rejette un bundle sans version (intent : ne pas charger un 
 
 test('decodeBundle : rejette un bundle sans layout (intent : un bundle tronqué échoue clairement)', () => {
   assert.throws(() => decodeBundle(JSON.stringify({ version: 1, assets: {} })), /version|invalid/i);
+});
+
+const stateMK = {
+  pages: [{ background_image: 'bg1' }, { background_image: 'bg2' }],
+  components: {
+    c1: { type: 'image', src: 'img1' },
+    c2: { type: 'image_anim', src: 'anim1' },
+  },
+};
+
+test('missingKeys : liste par type les clés référencées absentes des assets (intent : avertir avant un bundle partiel)', () => {
+  const assets = { bg: { bg1: new Uint8Array([1]) }, image: {}, aimg: { anim1: new Uint8Array([2]) } };
+  assert.deepEqual(missingKeys(stateMK, assets), { bg: ['bg2'], image: ['img1'], aimg: [] });
+});
+
+test('missingKeys : assets vides → toutes les clés référencées manquent (intent : export sans cache = tout absent)', () => {
+  assert.deepEqual(missingKeys(stateMK, {}), { bg: ['bg1', 'bg2'], image: ['img1'], aimg: ['anim1'] });
+});
+
+test('missingKeys : tout en cache → aucun manquant (intent : bundle complet = pas d\'avertissement)', () => {
+  const full = { bg: { bg1: 1, bg2: 1 }, image: { img1: 1 }, aimg: { anim1: 1 } };
+  assert.deepEqual(missingKeys(stateMK, full), { bg: [], image: [], aimg: [] });
 });

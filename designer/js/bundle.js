@@ -58,6 +58,17 @@ export function collectAssets(model) {
   };
 }
 
+// Clés référencées par le layout mais absentes des assets collectés, par type. Pur (comparaison de
+// clés) → testable node. Sert à avertir à l'export quand des octets ne sont pas en cache.
+export function missingKeys(state, assets = {}) {
+  const miss = (keys, have) => keys.filter(k => !have || !(k in have));
+  return {
+    bg:    miss(referencedKeys(state),      assets.bg),
+    image: miss(referencedImageKeys(state), assets.image),
+    aimg:  miss(referencedAimgKeys(state),  assets.aimg),
+  };
+}
+
 // Ré-hydrate les caches depuis les octets du bundle. Fonds par clé ; image/anim par composant
 // (rehydrate exige compId + dims, lues dans le layout) — même logique que app.js load.
 export function applyAssets(model, assets) {

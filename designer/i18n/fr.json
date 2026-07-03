@@ -5,6 +5,10 @@
   "toolbar.export.title": "Enregistre le layout dans un fichier .json local",
   "toolbar.import.tip": "Importer JSON",
   "toolbar.import.title": "Charge un layout depuis un fichier .json local",
+  "toolbar.export_bundle.tip": "Exporter .dboard",
+  "toolbar.export_bundle.title": "Enregistre le layout + images dans un fichier .dboard local",
+  "toolbar.import_bundle.tip": "Importer .dboard",
+  "toolbar.import_bundle.title": "Charge un layout + images depuis un fichier .dboard local",
   "toolbar.undo.tip": "Annuler (Ctrl+Z)",
   "toolbar.undo.title": "Annuler (Ctrl+Z)",
   "toolbar.redo.tip": "Rétablir",
@@ -421,5 +425,8 @@
   "activity.layout_exported": "Layout exporté (fichier)",
   "activity.layout_imported": "Layout importé (fichier)",
   "toast.import_failed": "Import échoué : {msg}",
-  "bundle.invalid": "Bundle .dboard invalide ou version non supportée"
+  "bundle.invalid": "Bundle .dboard invalide ou version non supportée",
+  "activity.bundle_exported": "Bundle exporté (fichier)",
+  "activity.bundle_imported": "Bundle importé (fichier)",
+  "toast.bundle_missing_assets": "{n} image(s) non incluse(s) (absente(s) du cache)"
 }
