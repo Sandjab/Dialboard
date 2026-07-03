@@ -54,7 +54,6 @@ On ajoute **5 composants**, en **une seule fois**, en **version minimale d'abord
 - **Champs (minimaux)** :
   - `mode` : `analog` | `digital` (défaut `analog`).
   - `show_seconds` : bool (défaut false). Si false, rafraîchissement à la minute.
-  - `show_date` : bool (défaut false).
   - `color`, police (famille/taille/gras) : conventions communes des composants texte.
 - **Rendu firmware** : analogique = aiguilles en `lv_line` + ticks (même approche « dessin main » que
   meter/ring) ; digital = readout Tiny TTF. Un `lv_timer` rafraîchit chaque seconde (ou minute).
@@ -154,3 +153,5 @@ On ajoute **5 composants**, en **une seule fois**, en **version minimale d'abord
 
 - `colorwheel` (retiré du cœur LVGL 9, dessin main requis) — non retenu ce lot.
 - Seuils multi-pistes, 12h, appui long stepper, multi-sélection segmented, QR à logo.
+- `show_date` (clock) : retiré à l'implémentation (rendu de date localisée FR ingérable simplement via la locale ESP32) — déféré v2.
+- `qr` : seule la couleur des modules sombres (`color`) est exposée ; le fond clair est fixe (`#E8EEF7`). Couleur claire personnalisable = v2.
