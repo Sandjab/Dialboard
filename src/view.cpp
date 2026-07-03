@@ -29,7 +29,8 @@ static lv_obj_t* s_sub2  [MAX_PAGES][MAX_PLACEMENTS_PER_PAGE];
 static lv_obj_t* s_dots = nullptr;
 
 // line : lv_line_set_points conserve le POINTEUR (pas de copie) -> tableau persistant par placement.
-// Rempli par build_line ; s_cur_page/s_cur_place sont poses par la boucle de build avant chaque build().
+// Rempli par build_line ; s_cur_page/s_cur_place sont poses par la boucle de build avant chaque build(),
+// et par view_sync avant chaque sync() (relu par sync_clock pour ses points par placement).
 static lv_point_precise_t s_line_pts[MAX_PAGES][MAX_PLACEMENTS_PER_PAGE][2];
 static int s_cur_page = 0, s_cur_place = 0;
 
@@ -867,7 +868,7 @@ static void build_qr(lv_obj_t* parent, Component& c, Placement& q,
     int sz = q.size ? q.size : (q.width ? q.width : 140);
     lv_qrcode_set_size(qr, sz);
     lv_qrcode_set_dark_color(qr, lv_color_hex(c.color ? c.color : 0x05070D));
-    lv_qrcode_set_light_color(qr, lv_color_hex(c.fill_set ? c.fill : 0xE8EEF7));
+    lv_qrcode_set_light_color(qr, lv_color_hex(0xE8EEF7));   // clair fixe (parité designer ; seul `color` sombre est exposé)
     char txt[TEXT_LEN]; qr_effective_text(c, txt, sizeof(txt));
     lv_qrcode_update(qr, txt, strlen(txt));
     lv_obj_align(qr, ALIGN_MAP[q.anchor], q.dx, q.dy);

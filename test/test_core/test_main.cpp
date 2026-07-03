@@ -471,6 +471,18 @@ void test_update_readout_object_value_formats(void) {
     TEST_ASSERT_EQUAL_STRING("42 %", d.components[icpu].vstr);
 }
 
+// qr : push-by-id (apply_qr) — chaine brute -> vstr tel quel (pas de format numerique, cf readout)
+static const char* LAYOUT_QR =
+  "{\"components\":{\"q\":{\"type\":\"qr\",\"text\":\"\"}},"
+  "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"q\"}]}]}";
+
+void test_update_qr_text(void) {
+    Dashboard d{}; char err[80], unk[UNKNOWN_CSV_LEN];
+    TEST_ASSERT_TRUE(dash_set_layout(&d, LAYOUT_QR, err, sizeof(err)));
+    dash_apply_update(&d, "{\"q\":\"https://x.io\"}", unk, sizeof(unk));
+    TEST_ASSERT_EQUAL_STRING("https://x.io", d.components[dash_find(&d,"q")].vstr);
+}
+
 // --- Étape 1 : commande universelle visible (montre/cache) ---
 void test_visible_defaults_true(void) {
     Dashboard d{}; char err[80];
@@ -944,6 +956,16 @@ void test_ctxapply_roller_index(void) {
     context_apply(&d);
     TEST_ASSERT_EQUAL_INT(2, d.components[dash_find(&d,"x")].value);
 }
+// stepper (effecteur) : partage le meme case groupe que slider/arc/roller/segmented dans context_apply.
+void test_ctxapply_stepper_value(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, bound_layout("stepper", ""), err, sizeof(err));
+    dash_set_context(&d, "{\"v\":42}", 1);
+    context_apply(&d);
+    int i = dash_find(&d, "x");
+    TEST_ASSERT_EQUAL_INT(42, d.components[i].value);
+    TEST_ASSERT_TRUE(d.components[i].dirty);
+}
 // segmented (effecteur) : un scalaire poussé sur le bind devient l'index sélectionné (c.value),
 // exactement comme le roller (ils partagent le case effecteur de context_apply). Vérifie AUSSI
 // le change-detect : context_apply ne marque dirty que si la valeur change réellement.
@@ -1090,6 +1112,16 @@ void test_ctxapply_button_radio_str(void) {
     TEST_ASSERT_EQUAL_INT(1, d.components[i].value);
     dash_set_context(&d, "{\"v\":\"music\"}", 2); context_apply(&d);
     TEST_ASSERT_EQUAL_INT(0, d.components[i].value);
+}
+// qr (bind-pull) : chaine liee -> vstr tel quel, comme le push-by-id (cas COMP_QR dedie de context_apply)
+void test_ctxapply_qr_string(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, bound_layout("qr", ""), err, sizeof(err));
+    dash_set_context(&d, "{\"v\":\"http://a\"}", 1);
+    context_apply(&d);
+    int i = dash_find(&d, "x");
+    TEST_ASSERT_EQUAL_STRING("http://a", d.components[i].vstr);
+    TEST_ASSERT_TRUE(d.components[i].dirty);
 }
 void test_bar_label_style_parsed(void) {
     Dashboard d{}; char err[80];
@@ -1586,6 +1618,22 @@ void test_stepper_step(void) {
     TEST_ASSERT_EQUAL_INT(21, stepper_step(20, +1, 0, 0, 100));   // step<=0 → 1
 }
 
+// --- stepper : parse de la config (min/max/step/unit, generiques) ---
+static const char* LAYOUT_STEPPER =
+  "{\"components\":{\"sp\":{\"type\":\"stepper\",\"bind\":\"v\",\"min\":10,\"max\":50,\"step\":5,\"unit\":\"C\"}},"
+  "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"sp\"}]}]}";
+
+void test_stepper_parsed(void) {
+    Dashboard d{}; char err[80];
+    TEST_ASSERT_TRUE(dash_set_layout(&d, LAYOUT_STEPPER, err, sizeof(err)));
+    int i = dash_find(&d, "sp");
+    TEST_ASSERT_EQUAL_INT(COMP_STEPPER, d.components[i].type);
+    TEST_ASSERT_EQUAL_INT(10, d.components[i].vmin);
+    TEST_ASSERT_EQUAL_INT(50, d.components[i].vmax);
+    TEST_ASSERT_EQUAL_INT(5,  d.components[i].step);
+    TEST_ASSERT_EQUAL_STRING("C", d.components[i].unit);
+}
+
 // --- segmented_logic : clamp d'index sélectionné ---
 void test_segmented_clamp(void) {
     TEST_ASSERT_EQUAL_INT(0, segmented_clamp(-1, 3));
@@ -1621,6 +1669,7 @@ int main(int, char**) {
     RUN_TEST(test_update_bar_object_or_bare_value);
     RUN_TEST(test_update_label_object_or_bare_text);
     RUN_TEST(test_update_readout_object_value_formats);
+    RUN_TEST(test_update_qr_text);
     RUN_TEST(test_visible_defaults_true);
     RUN_TEST(test_update_visible_toggles);
     RUN_TEST(test_update_visible_only_keeps_value);
@@ -1652,6 +1701,7 @@ int main(int, char**) {
     RUN_TEST(test_button_set_defaults_not_momentary);
     RUN_TEST(test_ctxapply_button_radio);
     RUN_TEST(test_ctxapply_button_radio_str);
+    RUN_TEST(test_ctxapply_qr_string);
     RUN_TEST(test_layout_parse_counts);
     RUN_TEST(test_page_background_override_and_inherit);
     RUN_TEST(test_page_background_image_parsed);
@@ -1706,6 +1756,7 @@ int main(int, char**) {
     RUN_TEST(test_ctxapply_slider_value);
     RUN_TEST(test_ctxapply_arc_value);
     RUN_TEST(test_ctxapply_roller_index);
+    RUN_TEST(test_ctxapply_stepper_value);
     RUN_TEST(test_ctxapply_segmented_index);
     RUN_TEST(test_bar_label_style_parsed);
     RUN_TEST(test_bar_label_style_defaults);
@@ -1779,6 +1830,7 @@ int main(int, char**) {
     RUN_TEST(test_clock_parse_digital_seconds);
     RUN_TEST(test_ring_track_radius);
     RUN_TEST(test_stepper_step);
+    RUN_TEST(test_stepper_parsed);
     RUN_TEST(test_segmented_clamp);
     return UNITY_END();
 }
