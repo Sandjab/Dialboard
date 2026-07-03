@@ -130,12 +130,16 @@
 
   <aside id="templates-drawer" class="drawer" hidden>
     <div class="drawer-backdrop"></div>
-    <div class="drawer-panel" role="dialog" aria-label="Templates" data-i18n-aria-label="drawer.templates.aria">
+    <div class="drawer-panel" role="dialog" aria-label="Store" data-i18n-aria-label="drawer.templates.aria">
       <div class="drawer-head">
-        <h2 data-i18n="drawer.templates.title">Modèles</h2>
+        <h2 data-i18n="drawer.templates.title">Store</h2>
         <button class="drawer-close" type="button" data-i18n-title="drawer.close" title="Fermer">✕</button>
       </div>
       <div id="templates-pane" class="drawer-pane">
+        <div id="store-toolbar" class="store-toolbar">
+          <input id="store-search" class="store-search" type="search" data-i18n-placeholder="store.search.placeholder" placeholder="Rechercher un dashboard…" />
+          <div id="store-domains" class="store-chips"></div>
+        </div>
         <div id="templates-gallery" class="tpl-gallery"></div>
       </div>
     </div>
