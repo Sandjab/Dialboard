@@ -43,9 +43,12 @@
 * { box-sizing: border-box; }
 html { height: 100%; }
 /* Colonne pleine hauteur : main (canvas) absorbe la place restante et POUSSE la barre d'état au bas du
-   viewport → plus de « vide noir » résiduel, et le board grandit (app.js fit borné par availH). */
+   viewport → plus de « vide noir » résiduel, et le board grandit (app.js fit borné par availH).
+   height (PAS min-height) est délibéré : il PLAFONNE la hauteur du body → main a une hauteur définie →
+   les colonnes (overflow:auto + min-height:0) scrollent CHACUNE en interne. Un min-height laisserait le
+   body s'étirer au contenu → ascenseur fenêtre qui emporte le canvas quand l'inspecteur est long. */
 body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: var(--bg); color: var(--ink);
-  min-height: 100vh; display: flex; flex-direction: column; }
+  height: 100vh; display: flex; flex-direction: column; }
 header { display: flex; align-items: center; gap: 0; padding: 0 10px; height: 42px; flex: none; border-bottom: 1px solid var(--line); background: var(--panel); }
 header .grow { flex: 1; }
 /* --- Top bar : brand --- */
