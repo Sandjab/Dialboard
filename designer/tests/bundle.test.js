@@ -52,3 +52,19 @@ test('missingKeys : tout en cache → aucun manquant (intent : bundle complet = 
   const full = { bg: { bg1: 1, bg2: 1 }, image: { img1: 1 }, aimg: { anim1: 1 } };
   assert.deepEqual(missingKeys(stateMK, full), { bg: [], image: [], aimg: [] });
 });
+
+test('decodeBundle : accepte un bundle v2 avec meta (intent : consommer un .dboard du Store)', () => {
+  const v2 = JSON.stringify({
+    version: 2,
+    meta: { name: 'X', author: 'a', description: 'd', domain: 'time', tags: ['t'], requires: '' },
+    layout,
+    assets: { bg: { a1: 'AQID' }, image: {}, aimg: {} },   // AQID = base64 de [1,2,3]
+  });
+  const back = decodeBundle(v2);
+  assert.deepEqual(JSON.parse(back.layout), layout);        // meta ignoré, layout intact
+  assert.deepEqual([...back.assets.bg.a1], [1, 2, 3]);
+});
+
+test('decodeBundle : rejette une version inconnue (intent : ne pas charger un format futur non géré)', () => {
+  assert.throws(() => decodeBundle(JSON.stringify({ version: 3, layout, assets: {} })), /version|invalid/i);
+});

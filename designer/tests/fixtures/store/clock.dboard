@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "meta": { "name": "Horloge de bureau", "author": "dialboard", "description": "Horloge digitale minimaliste, zéro réglage.", "domain": "time", "tags": ["clock", "time"], "requires": "" },
+  "layout": {
+    "title": "Clock", "background": "#0B0B0F", "tz": "CET-1CEST,M3.5.0,M10.5.0",
+    "components": {
+      "deco": { "type": "ring", "color": "#FF9F40", "min": 0, "max": 60, "rounded": true },
+      "time": { "type": "clock", "mode": "digital", "show_seconds": true, "color": "#F5F5F7", "font": 54, "font_family": "jetbrains_mono" },
+      "hello": { "type": "label", "text": "Hello", "font": 18, "color": "#9AA0AA" }
+    },
+    "pages": [ { "name": "Clock", "place": [
+      { "ref": "deco", "radius": 170, "thickness": 8, "gap_deg": 0 },
+      { "ref": "time", "anchor": "CENTER", "dy": -6 },
+      { "ref": "hello", "anchor": "CENTER", "dy": 48 }
+    ] } ]
+  },
+  "assets": { "bg": {}, "image": {}, "aimg": {} }
+}

@@ -37,7 +37,7 @@ export function encodeBundle(layoutText, assets = {}) {
 // string .dboard → { layout: string JSON, assets:{bg,image,aimg : {key:Uint8Array}} }. Throw si invalide.
 export function decodeBundle(text) {
   const o = JSON.parse(text);
-  if (o.version !== 1 || !o.assets || !o.layout) throw new Error(t('bundle.invalid'));
+  if ((o.version !== 1 && o.version !== 2) || !o.assets || !o.layout) throw new Error(t('bundle.invalid'));
   return {
     layout: JSON.stringify(o.layout),
     assets: {

@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "meta": { "name": "Météo", "author": "dialboard", "description": "Température en direct via open-meteo.", "domain": "weather", "tags": ["weather", "temp"], "requires": "Renseigne lat/lon dans l'URL de la source (panneau Sources)." },
+  "layout": {
+    "title": "Weather", "background": "#0A1020",
+    "components": {
+      "temp": { "type": "label", "text": "18°", "font": 48, "color": "#FFFFFF", "bind": "temp" },
+      "city": { "type": "label", "text": "Paris", "font": 18, "color": "#9AA0AA" }
+    },
+    "pages": [ { "name": "Weather", "place": [
+      { "ref": "temp", "anchor": "CENTER", "dy": -10 },
+      { "ref": "city", "anchor": "CENTER", "dy": 40 }
+    ] } ]
+  },
+  "assets": { "bg": {}, "image": {}, "aimg": {} }
+}

@@ -4,6 +4,7 @@ import { createStatusbar } from './statusbar.js';
 import { createConsole } from './console.js';
 import { createDrawer } from './drawer.js';
 import { mountTemplatesGallery } from './templates.js';
+import { mountStore } from './store-gallery.js';
 import { loadLayout, pushLayout, captureScreenshot, getStatus, getContext, setDevicePage, pushValues, uploadBgImage, fetchBgImage, uploadImage, fetchImage, uploadAimg, fetchAimg, formatDeviceStatus } from './device.js';
 import { referencedKeys, cacheBytes, cachePut, previewUrl } from './bg-image.js';
 import { referencedImageKeys, cacheBytes as imageCacheBytes, previewUrl as imagePreviewUrl, rehydrate as rehydrateImage } from './image-asset.js';
@@ -274,14 +275,28 @@ async function main() {
     toggleBtn: $('templates-toggle'),
     onOpen: () => { drawer.close(); sinksDrawer.close(); settings.close(); },   // un seul tiroir ouvert à la fois
   });
-  mountTemplatesGallery($('templates-gallery'), model, {
+  // Fallback offline : si l'index distant est injoignable, mountStore rappelle ce thunk qui monte les
+  // 5 templates embarqués (templates.js inchangé — layout-only, model.loadJSON).
+  const templatesFallback = () => mountTemplatesGallery($('templates-gallery'), model, {
     onPick: (text, entry) => {
       model.loadJSON(text);
       onLoad();                                   // même reset que l'import fichier (ensurePhysicals…)
       templatesDrawer.close();
       const setup = t(`templates.${entry.id}.setup`);
-      if (setup) showToast(setup, { kind: 'warn', ms: 6000 });    // template câblé : quoi personnaliser
-      else showToast(t('toast.template_loaded'), { kind: 'ok' }); // zéro config (horloge)
+      if (setup) showToast(setup, { kind: 'warn', ms: 6000 });
+      else showToast(t('toast.template_loaded'), { kind: 'ok' });
+      logs.logActivity(t('activity.template_loaded', { id: entry.id }));
+    },
+  });
+  mountStore($('templates-gallery'), model, {
+    toolbar: $('store-toolbar'),
+    mountFallback: templatesFallback,
+    onInstall: (text, entry) => {
+      loadBundle(model, text);                    // layout + assets (.dboard v1/v2)
+      onLoad();
+      templatesDrawer.close();
+      if (entry.requires) showToast(entry.requires, { kind: 'warn', ms: 6000 });   // note « à brancher »
+      else showToast(t('toast.template_loaded'), { kind: 'ok' });
       logs.logActivity(t('activity.template_loaded', { id: entry.id }));
     },
   });
