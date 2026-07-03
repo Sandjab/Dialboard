@@ -1220,6 +1220,66 @@ void test_ctxapply_aimg_bind_ignored_while_playing(void) {
     TEST_ASSERT_EQUAL_INT(0, d.components[0].value);   // bind ignore pendant la lecture
 }
 
+// --- rings : pistes concentriques (parse, push par id, bind par piste) ---
+// Layout a 4 pistes : le firmware ne stocke que MAX_RING_TRACKS -> la 4e doit etre tronquee.
+static const char* LAYOUT_RINGS4 =
+  "{\"components\":{\"act\":{\"type\":\"rings\",\"tracks\":["
+    "{\"bind\":\"move\",\"min\":0,\"max\":600,\"color\":\"#FA114F\"},"
+    "{\"bind\":\"exer\",\"min\":0,\"max\":30,\"color\":\"#92E82A\"},"
+    "{\"bind\":\"stand\",\"min\":0,\"max\":12,\"color\":\"#1EE0E3\"},"
+    "{\"bind\":\"extra\",\"min\":0,\"max\":99,\"color\":\"#FFFFFF\"}]}},"
+  "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"act\"}]}]}";
+
+void test_rings_parse_and_truncate(void) {
+    // POURQUOI : le nombre de pistes est borne cote firmware (MAX_RING_TRACKS) ; une piste
+    // en trop doit etre ignoree sans deborder, et les champs de piste bien lus (bind/min/max/color).
+    Dashboard d{}; char err[80];
+    TEST_ASSERT_TRUE(dash_set_layout(&d, LAYOUT_RINGS4, err, sizeof(err)));
+    int i = dash_find(&d, "act");
+    TEST_ASSERT_EQUAL_INT(COMP_RINGS, d.components[i].type);
+    TEST_ASSERT_EQUAL_INT(MAX_RING_TRACKS, d.components[i].track_count);   // 4e piste tronquee
+    TEST_ASSERT_EQUAL_STRING("move", d.components[i].tracks[0].bind);
+    TEST_ASSERT_EQUAL_INT(0,   d.components[i].tracks[0].vmin);
+    TEST_ASSERT_EQUAL_INT(600, d.components[i].tracks[0].vmax);
+    TEST_ASSERT_EQUAL_HEX32(0xFA114F, d.components[i].tracks[0].color);
+    TEST_ASSERT_EQUAL_INT(0, d.components[i].tracks[0].value);   // valeur initiale = vmin
+}
+void test_rings_apply_pushes_array(void) {
+    // POURQUOI : push-by-id des rings passe par un tableau [v0,v1,v2] (voie /update) ; chaque
+    // element vise la piste de meme index, un tableau plus court/long ne deborde pas track_count.
+    Dashboard d{}; char err[80], unk[UNKNOWN_CSV_LEN];
+    dash_set_layout(&d, LAYOUT_RINGS4, err, sizeof(err));   // -> 3 pistes apres troncature
+    int i = dash_find(&d, "act");
+    dash_apply_update(&d, "{\"act\":[70,50,30]}", unk, sizeof(unk));   // tableau nu
+    TEST_ASSERT_EQUAL_INT(70, d.components[i].tracks[0].value);
+    TEST_ASSERT_EQUAL_INT(50, d.components[i].tracks[1].value);
+    TEST_ASSERT_EQUAL_INT(30, d.components[i].tracks[2].value);
+    // Forme objet {tracks:[...]} plus courte : maj partielle, piste 2 conservee.
+    dash_apply_update(&d, "{\"act\":{\"tracks\":[11,22]}}", unk, sizeof(unk));
+    TEST_ASSERT_EQUAL_INT(11, d.components[i].tracks[0].value);
+    TEST_ASSERT_EQUAL_INT(22, d.components[i].tracks[1].value);
+    TEST_ASSERT_EQUAL_INT(30, d.components[i].tracks[2].value);   // inchangee (tableau plus court)
+}
+void test_rings_ctxapply_per_track_bind(void) {
+    // POURQUOI : chaque piste porte son propre bind (pas de bind au niveau composant) ; le pull
+    // du contexte alimente piste par piste, une piste sans bind est sautee, et un changement
+    // marque le composant dirty (rafraichissement de la vue).
+    Dashboard d{}; char err[80];
+    const char* L =
+      "{\"components\":{\"act\":{\"type\":\"rings\",\"tracks\":["
+        "{\"bind\":\"cpu\",\"min\":0,\"max\":100},"
+        "{\"bind\":\"\",\"min\":0,\"max\":100}]}},"
+      "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"act\"}]}]}";
+    TEST_ASSERT_TRUE(dash_set_layout(&d, L, err, sizeof(err)));
+    int i = dash_find(&d, "act");
+    d.components[i].tracks[1].value = 7;                 // valeur temoin sur la piste sans bind
+    dash_set_context(&d, "{\"cpu\":42}", 1);
+    context_apply(&d);
+    TEST_ASSERT_EQUAL_INT(42, d.components[i].tracks[0].value);   // piste 0 : lue depuis le contexte
+    TEST_ASSERT_EQUAL_INT(7,  d.components[i].tracks[1].value);   // piste 1 : bind vide -> sautee
+    TEST_ASSERT_TRUE(d.components[i].dirty);                      // un changement -> vue a rafraichir
+}
+
 // --- dash_tick_aimg : moteur d'avance de frame ---
 void test_aimg_tick_advances_after_period(void) {
     static Dashboard d; char err[64], unk[64];
@@ -1604,6 +1664,9 @@ int main(int, char**) {
     RUN_TEST(test_ctxapply_aimg_bind_selects_frame);
     RUN_TEST(test_ctxapply_aimg_bind_clamps);
     RUN_TEST(test_ctxapply_aimg_bind_ignored_while_playing);
+    RUN_TEST(test_rings_parse_and_truncate);
+    RUN_TEST(test_rings_apply_pushes_array);
+    RUN_TEST(test_rings_ctxapply_per_track_bind);
     RUN_TEST(test_aimg_tick_advances_after_period);
     RUN_TEST(test_aimg_tick_finite_loop_settles_to_rest);
     RUN_TEST(test_aimg_tick_infinite_keeps_playing);
