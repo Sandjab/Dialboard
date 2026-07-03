@@ -124,6 +124,7 @@
   "comp.sound": "Son",
   "comp.clock": "Horloge",
   "comp.rings": "Anneaux",
+  "comp.qr": "QR code",
   "ledmode.off": "Éteint",
   "ledmode.solid": "Plein",
   "ledmode.progress": "Progression",

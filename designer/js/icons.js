@@ -32,6 +32,7 @@ const PATHS = {
           '<polyline points="9 7 12 5.5 15 7"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   rings: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5.5"/>',
+  qr: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M20 20v.01"/>',
 };
 
 // Construit un <svg> namespacé via DOMParser (parse en contexte SVG, sans innerHTML).

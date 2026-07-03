@@ -126,7 +126,8 @@
         { "$ref": "#/$defs/comp_arc" },
         { "$ref": "#/$defs/comp_roller" },
         { "$ref": "#/$defs/comp_clock" },
-        { "$ref": "#/$defs/comp_rings" }
+        { "$ref": "#/$defs/comp_rings" },
+        { "$ref": "#/$defs/comp_qr" }
       ]
     },
     "comp_label": {
@@ -508,6 +509,19 @@
         "type": { "const": "rings" },
         "visible": { "type": "boolean" },
         "tracks": { "type": "array", "maxItems": 3, "items": { "$ref": "#/$defs/ring_track" } }
+      }
+    },
+    "comp_qr": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "description": "Affichage : QR code (ECC MEDIUM, comme lv_qrcode). text vide = URL device.",
+      "properties": {
+        "type": { "const": "qr" },
+        "visible": { "type": "boolean" },
+        "bind": { "$ref": "#/$defs/id", "description": "Variable (string) lue pour remplacer text." },
+        "text": { "$ref": "#/$defs/display", "description": "Texte encodé. Vide = URL du device." },
+        "color": { "$ref": "#/$defs/hexColor", "description": "Modules sombres (défaut #05070D)." }
       }
     },
     "page": {

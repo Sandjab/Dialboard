@@ -4,6 +4,7 @@
 
 import { previewUrl } from './image-asset.js';
 import { previewUrl as aimgPreviewUrl } from './image-anim-asset.js';
+import { qrModules } from './qr.js';
 
 // Valeurs d'aperçu mock par défaut. Plan C les rendra éditables via l'inspecteur ; ici elles sont fixes.
 export const MOCKS = {
@@ -827,5 +828,28 @@ export function buildClock(comp, placement = {}) {
   hand(305, r * 0.5, 6, col);
   hand(60,  r * 0.72, 4, col);
   if (comp.show_seconds) hand(216, r * 0.8, 2, '#38BDF8');
+  return svg;
+}
+
+// buildQr rend le QR code via qrModules (jumeau JS de lv_qrcode, ECC MEDIUM). text vide -> URL device.
+export function buildQr(comp, placement = {}) {
+  const size = placement.size || placement.width || 140;
+  const text = comp.text || 'http://dialboard.local';
+  const { size: n, get } = qrModules(text);
+  const svg = document.createElementNS(SVGNS, 'svg');
+  svg.setAttribute('width', size); svg.setAttribute('height', size);
+  svg.setAttribute('viewBox', `0 0 ${n} ${n}`);
+  svg.classList.add('w', 'w-qr');
+  const bg = document.createElementNS(SVGNS, 'rect');
+  bg.setAttribute('width', n); bg.setAttribute('height', n);
+  bg.setAttribute('fill', '#E8EEF7'); svg.appendChild(bg);
+  const dark = comp.color || '#05070D';
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    if (!get(x, y)) continue;
+    const r = document.createElementNS(SVGNS, 'rect');
+    r.setAttribute('x', x); r.setAttribute('y', y);
+    r.setAttribute('width', 1); r.setAttribute('height', 1); r.setAttribute('fill', dark);
+    svg.appendChild(r);
+  }
   return svg;
 }

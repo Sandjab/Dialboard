@@ -8,7 +8,7 @@
 // défaut (default.*) est localisé À LA CRÉATION via t() — Latin-1 garanti (contrat WS-2).
 import { snapPlacement } from './geometry.js';
 import { t } from './i18n.js';
-import { buildLabel, buildReadout, buildBar, buildRing, buildChart, buildMeter, buildImage, buildImageAnim, buildLed, buildRect, buildCircle, buildLine, buildIcon, buildSwitch, buildButton, buildSlider, buildArc, buildRoller, buildClock, buildRings } from './render.js';
+import { buildLabel, buildReadout, buildBar, buildRing, buildChart, buildMeter, buildImage, buildImageAnim, buildLed, buildRect, buildCircle, buildLine, buildIcon, buildSwitch, buildButton, buildSlider, buildArc, buildRoller, buildClock, buildRings, buildQr } from './render.js';
 
 // Modes de l'anneau LED physique (value firmware → clé i18n du libellé). Partagé designer/firmware via le schéma.
 export const LED_MODES = [
@@ -289,5 +289,16 @@ export const COMPONENTS = {
     placeFields: [],
     mockFields: [],
     build: null,
+  },
+  qr: {
+    label: 'comp.qr',
+    defaults: () => ({ type: 'qr', text: '' }),
+    makePlacement: (id, x, y) => ({ ...screenPlacement(id, x, y), size: 140 }),
+    centered: false, physical: false,
+    compFields: [['bind', 'field.bind', 'idtext'], ['text', 'field.text', 'latintext'], ['color', 'field.color', 'color']],
+    placeFields: [['anchor', 'field.anchor', 'anchor'], ['dx', 'field.dx', 'num'], ['dy', 'field.dy', 'num'],
+                  ['size', 'field.size', 'num', 140]],
+    mockFields: [],
+    build: (comp, pl) => buildQr(comp, pl),
   },
 };

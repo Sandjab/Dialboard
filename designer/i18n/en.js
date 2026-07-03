@@ -128,6 +128,7 @@ export default {
   'comp.sound': 'Sound',
   'comp.clock': 'Clock',
   'comp.rings': 'Rings',
+  'comp.qr': 'QR code',
   // --- Modes de l'anneau LED (panneau Device) ---
   'ledmode.off': 'Off',
   'ledmode.solid': 'Solid',
