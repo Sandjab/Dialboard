@@ -24,7 +24,7 @@
     "layout": {
       "title": "Weather", "background": "#0A1020",
       "components": {
-        "temp": { "type": "label", "text": "18°", "font": 48, "color": "#FFFFFF", "source": "temp" },
+        "temp": { "type": "label", "text": "18°", "font": 48, "color": "#FFFFFF", "bind": "temp" },
         "city": { "type": "label", "text": "Paris", "font": 18, "color": "#9AA0AA" }
       },
       "pages": [ { "name": "Weather", "place": [
