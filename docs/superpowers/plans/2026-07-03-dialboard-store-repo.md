@@ -4,7 +4,7 @@
 
 **Goal:** Construire le **repo store** (public, `Sandjab/dialboard-store`) : structure `entries/*.dboard`, un générateur `build-index.mjs` (valide les soumissions + émet `index.json`), une CI (PR = check bloquant ; merge = régénère), 5 seed entries dérivées des templates intégrés, et le CONTRIBUTING/PR-template. Le designer (Plan 1) le consomme déjà — `DEFAULT_STORE_BASE` pointe déjà dessus.
 
-**Architecture :** Repo séparé bâti en local à `/Users/jean-paulgavini/Documents/Dev/dialboard-store`. Validation CI **sans dépendance npm** : Ajv vendorisé (le même que le designer → parité) + `schema/layout.schema.json` copié du repo principal. `build-index.mjs` exporte une fonction pure `validateEntry` (testée node) + un CLI gardé (walk fs + `--check`/write). `index.json` embarque, par entrée, les métadonnées + le `layout` (les assets vivent dans `o.assets`, séparés du layout → naturellement absents de l'index).
+**Architecture :** Repo séparé bâti en local à `~/Documents/Dev/dialboard-store`. Validation CI **sans dépendance npm** : Ajv vendorisé (le même que le designer → parité) + `schema/layout.schema.json` copié du repo principal. `build-index.mjs` exporte une fonction pure `validateEntry` (testée node) + un CLI gardé (walk fs + `--check`/write). `index.json` embarque, par entrée, les métadonnées + le `layout` (les assets vivent dans `o.assets`, séparés du layout → naturellement absents de l'index).
 
 **Tech Stack :** Node ESM (`.mjs`), Ajv vendorisé (ESM), GitHub Actions, `node --test`.
 
@@ -14,7 +14,7 @@
 
 ---
 
-## File Structure (repo store, à `/Users/jean-paulgavini/Documents/Dev/dialboard-store`)
+## File Structure (repo store, à `~/Documents/Dev/dialboard-store`)
 
 ```
 build-index.mjs                     # générateur + validateur (exports purs + CLI gardé)
@@ -36,34 +36,34 @@ CONTRIBUTING.md · README.md · .gitignore
 
 ## Task 1 : scaffold + vendoring
 
-**Files (créés dans `/Users/jean-paulgavini/Documents/Dev/dialboard-store`) :** arborescence + `README.md`, `CONTRIBUTING.md`, `.gitignore`, `.github/PULL_REQUEST_TEMPLATE.md`, `vendor/ajv.min.mjs`, `schema/layout.schema.json`.
+**Files (créés dans `~/Documents/Dev/dialboard-store`) :** arborescence + `README.md`, `CONTRIBUTING.md`, `.gitignore`, `.github/PULL_REQUEST_TEMPLATE.md`, `vendor/ajv.min.mjs`, `schema/layout.schema.json`.
 
 - [ ] **Step 1 : Créer le repo local + arborescence**
 
 ```bash
-mkdir -p /Users/jean-paulgavini/Documents/Dev/dialboard-store/{vendor,schema,entries/dialboard,test,.github/workflows}
-cd /Users/jean-paulgavini/Documents/Dev/dialboard-store && git init -q && echo "repo local initialisé"
+mkdir -p ~/Documents/Dev/dialboard-store/{vendor,schema,entries/dialboard,test,.github/workflows}
+cd ~/Documents/Dev/dialboard-store && git init -q && echo "repo local initialisé"
 ```
 
 - [ ] **Step 2 : Vendorer Ajv (en `.mjs` pour l'ESM node) + copier le schéma**
 
 ```bash
-cp /Users/jean-paulgavini/Documents/Dev/Dialboard/designer/vendor/ajv.min.js /Users/jean-paulgavini/Documents/Dev/dialboard-store/vendor/ajv.min.mjs
-cp /Users/jean-paulgavini/Documents/Dev/Dialboard/schema/layout.schema.json /Users/jean-paulgavini/Documents/Dev/dialboard-store/schema/layout.schema.json
+cp ~/Documents/Dev/Dialboard/designer/vendor/ajv.min.js ~/Documents/Dev/dialboard-store/vendor/ajv.min.mjs
+cp ~/Documents/Dev/Dialboard/schema/layout.schema.json ~/Documents/Dev/dialboard-store/schema/layout.schema.json
 ```
 
 - [ ] **Step 3 : Vérifier qu'Ajv s'importe et compile le schéma en node**
 
 Run:
 ```bash
-cd /Users/jean-paulgavini/Documents/Dev/dialboard-store && node -e "import('./vendor/ajv.min.mjs').then(m=>{const A=m.default;const a=new A({allErrors:true,strict:false});const v=a.compile(JSON.parse(require('fs').readFileSync('schema/layout.schema.json','utf8')));console.log('ajv OK, compile OK, valide layout minimal:', v({title:'x',components:{},pages:[]}));})"
+cd ~/Documents/Dev/dialboard-store && node -e "import('./vendor/ajv.min.mjs').then(m=>{const A=m.default;const a=new A({allErrors:true,strict:false});const v=a.compile(JSON.parse(require('fs').readFileSync('schema/layout.schema.json','utf8')));console.log('ajv OK, compile OK, valide layout minimal:', v({title:'x',components:{},pages:[]}));})"
 ```
 Expected: `ajv OK, compile OK, valide layout minimal: true`.
 **Si l'import échoue** (globals navigateur) : fallback documenté → `package.json` avec `"type":"module"` + dépendance `ajv` npm et `import Ajv from 'ajv'`, CI avec `npm ci`. (Ne PAS appliquer sauf échec ici.)
 
 - [ ] **Step 4 : `.gitignore`**
 
-Créer `/Users/jean-paulgavini/Documents/Dev/dialboard-store/.gitignore` :
+Créer `~/Documents/Dev/dialboard-store/.gitignore` :
 ```
 node_modules/
 .DS_Store
@@ -145,7 +145,7 @@ Créer `.github/PULL_REQUEST_TEMPLATE.md` :
 - [ ] **Step 8 : Commit local**
 
 ```bash
-cd /Users/jean-paulgavini/Documents/Dev/dialboard-store
+cd ~/Documents/Dev/dialboard-store
 git add -A && git commit -q -m "chore: scaffold repo store (README, CONTRIBUTING, PR template, ajv vendorisé, schéma)"
 ```
 
@@ -215,12 +215,12 @@ test('validateEntry : accepte v1 comme v2 (intent : rétro-compat des exports le
 
 - [ ] **Step 2 : Lancer pour vérifier l'échec**
 
-Run: `cd /Users/jean-paulgavini/Documents/Dev/dialboard-store && node --test`
+Run: `cd ~/Documents/Dev/dialboard-store && node --test`
 Expected: FAIL (`Cannot find module '../build-index.mjs'`).
 
 - [ ] **Step 3 : Écrire `build-index.mjs`**
 
-Créer `/Users/jean-paulgavini/Documents/Dev/dialboard-store/build-index.mjs` :
+Créer `~/Documents/Dev/dialboard-store/build-index.mjs` :
 
 ```js
 // Valide les entries/*.dboard et génère index.json. Sans dépendance npm : Ajv vendorisé (parité designer)
@@ -319,13 +319,13 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) main();
 
 - [ ] **Step 4 : Lancer pour vérifier le vert**
 
-Run: `cd /Users/jean-paulgavini/Documents/Dev/dialboard-store && node --test`
+Run: `cd ~/Documents/Dev/dialboard-store && node --test`
 Expected: PASS (7 tests).
 
 - [ ] **Step 5 : Commit local**
 
 ```bash
-cd /Users/jean-paulgavini/Documents/Dev/dialboard-store
+cd ~/Documents/Dev/dialboard-store
 git add build-index.mjs test/build-index.test.mjs && git commit -q -m "feat: build-index.mjs — valide (Ajv+refs+meta+taille) et génère index.json (testé node)"
 ```
 
@@ -359,7 +359,7 @@ git add build-index.mjs test/build-index.test.mjs && git commit -q -m "feat: bui
 
 - [ ] **Step 6 : Générer `index.json` et vérifier les 5 valides**
 
-Run: `cd /Users/jean-paulgavini/Documents/Dev/dialboard-store && node build-index.mjs`
+Run: `cd ~/Documents/Dev/dialboard-store && node build-index.mjs`
 Expected : `✓ dialboard/clock` … `✓ dialboard/home-assistant` puis `index.json écrit — 5 entrée(s).` (aucune ligne `✗`).
 
 - [ ] **Step 7 : `--check` passe aussi (mode PR)**
@@ -371,7 +371,7 @@ Expected: `5 entrée(s) valide(s) — --check, index.json non modifié.` exit 0.
 
 Run:
 ```bash
-cd /Users/jean-paulgavini/Documents/Dev/dialboard-store
+cd ~/Documents/Dev/dialboard-store
 printf '{"version":2,"meta":{"name":"x","author":"x","description":"x","domain":"zzz"},"layout":{"title":"x","components":{},"pages":[{"name":"p","place":[{"ref":"ghost"}]}]},"assets":{"bg":{},"image":{},"aimg":{}}}' > entries/dialboard/_bad.dboard
 node build-index.mjs --check; echo "exit=$?"
 rm entries/dialboard/_bad.dboard
@@ -386,7 +386,7 @@ Expected : `clean` (les seeds n'utilisent que des variables `$ha_token` et des U
 - [ ] **Step 10 : Commit local**
 
 ```bash
-cd /Users/jean-paulgavini/Documents/Dev/dialboard-store
+cd ~/Documents/Dev/dialboard-store
 git add entries/ index.json && git commit -q -m "feat: 5 seed entries (clock/weather/crypto/server/home-assistant) + index.json généré"
 ```
 
@@ -436,7 +436,7 @@ Commit local : `git add .github/workflows/build-index.yml && git commit -m "ci: 
 - [ ] **Step 2 : Créer le repo public + push** (après « publie »)
 
 ```bash
-cd /Users/jean-paulgavini/Documents/Dev/dialboard-store
+cd ~/Documents/Dev/dialboard-store
 git branch -M main
 gh repo create Sandjab/dialboard-store --public --source=. --remote=origin --push
 ```
