@@ -64,31 +64,39 @@ function renderCards(host, model, list, onInstall) {
     return;
   }
   for (const entry of list) {
-    const card = document.createElement('div');
-    card.className = 'tpl-card store-card';
-    card.appendChild(buildThumbnail(entry.layout));   // assets absents ⇒ emplacements image en placeholder
+    // Garde par carte (comme templates.js) : le catalogue est du contenu communautaire non fiable ; une
+    // entrée dont un builder throw est ignorée — elle ne fait pas tomber toute la galerie (ni rejeter mountStore).
+    try {
+      const card = document.createElement('div');
+      card.className = 'tpl-card store-card';
+      card.appendChild(buildThumbnail(entry.layout));   // assets absents ⇒ emplacements image en placeholder
 
-    const meta = document.createElement('div');
-    meta.className = 'tpl-meta';
-    const h = document.createElement('div'); h.className = 'tpl-name'; h.textContent = entry.name;
-    const by = document.createElement('div'); by.className = 'tpl-author'; by.textContent = entry.author ? t('store.by', { author: entry.author }) : '';
-    const p = document.createElement('div'); p.className = 'tpl-desc'; p.textContent = entry.description;
-    const badge = document.createElement('span'); badge.className = 'tpl-badge'; badge.textContent = t(`store.domain.${entry.domain}`);
-    meta.append(h, by, p, badge);
-    card.appendChild(meta);
+      const meta = document.createElement('div');
+      meta.className = 'tpl-meta';
+      const h = document.createElement('div'); h.className = 'tpl-name'; h.textContent = entry.name;
+      const p = document.createElement('div'); p.className = 'tpl-desc'; p.textContent = entry.description;
+      const badge = document.createElement('span'); badge.className = 'tpl-badge'; badge.textContent = t(`store.domain.${entry.domain}`);
+      meta.append(h);
+      if (entry.author) {   // auteur en append conditionnel (pas de nœud vide qui consomme un gap flex)
+        const by = document.createElement('div'); by.className = 'tpl-author'; by.textContent = t('store.by', { author: entry.author });
+        meta.append(by);
+      }
+      meta.append(p, badge);
+      card.appendChild(meta);
 
-    const actions = document.createElement('div');
-    actions.className = 'tpl-actions';
-    const install = document.createElement('button');
-    install.type = 'button'; install.className = 'store-install'; install.textContent = t('store.install');
-    wireInstall(install, model, entry, onInstall);
-    const dl = document.createElement('button');
-    dl.type = 'button'; dl.className = 'store-dl'; dl.textContent = t('store.download');
-    dl.addEventListener('click', () => downloadEntry(entry));
-    actions.append(install, dl);
-    card.appendChild(actions);
+      const actions = document.createElement('div');
+      actions.className = 'tpl-actions';
+      const install = document.createElement('button');
+      install.type = 'button'; install.className = 'store-install'; install.textContent = t('store.install');
+      wireInstall(install, model, entry, onInstall);
+      const dl = document.createElement('button');
+      dl.type = 'button'; dl.className = 'store-dl'; dl.textContent = t('store.download');
+      dl.addEventListener('click', () => downloadEntry(entry));
+      actions.append(install, dl);
+      card.appendChild(actions);
 
-    host.appendChild(card);
+      host.appendChild(card);
+    } catch (e) { console.warn('[store] entrée ignorée', entry && entry.id, e); }
   }
 }
 
