@@ -1,0 +1,23 @@
+{
+  "title": "Home Assistant",
+  "background": "#0B0B0F",
+  "components": {
+    "ic":   { "type": "icon", "symbol": "home", "color": "#41BDF5", "font": 40 },
+    "tval": { "type": "readout", "label": "", "unit": " °C", "font": 40, "color": "#F5F5F7", "bind": "temp" },
+    "cap":  { "type": "label", "text": "Living room", "font": 16, "color": "#9AA0AA" }
+  },
+  "pages": [
+    { "name": "Home", "place": [
+      { "ref": "ic",   "anchor": "CENTER", "dy": -70 },
+      { "ref": "tval", "anchor": "CENTER", "dy": 0 },
+      { "ref": "cap",  "anchor": "CENTER", "dy": 46 }
+    ] }
+  ],
+  "sources": [
+    { "name": "Home Assistant (edit me)",
+      "url": "http://homeassistant.local:8123/api/states/sensor.living_room_temperature",
+      "interval_s": 30,
+      "headers": { "Authorization": "$ha_token" },
+      "vars": { "temp": "/state" } }
+  ]
+}

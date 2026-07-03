@@ -1,0 +1,7 @@
+[
+  { "id": "clock",          "file": "clock.json" },
+  { "id": "weather",        "file": "weather.json" },
+  { "id": "crypto",         "file": "crypto.json" },
+  { "id": "server",         "file": "server.json" },
+  { "id": "home-assistant", "file": "home-assistant.json" }
+]

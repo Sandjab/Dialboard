@@ -1,0 +1,25 @@
+{
+  "title": "Weather",
+  "background": "#0B1220",
+  "components": {
+    "arc":  { "type": "ring", "color": "#38BDF8", "min": -10, "max": 40, "bind": "temp",
+              "thresholds": [[0, "#60A5FA"], [25, "#34D399"], [40, "#F59E0B"]] },
+    "tval": { "type": "readout", "label": "", "unit": "°C", "font": 40, "color": "#F5F5F7", "bind": "temp" },
+    "wind": { "type": "readout", "label": "Wind", "unit": " km/h", "font": 16, "color": "#9AA0AA", "bind": "wind" },
+    "hum":  { "type": "readout", "label": "Hum", "unit": " %", "font": 16, "color": "#9AA0AA", "bind": "hum" }
+  },
+  "pages": [
+    { "name": "Weather", "place": [
+      { "ref": "arc",  "radius": 150, "thickness": 18, "gap_deg": 90 },
+      { "ref": "tval", "anchor": "CENTER", "dy": -6 },
+      { "ref": "wind", "anchor": "BOTTOM_MID", "dy": -70 },
+      { "ref": "hum",  "anchor": "BOTTOM_MID", "dy": -44 }
+    ] }
+  ],
+  "sources": [
+    { "name": "Open-Meteo",
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=48.85&longitude=2.35&current=temperature_2m,wind_speed_10m,relative_humidity_2m",
+      "interval_s": 900,
+      "vars": { "temp": "/current/temperature_2m", "wind": "/current/wind_speed_10m", "hum": "/current/relative_humidity_2m" } }
+  ]
+}

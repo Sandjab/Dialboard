@@ -584,3 +584,20 @@ main > .col:last-child { border-right: 0; }
 .insp-row input[type="number"] { cursor: ew-resize; border-left: 3px solid var(--accent); }
 /* Focus net : le liseré ambre = affordance « glisser pour ajuster » (numdrag) ; en édition, anneau franc. */
 .insp-row input[type="number"]:focus { cursor: text; outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+
+/* Miniatures de la gallery de modèles : disque rond, contenu positionné en unités écran (360) et réduit. */
+.tpl-thumb { position: relative; overflow: hidden; border-radius: 50%; flex: none; pointer-events: none; }
+.tpl-thumb-stage { position: relative; overflow: hidden; border-radius: 50%; }
+
+/* Cartes de la gallery de modèles (tiroir). */
+.tpl-card { display: flex; gap: 12px; align-items: center; width: 100%; text-align: left; padding: 10px;
+            background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+            color: inherit; cursor: pointer; margin-bottom: 10px; }
+.tpl-card:hover { border-color: var(--accent); }
+.tpl-card.confirm { border-color: var(--warn); }
+.tpl-meta { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.tpl-name { font-weight: 600; }
+.tpl-desc { font-size: 12px; color: var(--text-dim); }
+.tpl-badge { align-self: flex-start; font-size: 11px; padding: 1px 8px; border-radius: 999px; }
+.tpl-badge.ready { background: rgba(52,211,153,.15); color: #34D399; }
+.tpl-badge.wire  { background: rgba(245,158,11,.15); color: #F59E0B; }
