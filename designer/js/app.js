@@ -279,7 +279,9 @@ async function main() {
       model.loadJSON(text);
       onLoad();                                   // même reset que l'import fichier (ensurePhysicals…)
       templatesDrawer.close();
-      showToast(t('toast.template_loaded'), { kind: 'ok' });
+      const setup = t(`templates.${entry.id}.setup`);
+      if (setup) showToast(setup, { kind: 'warn', ms: 6000 });    // template câblé : quoi personnaliser
+      else showToast(t('toast.template_loaded'), { kind: 'ok' }); // zéro config (horloge)
       logs.logActivity(t('activity.template_loaded', { id: entry.id }));
     },
   });
