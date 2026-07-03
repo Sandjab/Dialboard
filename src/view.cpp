@@ -709,6 +709,9 @@ static int seg_build_map(int idx, const char* options) {
     strlcpy(s_seg_buf[idx], options, ROLLER_OPTS_LEN);
     int n = 0; char* p = s_seg_buf[idx];
     s_seg_map[idx][n++] = p;
+    // Garde de boucle n <= MAX_SEG_OPTS (le \n du dernier segment retenu peut encore être vu) mais
+    // garde de stockage n < MAX_SEG_OPTS : borne le nombre de segments à MAX_SEG_OPTS sans écraser
+    // la case sentinelle. Les segments au-delà sont ignorés (leur \n n'est pas coupé).
     for (; *p && n <= MAX_SEG_OPTS; p++) {
         if (*p == '\n') { *p = '\0'; if (n < MAX_SEG_OPTS) s_seg_map[idx][n++] = p + 1; }
     }
@@ -723,7 +726,10 @@ static void build_segmented(lv_obj_t* parent, Component& c, Placement& q,
     int n = (idx >= 0 && idx < MAX_COMPONENTS) ? seg_build_map(idx, c.roller_options) : 0;
     if (n > 0) lv_buttonmatrix_set_map(bm, s_seg_map[idx]);
     lv_buttonmatrix_set_one_checked(bm, true);
-    for (int i = 0; i < n; i++) lv_buttonmatrix_set_button_ctrl(bm, i, LV_BUTTONMATRIX_CTRL_CHECKABLE);
+    for (int i = 0; i < n; i++) {
+        lv_buttonmatrix_set_button_ctrl(bm, i, LV_BUTTONMATRIX_CTRL_CHECKABLE);
+        lv_buttonmatrix_set_button_ctrl(bm, i, LV_BUTTONMATRIX_CTRL_CLICK_TRIG);   // commit à la relâche (set_button_ctrl OR les bits) : évite un commit au touch-down pendant un swipe de navigation
+    }
     int sel = segmented_clamp(c.value, n);
     if (n > 0) lv_buttonmatrix_set_button_ctrl(bm, sel, LV_BUTTONMATRIX_CTRL_CHECKED);
     lv_obj_set_size(bm, q.width ? q.width : 240, q.height ? q.height : 56);

@@ -944,6 +944,24 @@ void test_ctxapply_roller_index(void) {
     context_apply(&d);
     TEST_ASSERT_EQUAL_INT(2, d.components[dash_find(&d,"x")].value);
 }
+// segmented (effecteur) : un scalaire poussé sur le bind devient l'index sélectionné (c.value),
+// exactement comme le roller (ils partagent le case effecteur de context_apply). Vérifie AUSSI
+// le change-detect : context_apply ne marque dirty que si la valeur change réellement.
+void test_ctxapply_segmented_index(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"components\":{\"g\":{\"type\":\"segmented\",\"bind\":\"mode\","
+                    "\"options\":[\"A\",\"B\",\"C\"]}},"
+                    "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"g\"}]}]}";
+    TEST_ASSERT_TRUE(dash_set_layout(&d, L, err, sizeof(err)));
+    int i = dash_find(&d, "g");
+    dash_set_context(&d, "{\"mode\":2}", 1);
+    context_apply(&d);
+    TEST_ASSERT_EQUAL_INT(2, d.components[i].value);   // index poussé -> valeur sélectionnée
+    TEST_ASSERT_TRUE(d.components[i].dirty);            // 0 -> 2 : change-detect a marqué dirty
+    d.components[i].dirty = false;
+    context_apply(&d);                                 // même valeur : pas de re-marquage dirty
+    TEST_ASSERT_FALSE(d.components[i].dirty);
+}
 void test_switch_parsed(void) {
     Dashboard d{}; char err[80];
     const char* L = "{\"components\":{\"s\":{\"type\":\"switch\",\"bind\":\"lamp\"}},\"pages\":[]}";
@@ -1028,6 +1046,18 @@ void test_roller_parsed(void) {
     TEST_ASSERT_EQUAL_INT(COMP_ROLLER, d.components[i].type);
     TEST_ASSERT_EQUAL_STRING("HDMI\nTV\nAUX", d.components[i].roller_options);
     TEST_ASSERT_EQUAL_INT(5, d.components[i].roller_rows);
+}
+// segmented réutilise le parse d'options du roller (même bloc conditionnel) : les libellés
+// atterrissent dans roller_options joints par '\n'. Le composant doit se résoudre via dash_find.
+void test_segmented_parsed(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"components\":{\"g\":{\"type\":\"segmented\",\"bind\":\"mode\","
+                    "\"options\":[\"A\",\"B\",\"C\"]}},\"pages\":[]}";
+    TEST_ASSERT_TRUE(dash_set_layout(&d, L, err, sizeof(err)));
+    int i = dash_find(&d, "g");
+    TEST_ASSERT_TRUE(i >= 0);
+    TEST_ASSERT_EQUAL_INT(COMP_SEGMENTED, d.components[i].type);
+    TEST_ASSERT_EQUAL_STRING("A\nB\nC", d.components[i].roller_options);
 }
 void test_button_momentary_parsed(void) {
     Dashboard d{}; char err[80];
@@ -1617,6 +1647,7 @@ int main(int, char**) {
     RUN_TEST(test_slider_quantize_clamps_to_vmin);
     RUN_TEST(test_arc_parsed);
     RUN_TEST(test_roller_parsed);
+    RUN_TEST(test_segmented_parsed);
     RUN_TEST(test_button_momentary_parsed);
     RUN_TEST(test_button_set_defaults_not_momentary);
     RUN_TEST(test_ctxapply_button_radio);
@@ -1675,6 +1706,7 @@ int main(int, char**) {
     RUN_TEST(test_ctxapply_slider_value);
     RUN_TEST(test_ctxapply_arc_value);
     RUN_TEST(test_ctxapply_roller_index);
+    RUN_TEST(test_ctxapply_segmented_index);
     RUN_TEST(test_bar_label_style_parsed);
     RUN_TEST(test_bar_label_style_defaults);
     RUN_TEST(test_ctxapply_unchanged_not_dirty);
