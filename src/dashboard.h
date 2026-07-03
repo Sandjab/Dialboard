@@ -4,7 +4,7 @@
 #include "config.h"
 #include "context.h"
 
-enum CompType { COMP_NONE, COMP_LABEL, COMP_READOUT, COMP_BAR, COMP_RING, COMP_LED_RING, COMP_SOUND, COMP_CHART, COMP_METER, COMP_IMAGE, COMP_IMAGE_ANIM, COMP_LED, COMP_RECT, COMP_CIRCLE, COMP_LINE, COMP_ICON, COMP_SWITCH, COMP_BUTTON, COMP_SLIDER, COMP_ARC, COMP_ROLLER, COMP_COUNT };
+enum CompType { COMP_NONE, COMP_LABEL, COMP_READOUT, COMP_BAR, COMP_RING, COMP_LED_RING, COMP_SOUND, COMP_CHART, COMP_METER, COMP_IMAGE, COMP_IMAGE_ANIM, COMP_LED, COMP_RECT, COMP_CIRCLE, COMP_LINE, COMP_ICON, COMP_SWITCH, COMP_BUTTON, COMP_SLIDER, COMP_ARC, COMP_ROLLER, COMP_CLOCK, COMP_RINGS, COMP_QR, COMP_STEPPER, COMP_SEGMENTED, COMP_COUNT };
 enum LedMode  { LED_OFF, LED_SOLID, LED_PROGRESS, LED_SPINNER, LED_BLINK, LED_BREATHE };
 enum BarMode  { BAR_NORMAL, BAR_SYMMETRICAL };               // bar : lv_bar_set_mode
 enum ArcMode  { ARC_NORMAL, ARC_SYMMETRICAL, ARC_REVERSE };  // ring : lv_arc_set_mode
@@ -19,6 +19,8 @@ struct Threshold { float limit; uint32_t color; };
 struct IconState { float at; uint8_t symbol; uint32_t color; bool has_symbol; bool has_color; };
 // Nombre de symboles du set curaté (ICON_SYMBOL_NAMES dans dashboard.cpp == ICON_GLYPHS dans view.cpp).
 static constexpr int ICON_SYMBOL_COUNT = 23;
+
+struct RingTrack { char bind[ID_LEN]; int vmin, vmax; uint32_t color; int32_t value; };
 
 struct Component {
     char     id[ID_LEN];
@@ -56,6 +58,8 @@ struct Component {
     int      bar_anim_ms;            // bar : duree d'anim de la valeur (ms ; 0 = instantane)
     ArcMode  arc_mode;               // ring : normal | symmetrical | reverse (lv_arc_set_mode)
     bool     arc_rounded;            // ring : extremites d'indicateur arrondies (defaut true)
+    RingTrack tracks[MAX_RING_TRACKS];   // rings : pistes concentriques (config)
+    int       track_count;
     uint8_t  led_brightness_cfg;
     char     bind[ID_LEN];           // nom de variable du contexte (pull) ; vide = push par id
     int      chart_points;           // chart : longueur de la fenêtre d'historique (défaut 30, borné CHART_MAX_POINTS)
@@ -94,6 +98,10 @@ struct Component {
     // roller : libelles joints par '\n' + rangees visibles
     char     roller_options[ROLLER_OPTS_LEN];
     uint8_t  roller_rows;
+
+    // clock : cadran analogique (aiguilles) ou digital (label HH:MM[:SS]) ; heure = device (NTP), pas de push-by-id
+    bool     clock_analog;    // true=cadran, false=digital (défaut true)
+    bool     show_seconds;
 
     // --- etat (modifie par /update) ---
     int32_t  value;
@@ -170,6 +178,7 @@ struct Dashboard {
     char      title[TEXT_LEN];
     uint32_t  background;
     bool      nav_wrap;
+    char      tz[TZ_LEN];   // fuseau POSIX pour clock (defaut "UTC0")
     Component components[MAX_COMPONENTS];
     int       comp_count;
     Page      pages[MAX_PAGES];
@@ -189,6 +198,7 @@ int  dash_find(const Dashboard* d, const char* id);
 bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn);
 int  dash_apply_update(Dashboard* d, const char* json, char* unknown_csv, size_t n);
 void dash_tick_countdown(Dashboard* d, uint32_t elapsed_s);
+void dash_tick_clock(Dashboard* d);   // marque les composants clock dirty (à appeler chaque seconde)
 void dash_tick_aimg(Dashboard* d, uint32_t now_ms);   // image_anim : avance la frame des composants en lecture
 void dash_set_context(Dashboard* d, const char* json, uint32_t now);
 // Écriture du contexte d'ORIGINE UI (effecteur) : écrit la var ET arme les sinks qui l'observent.

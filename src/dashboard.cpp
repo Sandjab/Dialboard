@@ -38,6 +38,11 @@ static const struct { const char* name; CompType type; } COMP_NAMES[] = {
     { "slider", COMP_SLIDER },
     { "arc",    COMP_ARC    },
     { "roller", COMP_ROLLER },
+    { "clock",  COMP_CLOCK  },
+    { "rings",  COMP_RINGS  },
+    { "qr",     COMP_QR     },
+    { "stepper", COMP_STEPPER },
+    { "segmented", COMP_SEGMENTED },
 };
 
 static uint8_t parse_font_family(const char *s) {
@@ -119,6 +124,7 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
     strlcpy(t.title, doc["title"] | "", sizeof(t.title));
     t.background = parse_hex_color(doc["background"] | "#000000", 0x000000);
     t.nav_wrap   = doc["nav"]["wrap"] | true;
+    strlcpy(t.tz, doc["tz"] | "UTC0", sizeof(t.tz));
 
     JsonObjectConst comps = doc["components"].as<JsonObjectConst>();
     if (comps.isNull()) { snprintf(err, errn, "components manquant"); return false; }
@@ -229,6 +235,10 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
                 c.icon_state_count++;
             }
         }
+        if (c.type == COMP_CLOCK) {
+            c.clock_analog = (strcmp(o["mode"] | "analog", "digital") != 0);
+            c.show_seconds = o["show_seconds"] | false;
+        }
         if (c.type == COMP_LED_RING) {                    // config -> état initial du driver (boot vivant)
             c.led_color      = c.color;                   // (sinon le driver retombe sur blanc tant qu'aucun /update)
             c.led_brightness = c.led_brightness_cfg;
@@ -250,7 +260,20 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
             }
             c.momentary = o["momentary"] | false;
         }
-        if (c.type == COMP_ROLLER) {
+        if (c.type == COMP_RINGS) {
+            JsonArrayConst arr = o["tracks"].as<JsonArrayConst>();
+            c.track_count = 0;
+            for (JsonObjectConst t : arr) {
+                if (c.track_count >= MAX_RING_TRACKS) break;
+                RingTrack& rt = c.tracks[c.track_count++];
+                strlcpy(rt.bind, t["bind"] | "", sizeof(rt.bind));
+                rt.vmin = t["min"] | 0;
+                rt.vmax = t["max"] | 100;
+                rt.color = parse_hex_color(t["color"] | "#38BDF8", 0x38BDF8);
+                rt.value = rt.vmin;
+            }
+        }
+        if (c.type == COMP_ROLLER || c.type == COMP_SEGMENTED) {
             size_t ro = 0;
             for (JsonVariantConst ov : o["options"].as<JsonArrayConst>()) {
                 const char* opt = ov.is<const char*>() ? ov.as<const char*>() : "";
@@ -456,6 +479,17 @@ static void apply_image_anim(Component& c, JsonVariantConst v) {
     }
 }
 
+static void apply_rings(Component& c, JsonVariantConst v) {
+    JsonArrayConst arr = v.is<JsonArrayConst>() ? v.as<JsonArrayConst>() : v["tracks"].as<JsonArrayConst>();
+    int i = 0;
+    for (JsonVariantConst e : arr) { if (i >= c.track_count) break; c.tracks[i++].value = e.as<int>(); }
+}
+
+static void apply_qr(Component& c, JsonVariantConst v) {
+    JsonVariantConst out;
+    if (value_present(v, out) && out.is<const char*>()) strlcpy(c.vstr, out.as<const char*>(), sizeof(c.vstr));
+}
+
 static const comp_apply_fn APPLY[] = {
     /* COMP_NONE     */ nullptr,
     /* COMP_LABEL    */ apply_label,
@@ -478,6 +512,11 @@ static const comp_apply_fn APPLY[] = {
     /* COMP_SLIDER   */ nullptr,             // effecteur : reflet via context_apply
     /* COMP_ARC      */ nullptr,
     /* COMP_ROLLER   */ nullptr,
+    /* COMP_CLOCK    */ nullptr,             // heure = device, pas de push-by-id
+    /* COMP_RINGS    */ apply_rings,
+    /* COMP_QR       */ apply_qr,
+    /* COMP_STEPPER  */ nullptr,             // effecteur : reflet via context_apply
+    /* COMP_SEGMENTED */ nullptr,            // effecteur : reflet via context_apply
 };
 static_assert(sizeof(APPLY) / sizeof(APPLY[0]) == COMP_COUNT,
               "APPLY desync avec CompType : ajoute la ligne du nouveau type");
@@ -559,6 +598,22 @@ int32_t slider_quantize(int32_t val, int32_t vmin, int32_t vmax, int32_t step) {
 void context_apply(Dashboard* d) {
     for (int i = 0; i < d->comp_count; i++) {
         Component& c = d->components[i];
+        if (c.type == COMP_RINGS) {           // pistes : bind par piste (pas de bind au niveau composant)
+            bool rings_changed = false;
+            for (int t = 0; t < c.track_count; t++) {
+                RingTrack& rt = c.tracks[t];
+                if (rt.bind[0] == '\0') continue;
+                int ti = ctx_find(&d->ctx, rt.bind);
+                if (ti < 0) continue;
+                const CtxVar& tv = d->ctx.vars[ti];
+                if (tv.type == CTX_NUM) {
+                    int32_t nv = (int32_t)tv.num;
+                    if (rt.value != nv) { rt.value = nv; rings_changed = true; }
+                }
+            }
+            if (rings_changed) { c.dirty = true; d->values_dirty = true; }
+            continue;
+        }
         if (c.bind[0] == '\0') continue;                // pas de bind -> push par id
         int vi = ctx_find(&d->ctx, c.bind);
         if (vi < 0) continue;                           // variable absente -> garde la derniere valeur
@@ -603,7 +658,9 @@ void context_apply(Dashboard* d) {
                 break;
             case COMP_SLIDER:
             case COMP_ARC:
-            case COMP_ROLLER:                           // effecteur : scalaire -> valeur (index pour roller)
+            case COMP_ROLLER:                           // effecteur : scalaire -> valeur (index pour roller/segmented)
+            case COMP_STEPPER:
+            case COMP_SEGMENTED:
                 if (v.type == CTX_NUM) {
                     int32_t nv = (int32_t)v.num;
                     if (c.value != nv) { c.value = nv; changed = true; }
@@ -622,6 +679,12 @@ void context_apply(Dashboard* d) {
                 if (c.value != nv) { c.value = nv; changed = true; }
                 break;
             }
+            case COMP_QR:                               // str -> vstr tel quel (pas de format numerique, cf readout)
+                if (v.type == CTX_STR && strncmp(c.vstr, v.str, sizeof(c.vstr)) != 0) {
+                    strlcpy(c.vstr, v.str, sizeof(c.vstr));
+                    changed = true;
+                }
+                break;
             default: break;                            // led_ring/sound : pas de bind
         }
         if (changed) { c.dirty = true; d->values_dirty = true; }
@@ -667,6 +730,14 @@ void dash_tick_countdown(Dashboard* d, uint32_t elapsed_s) {
         c.reset_in_s = (c.reset_in_s > elapsed_s) ? c.reset_in_s - elapsed_s : 0;
         format_remaining(c.reset_in_s, c.caption, sizeof(c.caption));
         c.dirty = true;
+        d->values_dirty = true;
+    }
+}
+
+void dash_tick_clock(Dashboard* d) {
+    for (int i = 0; i < d->comp_count; i++) {
+        if (d->components[i].type != COMP_CLOCK) continue;
+        d->components[i].dirty = true;
         d->values_dirty = true;
     }
 }

@@ -4,6 +4,7 @@
 
 import { previewUrl } from './image-asset.js';
 import { previewUrl as aimgPreviewUrl } from './image-anim-asset.js';
+import { qrModules } from './qr.js';
 
 // Valeurs d'aperçu mock par défaut. Plan C les rendra éditables via l'inspecteur ; ici elles sont fixes.
 export const MOCKS = {
@@ -17,7 +18,9 @@ export const MOCKS = {
   icon:    { value: 0 },
   slider:  { value: 50 },
   arc:     { value: 50 },
-  roller:  { value: 0 }
+  roller:  { value: 0 },
+  stepper: { value: 21 },
+  segmented: { value: 0 }
 };
 
 // Réglages PRIMAIRES du rendu LED réaliste (réglés au playground ; cf. spec led-look-realiste),
@@ -762,4 +765,125 @@ export function buildRoller(comp, placement = {}, mock = MOCKS.roller) {
   });
   wrap.appendChild(list);
   return wrap;
+}
+
+// segmented : options en boutons côte-à-côte, la sélectionnée (index d'aperçu) surlignée.
+// écrit bind = index sélectionné (comme roller). width via placement.
+export function buildSegmented(comp, placement = {}, mock = { value: 0 }) {
+  const opts = Array.isArray(comp.options) ? comp.options : [];
+  const wrap = document.createElement('div');
+  wrap.className = 'w w-segmented';
+  if (placement.width) wrap.style.width = placement.width + 'px';
+  const sel = Math.max(0, Math.min(opts.length - 1, mock.value | 0));
+  opts.forEach((o, i) => {
+    const d = document.createElement('div');
+    d.className = 'w-seg-opt' + (i === sel ? ' selected' : '');
+    d.textContent = o;
+    wrap.appendChild(d);
+  });
+  return wrap;
+}
+
+// stepper : boutons -/+ encadrant la valeur d'aperçu (mock.value + unit). Le clamp/pas
+// (stepper_step) est pur et testé côté firmware (test_core) ; ici, pure assemblage DOM.
+export function buildStepper(comp, placement = {}, mock = { value: 21 }) {
+  const wrap = document.createElement('div');
+  wrap.className = 'w w-stepper';
+  const mk = (txt) => { const b = document.createElement('div'); b.className = 'w-step-btn'; b.textContent = txt; return b; };
+  const val = document.createElement('div'); val.className = 'w-step-val';
+  val.style.font = font(comp.font_family, comp.bold, comp.italic, pickFontPx(comp.font ?? 32));
+  val.style.color = comp.color || '#FFFFFF';
+  val.textContent = `${mock.value}${comp.unit || ''}`;
+  wrap.append(mk('−'), val, mk('+'));
+  return wrap;
+}
+
+// rings : 1-3 anneaux concentriques (parité firmware build_rings/ring_geom.cpp : rayon de piste i =
+// outer - th/2 - i*(th+4), anneau quasi complet de 90° à 90+359° comme lv_arc_set_bg_angles). Pas de
+// bind/mock au niveau composant (per-track). Valeurs d'aperçu fixes (_RINGS_MOCK), Plan futur pour l'édition.
+export const _RINGS_MOCK = { values: [72, 55, 40] };
+export function buildRings(comp, placement = {}, mock = _RINGS_MOCK) {
+  const outer = placement.radius || 90, th = placement.thickness || 14, size = outer * 2;
+  const svg = document.createElementNS(SVGNS, 'svg');
+  svg.setAttribute('width', size); svg.setAttribute('height', size);
+  svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
+  svg.classList.add('w', 'w-rings');
+  const tracks = Array.isArray(comp.tracks) ? comp.tracks : [];
+  tracks.forEach((tk, i) => {
+    const tkObj = (tk && typeof tk === 'object') ? tk : {};   // repli si élément malformé (layout externe)
+    const r = outer - th / 2 - i * (th + 4);
+    const frac = Math.max(0, Math.min(1, ((mock.values?.[i] ?? 0) - (tkObj.min ?? 0)) / ((tkObj.max ?? 100) - (tkObj.min ?? 0) || 1)));
+    const track = arcPath(outer, outer, r, 90, 359);
+    const ind = arcPath(outer, outer, r, 90, 359 * frac);
+    const mk = (cls, d, stroke) => {
+      const p = document.createElementNS(SVGNS, 'path');
+      p.setAttribute('class', cls); p.setAttribute('d', d);
+      p.setAttribute('fill', 'none'); p.setAttribute('stroke', stroke);
+      p.setAttribute('stroke-width', th); p.setAttribute('stroke-linecap', 'round');
+      svg.appendChild(p);
+    };
+    mk('rings-track', track, '#1F2937');
+    mk('rings-ind', ind, tkObj.color || '#38BDF8');
+  });
+  return svg;
+}
+
+// clock (digital) : texte figé HH:MM[:SS] (parité d'ALLURE, pas de sync live). Pur -> testable sans DOM.
+export function clockDigitalText(comp) {
+  return comp.show_seconds ? '10:10:36' : '10:10';
+}
+
+// buildClock rend une heure figée 10:10 (parité d'ALLURE, pas de sync live). Pas de bind, pas de mock.
+export function buildClock(comp, placement = {}) {
+  if (comp.mode === 'digital') {
+    const n = document.createElement('div');
+    n.className = 'w w-clock';
+    n.style.font = font(comp.font_family, comp.bold, comp.italic, pickFontPx(comp.font ?? 28));
+    n.style.color = comp.color || '#FFFFFF';
+    n.textContent = clockDigitalText(comp);
+    return n;
+  }
+  const r = placement.radius || 80, size = r * 2;
+  const svg = document.createElementNS(SVGNS, 'svg');
+  svg.setAttribute('width', size); svg.setAttribute('height', size);
+  svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
+  svg.classList.add('w', 'w-clock');
+  const col = comp.color || '#FFFFFF';
+  const hand = (deg, len, w, c) => {
+    const rad = deg * Math.PI / 180;
+    const p = document.createElementNS(SVGNS, 'line');
+    p.setAttribute('x1', r); p.setAttribute('y1', r);
+    p.setAttribute('x2', (r + len * Math.sin(rad)).toFixed(1));
+    p.setAttribute('y2', (r - len * Math.cos(rad)).toFixed(1));
+    p.setAttribute('stroke', c); p.setAttribute('stroke-width', w); p.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(p);
+  };
+  [0, 90, 180, 270].forEach(deg => hand(deg, r * 0.08, 3, '#3a4a63'));
+  hand(305, r * 0.5, 6, col);
+  hand(60,  r * 0.72, 4, col);
+  if (comp.show_seconds) hand(216, r * 0.8, 2, '#38BDF8');
+  return svg;
+}
+
+// buildQr rend le QR code via qrModules (jumeau JS de lv_qrcode, ECC MEDIUM). text vide -> URL device.
+export function buildQr(comp, placement = {}) {
+  const size = placement.size || placement.width || 140;
+  const text = comp.text || 'http://dialboard.local';
+  const { size: n, get } = qrModules(text);
+  const svg = document.createElementNS(SVGNS, 'svg');
+  svg.setAttribute('width', size); svg.setAttribute('height', size);
+  svg.setAttribute('viewBox', `0 0 ${n} ${n}`);
+  svg.classList.add('w', 'w-qr');
+  const bg = document.createElementNS(SVGNS, 'rect');
+  bg.setAttribute('width', n); bg.setAttribute('height', n);
+  bg.setAttribute('fill', '#E8EEF7'); svg.appendChild(bg);
+  const dark = comp.color || '#05070D';
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    if (!get(x, y)) continue;
+    const r = document.createElementNS(SVGNS, 'rect');
+    r.setAttribute('x', x); r.setAttribute('y', y);
+    r.setAttribute('width', 1); r.setAttribute('height', 1); r.setAttribute('fill', dark);
+    svg.appendChild(r);
+  }
+  return svg;
 }

@@ -8,7 +8,7 @@
 // défaut (default.*) est localisé À LA CRÉATION via t() — Latin-1 garanti (contrat WS-2).
 import { snapPlacement } from './geometry.js';
 import { t } from './i18n.js';
-import { buildLabel, buildReadout, buildBar, buildRing, buildChart, buildMeter, buildImage, buildImageAnim, buildLed, buildRect, buildCircle, buildLine, buildIcon, buildSwitch, buildButton, buildSlider, buildArc, buildRoller } from './render.js';
+import { buildLabel, buildReadout, buildBar, buildRing, buildChart, buildMeter, buildImage, buildImageAnim, buildLed, buildRect, buildCircle, buildLine, buildIcon, buildSwitch, buildButton, buildSlider, buildArc, buildRoller, buildStepper, buildSegmented, buildClock, buildRings, buildQr } from './render.js';
 
 // Modes de l'anneau LED physique (value firmware → clé i18n du libellé). Partagé designer/firmware via le schéma.
 export const LED_MODES = [
@@ -77,6 +77,16 @@ export const COMPONENTS = {
     mockFields: [['value', 'field.mock_pct'], ['reset_in_s', 'field.countdown_s']],
     build: (comp, pl, mock) => buildRing(comp, pl, mock),
   },
+  rings: {
+    label: 'comp.rings',
+    defaults: () => ({ type: 'rings', tracks: [{ min: 0, max: 100, color: '#34D399' }] }),
+    makePlacement: (id) => ({ ref: id, radius: 90, thickness: 14 }),   // centré : anchor/dx/dy ignorés (cf. ring), pas de gap/start_angle (firmware build_rings ne lit que radius/thickness)
+    centered: true, physical: false,
+    compFields: [['tracks', 'field.tracks', 'tracks']],
+    placeFields: [['radius', 'field.radius', 'num', 90], ['thickness', 'field.thickness', 'num', 14]],
+    mockFields: [],
+    build: (comp, pl) => buildRings(comp, pl),
+  },
   chart: {
     label: 'comp.chart',
     defaults: () => ({ type: 'chart', color: '#38BDF8', min: 0, max: 100, points: 30 }),
@@ -100,6 +110,19 @@ export const COMPONENTS = {
                   ['width', 'field.width', 'num', 160], ['height', 'field.height', 'num', 160]],  // 4e = placeholder ; défaut firmware = width (carré), 160 si tout absent (view.cpp:285)
     mockFields: [['value', 'field.mock_value']],
     build: (comp, pl, mock) => buildMeter(comp, pl, mock),
+  },
+  clock: {
+    label: 'comp.clock',
+    defaults: () => ({ type: 'clock', mode: 'analog', color: '#FFFFFF' }),
+    makePlacement: (id, x, y) => ({ ...screenPlacement(id, x, y), radius: 80 }),
+    centered: false, physical: false,
+    compFields: [['mode', 'field.clock_mode', 'clockmode'], ['show_seconds', 'field.show_seconds', 'bool'],
+                 ['color', 'field.color', 'color'],
+                 ['font', 'field.font', 'font'], ['font_family', 'field.font_family', 'fontfamily']],
+    placeFields: [['anchor', 'field.anchor', 'anchor'], ['dx', 'field.dx', 'num'], ['dy', 'field.dy', 'num'],
+                  ['radius', 'field.radius', 'num', 80]],
+    mockFields: [],
+    build: (comp, pl) => buildClock(comp, pl),
   },
   image: {
     label: 'comp.image',
@@ -204,6 +227,29 @@ export const COMPONENTS = {
     mockFields: [['value', 'field.mock_value']],
     build: (comp, pl, mock) => buildRoller(comp, pl, mock),
   },
+  stepper: {
+    label: 'comp.stepper',
+    defaults: () => ({ type: 'stepper', min: 0, max: 100, step: 1, color: '#FFFFFF' }),
+    makePlacement: (id, x, y) => ({ ...screenPlacement(id, x, y), width: 200, height: 80 }),
+    centered: false, physical: false,
+    compFields: [['bind', 'field.bind', 'idtext'], ['min', 'field.min', 'num'], ['max', 'field.max', 'num'],
+                 ['step', 'field.step', 'num'], ['unit', 'field.unit', 'latintext'], ['color', 'field.color', 'color']],
+    placeFields: [['anchor', 'field.anchor', 'anchor'], ['dx', 'field.dx', 'num'], ['dy', 'field.dy', 'num'],
+                  ['width', 'field.width', 'num', 200], ['height', 'field.height', 'num', 80]],
+    mockFields: [['value', 'field.mock_value']],
+    build: (comp, pl, mock) => buildStepper(comp, pl, mock),
+  },
+  segmented: {
+    label: 'comp.segmented',
+    defaults: () => ({ type: 'segmented', options: ['A', 'B'] }),
+    makePlacement: (id, x, y) => ({ ...screenPlacement(id, x, y), width: 240 }),
+    centered: false, physical: false,
+    compFields: [['bind', 'field.bind', 'idtext'], ['options', 'field.options', 'options']],
+    placeFields: [['anchor', 'field.anchor', 'anchor'], ['dx', 'field.dx', 'num'], ['dy', 'field.dy', 'num'],
+                  ['width', 'field.width', 'num', 240]],
+    mockFields: [['value', 'field.mock_value']],
+    build: (comp, pl, mock) => buildSegmented(comp, pl, mock),
+  },
   rect: {
     label: 'comp.rect',
     defaults: () => ({ type: 'rect', fill: '#38BDF8', border_width: 0, border_color: '#FFFFFF' }),
@@ -266,5 +312,16 @@ export const COMPONENTS = {
     placeFields: [],
     mockFields: [],
     build: null,
+  },
+  qr: {
+    label: 'comp.qr',
+    defaults: () => ({ type: 'qr', text: '' }),
+    makePlacement: (id, x, y) => ({ ...screenPlacement(id, x, y), size: 140 }),
+    centered: false, physical: false,
+    compFields: [['bind', 'field.bind', 'idtext'], ['text', 'field.text', 'latintext'], ['color', 'field.color', 'color']],
+    placeFields: [['anchor', 'field.anchor', 'anchor'], ['dx', 'field.dx', 'num'], ['dy', 'field.dy', 'num'],
+                  ['size', 'field.qr_size', 'num', 140]],
+    mockFields: [],
+    build: (comp, pl) => buildQr(comp, pl),
   },
 };

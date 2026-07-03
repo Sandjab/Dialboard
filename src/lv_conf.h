@@ -23,6 +23,8 @@
 #define LV_USE_ARCLABEL        1
 #define LV_USE_LED             1
 #define LV_USE_LINE            1
+#define LV_USE_QRCODE          1   // composant qr
+#define LV_USE_BUTTONMATRIX    1   // composant segmented (ON par defaut, declare explicitement)
 
 // Degrades radiaux/coniques (dome + reflet du led realiste)
 #define LV_USE_DRAW_SW_COMPLEX_GRADIENTS 1

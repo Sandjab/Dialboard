@@ -5,7 +5,10 @@
 #include <string.h>
 #include <cstdio>
 #include <math.h>
+#include <time.h>
 #include "format.h"
+#include "clock_geom.h"
+#include "ring_geom.h"
 #include <LittleFS.h>
 #include "esp_heap_caps.h"
 #include "config.h"
@@ -14,6 +17,8 @@
 #include <Arduino.h>                 // millis()
 #include "freertos/semphr.h"
 #include "dashboard.h"               // dash_ctx_write_ui_num/str (deja tire via view.h, explicite ici)
+#include "stepper_logic.h"
+#include "segmented_logic.h"
 
 extern SemaphoreHandle_t g_ctx_mutex;   // defini dans main.cpp, sérialise l'accès au contexte
 
@@ -24,7 +29,8 @@ static lv_obj_t* s_sub2  [MAX_PAGES][MAX_PLACEMENTS_PER_PAGE];
 static lv_obj_t* s_dots = nullptr;
 
 // line : lv_line_set_points conserve le POINTEUR (pas de copie) -> tableau persistant par placement.
-// Rempli par build_line ; s_cur_page/s_cur_place sont poses par la boucle de build avant chaque build().
+// Rempli par build_line ; s_cur_page/s_cur_place sont poses par la boucle de build avant chaque build(),
+// et par view_sync avant chaque sync() (relu par sync_clock pour ses points par placement).
 static lv_point_precise_t s_line_pts[MAX_PAGES][MAX_PLACEMENTS_PER_PAGE][2];
 static int s_cur_page = 0, s_cur_place = 0;
 
@@ -44,9 +50,22 @@ static lv_image_dsc_t* s_aimg_dsc[MAX_COMPONENTS] = {0};   // tableau de c.aimg_
 static lv_style_t s_meter_section_style[MAX_COMPONENTS][MAX_THRESHOLDS];
 static bool       s_meter_section_init[MAX_COMPONENTS][MAX_THRESHOLDS] = {{0}};
 
+// clock : aiguilles = lv_line, mêmes contraintes de pointeur persistant que s_line_pts.
+// Indexé par PLACEMENT (comme s_line_pts) et non par composant : la géométrie dépend de q.radius,
+// propriété du placement -> un même id clock sur 2 pages a 2 rayons distincts. Rempli par build_clock,
+// relu par sync_clock, tous deux repérés par s_cur_page/s_cur_place. [page][place][hour/min/sec][2 points].
+static lv_point_precise_t s_clock_pts[MAX_PAGES][MAX_PLACEMENTS_PER_PAGE][3][2];
+
 // led : descripteurs de gradient persistants (lv_obj_set_style_bg_grad stocke le pointeur).
 static lv_grad_dsc_t s_led_dome_grad[MAX_COMPONENTS];
 static lv_grad_dsc_t s_led_spec_grad[MAX_COMPONENTS];
+
+// segmented : lv_buttonmatrix exige un const char* map[] persistant (LVGL garde le pointeur).
+// Indexé par COMPOSANT (pas par placement, contrairement à s_clock_pts) : roller_options est
+// identique pour tous les placements d'un même id -> partager par comp_index est sûr.
+static char        s_seg_buf[MAX_COMPONENTS][ROLLER_OPTS_LEN];   // copie mutable (on découpe en place)
+static const char* s_seg_map[MAX_COMPONENTS][MAX_SEG_OPTS + 1];  // map buttonmatrix ("" final)
+static uint8_t     s_seg_n[MAX_COMPONENTS];                      // nb de segments (pas de lv_buttonmatrix_get_button_count en 9.5)
 
 static const lv_align_t ALIGN_MAP[] = {
     LV_ALIGN_CENTER, LV_ALIGN_TOP_MID, LV_ALIGN_BOTTOM_MID, LV_ALIGN_LEFT_MID,
@@ -249,6 +268,39 @@ static void sync_ring(Component& c, Placement& q, lv_obj_t* w, lv_obj_t* sub1, l
         }
     }
     ring_place_labels(sub2, c, q);
+}
+
+// rings : 1..MAX_RING_TRACKS arcs concentriques dans un même conteneur (main = box, pas de cap/sub2).
+static void build_rings(lv_obj_t* parent, Component& c, Placement& q,
+                        lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
+    int outer = q.radius ? q.radius : 90;
+    int th = q.thickness ? q.thickness : 14;
+    lv_obj_t* box = lv_obj_create(parent);
+    lv_obj_remove_style_all(box);
+    lv_obj_set_size(box, outer * 2, outer * 2);
+    lv_obj_center(box);
+    lv_obj_clear_flag(box, LV_OBJ_FLAG_SCROLLABLE);
+    for (int t = 0; t < c.track_count; t++) {
+        int r = ring_track_radius(t, outer, th, 4);
+        lv_obj_t* arc = lv_arc_create(box);
+        lv_obj_set_size(arc, r * 2, r * 2);
+        lv_obj_center(arc);
+        lv_obj_remove_style(arc, NULL, LV_PART_KNOB);
+        lv_obj_clear_flag(arc, LV_OBJ_FLAG_CLICKABLE);
+        lv_arc_set_bg_angles(arc, 90, 90 + 359);   // anneau quasi complet ; ajuster si gap voulu
+        lv_arc_set_range(arc, c.tracks[t].vmin, c.tracks[t].vmax);
+        lv_obj_set_style_arc_width(arc, th, LV_PART_MAIN);
+        lv_obj_set_style_arc_width(arc, th, LV_PART_INDICATOR);
+        lv_obj_set_style_arc_color(arc, lv_color_hex(0x1F2937), LV_PART_MAIN);
+        lv_obj_set_style_arc_color(arc, lv_color_hex(c.tracks[t].color), LV_PART_INDICATOR);
+        lv_obj_set_style_pad_all(arc, 0, LV_PART_MAIN);
+        lv_obj_set_style_arc_rounded(arc, true, LV_PART_INDICATOR);
+    }
+    *main = box;
+}
+static void sync_rings(Component& c, Placement&, lv_obj_t* box, lv_obj_t*, lv_obj_t*) {
+    for (int t = 0; t < c.track_count && t < (int)lv_obj_get_child_count(box); t++)
+        lv_arc_set_value(lv_obj_get_child(box, t), c.tracks[t].value);
 }
 
 // --- chart : l'historique vit dans le modèle (Component.hist) ; build crée le widget,
@@ -549,6 +601,9 @@ static void button_event_cb(lv_event_t* e);
 static void slider_event_cb(lv_event_t* e);
 static void arc_event_cb(lv_event_t* e);
 static void roller_event_cb(lv_event_t* e);
+static void stepper_minus_cb(lv_event_t* e);
+static void stepper_plus_cb(lv_event_t* e);
+static void segmented_event_cb(lv_event_t* e);
 
 // Reflets d'effecteurs différés pendant l'appui : un sync_* sous LV_STATE_PRESSED n'arrache pas le doigt
 // mais NE DOIT PAS perdre la valeur du contexte. On enregistre le composant ici ; view_sync le re-marque
@@ -649,6 +704,182 @@ static void sync_roller(Component& c, Placement&, lv_obj_t* w, lv_obj_t*, lv_obj
     if (cnt && idx >= (int32_t)cnt) idx = (int32_t)cnt - 1;   // clamp au dernier : évite le wrap uint16 sur une valeur aberrante (ctx externe)
     lv_roller_set_selected(w, (uint16_t)idx, LV_ANIM_OFF);
 }
+// segmented : choix exclusif entre 2-4 segments (lv_buttonmatrix en mode "one checked"), écrit l'index.
+// Réutilise c.roller_options (segments séparés par '\n', comme le roller) et c.value (index sélectionné).
+static int seg_build_map(int idx, const char* options) {
+    strlcpy(s_seg_buf[idx], options, ROLLER_OPTS_LEN);
+    int n = 0; char* p = s_seg_buf[idx];
+    s_seg_map[idx][n++] = p;
+    // Garde de boucle n <= MAX_SEG_OPTS (le \n du dernier segment retenu peut encore être vu) mais
+    // garde de stockage n < MAX_SEG_OPTS : borne le nombre de segments à MAX_SEG_OPTS sans écraser
+    // la case sentinelle. Les segments au-delà sont ignorés (leur \n n'est pas coupé).
+    for (; *p && n <= MAX_SEG_OPTS; p++) {
+        if (*p == '\n') { *p = '\0'; if (n < MAX_SEG_OPTS) s_seg_map[idx][n++] = p + 1; }
+    }
+    s_seg_map[idx][n] = "";     // sentinelle fin de map
+    s_seg_n[idx] = (uint8_t)n;
+    return n;
+}
+static void build_segmented(lv_obj_t* parent, Component& c, Placement& q,
+                            lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
+    lv_obj_t* bm = lv_buttonmatrix_create(parent);
+    int idx = q.comp_index;
+    int n = (idx >= 0 && idx < MAX_COMPONENTS) ? seg_build_map(idx, c.roller_options) : 0;
+    if (n > 0) lv_buttonmatrix_set_map(bm, s_seg_map[idx]);
+    lv_buttonmatrix_set_one_checked(bm, true);
+    for (int i = 0; i < n; i++) {
+        lv_buttonmatrix_set_button_ctrl(bm, i, LV_BUTTONMATRIX_CTRL_CHECKABLE);
+        lv_buttonmatrix_set_button_ctrl(bm, i, LV_BUTTONMATRIX_CTRL_CLICK_TRIG);   // commit à la relâche (set_button_ctrl OR les bits) : évite un commit au touch-down pendant un swipe de navigation
+    }
+    int sel = segmented_clamp(c.value, n);
+    if (n > 0) lv_buttonmatrix_set_button_ctrl(bm, sel, LV_BUTTONMATRIX_CTRL_CHECKED);
+    lv_obj_set_size(bm, q.width ? q.width : 240, q.height ? q.height : 56);
+    lv_obj_align(bm, ALIGN_MAP[q.anchor], q.dx, q.dy);
+    lv_obj_set_user_data(bm, &c);
+    lv_obj_add_event_cb(bm, segmented_event_cb, LV_EVENT_VALUE_CHANGED, nullptr);
+    *main = bm;
+}
+static void sync_segmented(Component& c, Placement& q, lv_obj_t* w, lv_obj_t*, lv_obj_t*) {
+    if (lv_obj_has_state(w, LV_STATE_PRESSED)) { defer_sync(c); return; }
+    int idx = q.comp_index;
+    int n = (idx >= 0 && idx < MAX_COMPONENTS) ? s_seg_n[idx] : 0;
+    int sel = segmented_clamp(c.value, n);
+    if (n > 0) lv_buttonmatrix_set_button_ctrl(w, sel, LV_BUTTONMATRIX_CTRL_CHECKED);
+}
+static void stepper_label_text(Component& c, char* out, size_t n) {
+    if (c.unit[0]) snprintf(out, n, "%d%s", (int)c.value, c.unit);
+    else           snprintf(out, n, "%d", (int)c.value);
+}
+static void build_stepper(lv_obj_t* parent, Component& c, Placement& q,
+                          lv_obj_t** main, lv_obj_t** sub1, lv_obj_t**) {
+    lv_obj_t* box = lv_obj_create(parent);
+    lv_obj_remove_style_all(box);
+    lv_obj_set_size(box, q.width ? q.width : 200, q.height ? q.height : 80);
+    lv_obj_set_flex_flow(box, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(box, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_align(box, ALIGN_MAP[q.anchor], q.dx, q.dy);
+    lv_obj_t* minus = lv_button_create(box);
+    lv_obj_set_user_data(minus, &c);
+    lv_obj_add_event_cb(minus, stepper_minus_cb, LV_EVENT_CLICKED, nullptr);
+    lv_obj_t* ml = lv_label_create(minus); lv_label_set_text(ml, "-");
+    lv_obj_t* val = lv_label_create(box);
+    lv_obj_set_style_text_font(val, get_font(c.font_family, c.font, c.bold, c.italic), 0);
+    lv_obj_set_style_text_color(val, lv_color_hex(c.color), 0);
+    char b[24]; stepper_label_text(c, b, sizeof(b)); lv_label_set_text(val, b);
+    lv_obj_t* plus = lv_button_create(box);
+    lv_obj_set_user_data(plus, &c);
+    lv_obj_add_event_cb(plus, stepper_plus_cb, LV_EVENT_CLICKED, nullptr);
+    lv_obj_t* pl = lv_label_create(plus); lv_label_set_text(pl, "+");
+    *main = box;
+    *sub1 = val;   // le label central (sync)
+}
+static void sync_stepper(Component& c, Placement&, lv_obj_t*, lv_obj_t* val, lv_obj_t*) {
+    if (val) { char b[24]; stepper_label_text(c, b, sizeof(b)); lv_label_set_text(val, b); }
+}
+
+// clock : cadran analogique (conteneur + 4 ticks cardinaux décoratifs + aiguilles lv_line)
+// ou digital (label HH:MM[:SS]). Heure lue sur le device (NTP, cf. configTzTime au boot) ;
+// tant que non synchronisée (epoch < ~2023), digital affiche "--:--" et analogique ne bouge pas.
+static void build_clock(lv_obj_t* parent, Component& c, Placement& q,
+                        lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
+    if (!c.clock_analog) {                                   // DIGITAL
+        lv_obj_t* l = lv_label_create(parent);
+        lv_obj_set_style_text_font(l, get_font(c.font_family, c.font, c.bold, c.italic), 0);
+        lv_obj_set_style_text_color(l, lv_color_hex(c.color), 0);
+        lv_label_set_text(l, "--:--");
+        lv_obj_align(l, ALIGN_MAP[q.anchor], q.dx, q.dy);
+        *main = l;
+        return;
+    }
+    int r = q.radius ? q.radius : 80;
+    lv_obj_t* box = lv_obj_create(parent);
+    lv_obj_remove_style_all(box);
+    lv_obj_set_size(box, r * 2, r * 2);
+    lv_obj_center(box);
+    lv_obj_clear_flag(box, LV_OBJ_FLAG_SCROLLABLE);
+    // 4 ticks cardinaux (décoratifs, non synchronisés) : petits rectangles au bord du cadran.
+    static const lv_align_t TICK_ALIGN[4] = {
+        LV_ALIGN_TOP_MID, LV_ALIGN_BOTTOM_MID, LV_ALIGN_LEFT_MID, LV_ALIGN_RIGHT_MID
+    };
+    for (int i = 0; i < 4; i++) {
+        lv_obj_t* tick = lv_obj_create(box);
+        lv_obj_remove_style_all(tick);
+        lv_obj_set_style_bg_color(tick, lv_color_hex(c.color), 0);
+        lv_obj_set_style_bg_opa(tick, LV_OPA_COVER, 0);
+        bool vertical = (i < 2);   // top/bottom : marque radiale verticale ; left/right : horizontale
+        lv_obj_set_size(tick, vertical ? 4 : 10, vertical ? 10 : 4);
+        lv_obj_align(tick, TICK_ALIGN[i], 0, 0);
+    }
+    // Aiguilles = derniers enfants du conteneur (après les 4 ticks) -> sync_clock les retrouve
+    // par la fin (child0 = child_count - nlines). Points stockés par placement (s_cur_page/place).
+    lv_point_precise_t (*pts)[2] = s_clock_pts[s_cur_page][s_cur_place];
+    int nlines = c.show_seconds ? 3 : 2;
+    for (int k = 0; k < nlines; k++) {
+        lv_obj_t* ln = lv_line_create(box);
+        lv_obj_set_style_line_width(ln, k == 0 ? 6 : (k == 1 ? 4 : 2), 0);
+        lv_obj_set_style_line_color(ln, lv_color_hex(k == 2 ? 0x38BDF8 : c.color), 0);   // k==2 : accent trotteuse (voulu)
+        lv_obj_set_style_line_rounded(ln, true, 0);
+        pts[k][0] = (lv_point_precise_t){ (lv_value_precise_t)r, (lv_value_precise_t)r };
+        pts[k][1] = (lv_point_precise_t){ (lv_value_precise_t)r, (lv_value_precise_t)r };
+        lv_line_set_points(ln, pts[k], 2);
+    }
+    *main = box;
+}
+static void sync_clock(Component& c, Placement& q, lv_obj_t* w, lv_obj_t*, lv_obj_t*) {
+    time_t now = time(nullptr);
+    struct tm tm; localtime_r(&now, &tm);
+    bool synced = (now > 1700000000);   // epoch grossier : NTP pas encore obtenu tant que < ~nov. 2023
+    if (!c.clock_analog) {
+        if (!synced) { lv_label_set_text(w, "--:--"); return; }
+        char buf[24];
+        clock_format_digital(tm.tm_hour, tm.tm_min, tm.tm_sec, c.show_seconds, buf, sizeof(buf));
+        lv_label_set_text(w, buf);
+        return;
+    }
+    if (!synced) return;
+    int r = q.radius ? q.radius : 80;
+    lv_point_precise_t (*pts)[2] = s_clock_pts[s_cur_page][s_cur_place];   // même placement qu'au build
+    float ah, am, as; clock_hand_angles(tm.tm_hour, tm.tm_min, tm.tm_sec, &ah, &am, &as);
+    const float DEG2RAD = (float)M_PI / 180.0f;
+    struct { float deg; float len; } hands[3] = {
+        { ah, r * 0.5f }, { am, r * 0.72f }, { as, r * 0.8f },
+    };
+    int nlines = c.show_seconds ? 3 : 2;
+    // Les aiguilles sont les nlines DERNIERS enfants du conteneur (les 4 ticks cardinaux
+    // sont créés avant elles dans build_clock) -> on indexe depuis la fin.
+    int child_count = lv_obj_get_child_count(w);
+    if (child_count < nlines) return;   // garde : conteneur incomplet -> pas d'index négatif
+    int child0 = child_count - nlines;
+    for (int j = 0; j < nlines; j++) {
+        float rad = hands[j].deg * DEG2RAD;
+        pts[j][1].x = (lv_value_precise_t)(r + hands[j].len * sinf(rad));
+        pts[j][1].y = (lv_value_precise_t)(r - hands[j].len * cosf(rad));
+        lv_obj_t* ln = lv_obj_get_child(w, child0 + j);
+        if (ln) lv_line_set_points(ln, pts[j], 2);
+    }
+}
+
+// --- qr : affichage seul (lv_qrcode = lv_canvas). Texte = vstr (bind/push) ; vide -> URL device. ---
+static void qr_effective_text(Component& c, char* out, size_t n) {
+    if (c.vstr[0]) strlcpy(out, c.vstr, n);
+    else snprintf(out, n, "http://%s.local", MDNS_HOST);   // vide -> URL device calculee
+}
+static void build_qr(lv_obj_t* parent, Component& c, Placement& q,
+                     lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
+    lv_obj_t* qr = lv_qrcode_create(parent);
+    int sz = q.size ? q.size : (q.width ? q.width : 140);
+    lv_qrcode_set_size(qr, sz);
+    lv_qrcode_set_dark_color(qr, lv_color_hex(c.color ? c.color : 0x05070D));
+    lv_qrcode_set_light_color(qr, lv_color_hex(0xE8EEF7));   // clair fixe (parité designer ; seul `color` sombre est exposé)
+    char txt[TEXT_LEN]; qr_effective_text(c, txt, sizeof(txt));
+    lv_qrcode_update(qr, txt, strlen(txt));
+    lv_obj_align(qr, ALIGN_MAP[q.anchor], q.dx, q.dy);
+    *main = qr;
+}
+static void sync_qr(Component& c, Placement&, lv_obj_t* w, lv_obj_t*, lv_obj_t*) {
+    char txt[TEXT_LEN]; qr_effective_text(c, txt, sizeof(txt));
+    lv_qrcode_update(w, txt, strlen(txt));
+}
 
 // Vtable vue indexée par CompType. Types physiques (led_ring/sound) : build/sync = nullptr
 // (rendus par leur tick dédié -> le moteur les saute). label/readout partagent build_text.
@@ -680,6 +911,11 @@ static const ViewVTable VIEW[] = {
     /* COMP_SLIDER   */ { build_slider, sync_slider },
     /* COMP_ARC      */ { build_arc,    sync_arc    },
     /* COMP_ROLLER   */ { build_roller, sync_roller },
+    /* COMP_CLOCK    */ { build_clock,  sync_clock  },
+    /* COMP_RINGS    */ { build_rings,  sync_rings  },
+    /* COMP_QR       */ { build_qr,     sync_qr     },
+    /* COMP_STEPPER  */ { build_stepper, sync_stepper },
+    /* COMP_SEGMENTED */ { build_segmented, sync_segmented },
 };
 static_assert(sizeof(VIEW) / sizeof(VIEW[0]) == COMP_COUNT,
               "VIEW desync avec CompType : ajoute la ligne du nouveau type");
@@ -754,6 +990,29 @@ static void roller_event_cb(lv_event_t* e) {
     dash_ctx_write_ui_num(s_dash, c->bind, (double)sel, millis());
     if (g_ctx_mutex) xSemaphoreGive(g_ctx_mutex);
 }
+static void segmented_event_cb(lv_event_t* e) {
+    lv_obj_t* w = lv_event_get_target_obj(e);
+    Component* c = (Component*)lv_obj_get_user_data(w);
+    if (!c || !s_dash || !c->bind[0]) return;
+    uint32_t id = lv_buttonmatrix_get_selected_button(w);
+    if (id == LV_BUTTONMATRIX_BUTTON_NONE) return;
+    c->value = (int32_t)id;
+    if (g_ctx_mutex) xSemaphoreTake(g_ctx_mutex, portMAX_DELAY);
+    dash_ctx_write_ui_num(s_dash, c->bind, (double)id, millis());
+    if (g_ctx_mutex) xSemaphoreGive(g_ctx_mutex);
+}
+static void stepper_apply(Component* c, int dir) {
+    if (!c || !s_dash) return;
+    c->value = stepper_step(c->value, dir, c->step, c->vmin, c->vmax);
+    if (c->bind[0]) {
+        if (g_ctx_mutex) xSemaphoreTake(g_ctx_mutex, portMAX_DELAY);
+        dash_ctx_write_ui_num(s_dash, c->bind, (double)c->value, millis());
+        if (g_ctx_mutex) xSemaphoreGive(g_ctx_mutex);
+    }
+    c->dirty = true; s_dash->values_dirty = true;   // met à jour le label central
+}
+static void stepper_minus_cb(lv_event_t* e) { stepper_apply((Component*)lv_obj_get_user_data(lv_event_get_target_obj(e)), -1); }
+static void stepper_plus_cb(lv_event_t* e)  { stepper_apply((Component*)lv_obj_get_user_data(lv_event_get_target_obj(e)), +1); }
 
 // Met à jour la coloration des points indicateurs sans toucher aux flags hidden des pages
 // (partagé par la bascule instantanée et la transition animée).
@@ -1043,6 +1302,7 @@ void view_sync(Dashboard* d) {
                 if (c.visible) lv_obj_remove_flag(objs[k], LV_OBJ_FLAG_HIDDEN);
                 else           lv_obj_add_flag(objs[k], LV_OBJ_FLAG_HIDDEN);
             }
+            s_cur_page = p; s_cur_place = i;   // pour sync_clock (points persistants par placement, cf. build)
             if ((unsigned)c.type < COMP_COUNT && VIEW[c.type].sync)
                 VIEW[c.type].sync(c, q, w, s_sub1[p][i], s_sub2[p][i]);
         }

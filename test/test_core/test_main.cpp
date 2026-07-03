@@ -1,3 +1,7 @@
+#include "ring_geom.h"
+#include "clock_geom.h"
+#include "stepper_logic.h"
+#include "segmented_logic.h"
 #include <unity.h>
 #include <string.h>
 #include "format.h"
@@ -465,6 +469,18 @@ void test_update_readout_object_value_formats(void) {
     int icpu = dash_find(&d, "cpu");
     dash_apply_update(&d, "{\"cpu\":{\"value\":42}}", unk, sizeof(unk));  // num en forme objet -> format avec unit
     TEST_ASSERT_EQUAL_STRING("42 %", d.components[icpu].vstr);
+}
+
+// qr : push-by-id (apply_qr) — chaine brute -> vstr tel quel (pas de format numerique, cf readout)
+static const char* LAYOUT_QR =
+  "{\"components\":{\"q\":{\"type\":\"qr\",\"text\":\"\"}},"
+  "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"q\"}]}]}";
+
+void test_update_qr_text(void) {
+    Dashboard d{}; char err[80], unk[UNKNOWN_CSV_LEN];
+    TEST_ASSERT_TRUE(dash_set_layout(&d, LAYOUT_QR, err, sizeof(err)));
+    dash_apply_update(&d, "{\"q\":\"https://x.io\"}", unk, sizeof(unk));
+    TEST_ASSERT_EQUAL_STRING("https://x.io", d.components[dash_find(&d,"q")].vstr);
 }
 
 // --- Étape 1 : commande universelle visible (montre/cache) ---
@@ -940,6 +956,34 @@ void test_ctxapply_roller_index(void) {
     context_apply(&d);
     TEST_ASSERT_EQUAL_INT(2, d.components[dash_find(&d,"x")].value);
 }
+// stepper (effecteur) : partage le meme case groupe que slider/arc/roller/segmented dans context_apply.
+void test_ctxapply_stepper_value(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, bound_layout("stepper", ""), err, sizeof(err));
+    dash_set_context(&d, "{\"v\":42}", 1);
+    context_apply(&d);
+    int i = dash_find(&d, "x");
+    TEST_ASSERT_EQUAL_INT(42, d.components[i].value);
+    TEST_ASSERT_TRUE(d.components[i].dirty);
+}
+// segmented (effecteur) : un scalaire poussé sur le bind devient l'index sélectionné (c.value),
+// exactement comme le roller (ils partagent le case effecteur de context_apply). Vérifie AUSSI
+// le change-detect : context_apply ne marque dirty que si la valeur change réellement.
+void test_ctxapply_segmented_index(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"components\":{\"g\":{\"type\":\"segmented\",\"bind\":\"mode\","
+                    "\"options\":[\"A\",\"B\",\"C\"]}},"
+                    "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"g\"}]}]}";
+    TEST_ASSERT_TRUE(dash_set_layout(&d, L, err, sizeof(err)));
+    int i = dash_find(&d, "g");
+    dash_set_context(&d, "{\"mode\":2}", 1);
+    context_apply(&d);
+    TEST_ASSERT_EQUAL_INT(2, d.components[i].value);   // index poussé -> valeur sélectionnée
+    TEST_ASSERT_TRUE(d.components[i].dirty);            // 0 -> 2 : change-detect a marqué dirty
+    d.components[i].dirty = false;
+    context_apply(&d);                                 // même valeur : pas de re-marquage dirty
+    TEST_ASSERT_FALSE(d.components[i].dirty);
+}
 void test_switch_parsed(void) {
     Dashboard d{}; char err[80];
     const char* L = "{\"components\":{\"s\":{\"type\":\"switch\",\"bind\":\"lamp\"}},\"pages\":[]}";
@@ -1025,6 +1069,18 @@ void test_roller_parsed(void) {
     TEST_ASSERT_EQUAL_STRING("HDMI\nTV\nAUX", d.components[i].roller_options);
     TEST_ASSERT_EQUAL_INT(5, d.components[i].roller_rows);
 }
+// segmented réutilise le parse d'options du roller (même bloc conditionnel) : les libellés
+// atterrissent dans roller_options joints par '\n'. Le composant doit se résoudre via dash_find.
+void test_segmented_parsed(void) {
+    Dashboard d{}; char err[80];
+    const char* L = "{\"components\":{\"g\":{\"type\":\"segmented\",\"bind\":\"mode\","
+                    "\"options\":[\"A\",\"B\",\"C\"]}},\"pages\":[]}";
+    TEST_ASSERT_TRUE(dash_set_layout(&d, L, err, sizeof(err)));
+    int i = dash_find(&d, "g");
+    TEST_ASSERT_TRUE(i >= 0);
+    TEST_ASSERT_EQUAL_INT(COMP_SEGMENTED, d.components[i].type);
+    TEST_ASSERT_EQUAL_STRING("A\nB\nC", d.components[i].roller_options);
+}
 void test_button_momentary_parsed(void) {
     Dashboard d{}; char err[80];
     const char* L = "{\"components\":{\"b\":{\"type\":\"button\",\"bind\":\"bell\",\"value\":1,"
@@ -1056,6 +1112,16 @@ void test_ctxapply_button_radio_str(void) {
     TEST_ASSERT_EQUAL_INT(1, d.components[i].value);
     dash_set_context(&d, "{\"v\":\"music\"}", 2); context_apply(&d);
     TEST_ASSERT_EQUAL_INT(0, d.components[i].value);
+}
+// qr (bind-pull) : chaine liee -> vstr tel quel, comme le push-by-id (cas COMP_QR dedie de context_apply)
+void test_ctxapply_qr_string(void) {
+    Dashboard d{}; char err[80];
+    dash_set_layout(&d, bound_layout("qr", ""), err, sizeof(err));
+    dash_set_context(&d, "{\"v\":\"http://a\"}", 1);
+    context_apply(&d);
+    int i = dash_find(&d, "x");
+    TEST_ASSERT_EQUAL_STRING("http://a", d.components[i].vstr);
+    TEST_ASSERT_TRUE(d.components[i].dirty);
 }
 void test_bar_label_style_parsed(void) {
     Dashboard d{}; char err[80];
@@ -1216,6 +1282,66 @@ void test_ctxapply_aimg_bind_ignored_while_playing(void) {
     dash_set_context(&d, "{\"st\":3}", 1000);
     context_apply(&d);
     TEST_ASSERT_EQUAL_INT(0, d.components[0].value);   // bind ignore pendant la lecture
+}
+
+// --- rings : pistes concentriques (parse, push par id, bind par piste) ---
+// Layout a 4 pistes : le firmware ne stocke que MAX_RING_TRACKS -> la 4e doit etre tronquee.
+static const char* LAYOUT_RINGS4 =
+  "{\"components\":{\"act\":{\"type\":\"rings\",\"tracks\":["
+    "{\"bind\":\"move\",\"min\":0,\"max\":600,\"color\":\"#FA114F\"},"
+    "{\"bind\":\"exer\",\"min\":0,\"max\":30,\"color\":\"#92E82A\"},"
+    "{\"bind\":\"stand\",\"min\":0,\"max\":12,\"color\":\"#1EE0E3\"},"
+    "{\"bind\":\"extra\",\"min\":0,\"max\":99,\"color\":\"#FFFFFF\"}]}},"
+  "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"act\"}]}]}";
+
+void test_rings_parse_and_truncate(void) {
+    // POURQUOI : le nombre de pistes est borne cote firmware (MAX_RING_TRACKS) ; une piste
+    // en trop doit etre ignoree sans deborder, et les champs de piste bien lus (bind/min/max/color).
+    Dashboard d{}; char err[80];
+    TEST_ASSERT_TRUE(dash_set_layout(&d, LAYOUT_RINGS4, err, sizeof(err)));
+    int i = dash_find(&d, "act");
+    TEST_ASSERT_EQUAL_INT(COMP_RINGS, d.components[i].type);
+    TEST_ASSERT_EQUAL_INT(MAX_RING_TRACKS, d.components[i].track_count);   // 4e piste tronquee
+    TEST_ASSERT_EQUAL_STRING("move", d.components[i].tracks[0].bind);
+    TEST_ASSERT_EQUAL_INT(0,   d.components[i].tracks[0].vmin);
+    TEST_ASSERT_EQUAL_INT(600, d.components[i].tracks[0].vmax);
+    TEST_ASSERT_EQUAL_HEX32(0xFA114F, d.components[i].tracks[0].color);
+    TEST_ASSERT_EQUAL_INT(0, d.components[i].tracks[0].value);   // valeur initiale = vmin
+}
+void test_rings_apply_pushes_array(void) {
+    // POURQUOI : push-by-id des rings passe par un tableau [v0,v1,v2] (voie /update) ; chaque
+    // element vise la piste de meme index, un tableau plus court/long ne deborde pas track_count.
+    Dashboard d{}; char err[80], unk[UNKNOWN_CSV_LEN];
+    dash_set_layout(&d, LAYOUT_RINGS4, err, sizeof(err));   // -> 3 pistes apres troncature
+    int i = dash_find(&d, "act");
+    dash_apply_update(&d, "{\"act\":[70,50,30]}", unk, sizeof(unk));   // tableau nu
+    TEST_ASSERT_EQUAL_INT(70, d.components[i].tracks[0].value);
+    TEST_ASSERT_EQUAL_INT(50, d.components[i].tracks[1].value);
+    TEST_ASSERT_EQUAL_INT(30, d.components[i].tracks[2].value);
+    // Forme objet {tracks:[...]} plus courte : maj partielle, piste 2 conservee.
+    dash_apply_update(&d, "{\"act\":{\"tracks\":[11,22]}}", unk, sizeof(unk));
+    TEST_ASSERT_EQUAL_INT(11, d.components[i].tracks[0].value);
+    TEST_ASSERT_EQUAL_INT(22, d.components[i].tracks[1].value);
+    TEST_ASSERT_EQUAL_INT(30, d.components[i].tracks[2].value);   // inchangee (tableau plus court)
+}
+void test_rings_ctxapply_per_track_bind(void) {
+    // POURQUOI : chaque piste porte son propre bind (pas de bind au niveau composant) ; le pull
+    // du contexte alimente piste par piste, une piste sans bind est sautee, et un changement
+    // marque le composant dirty (rafraichissement de la vue).
+    Dashboard d{}; char err[80];
+    const char* L =
+      "{\"components\":{\"act\":{\"type\":\"rings\",\"tracks\":["
+        "{\"bind\":\"cpu\",\"min\":0,\"max\":100},"
+        "{\"bind\":\"\",\"min\":0,\"max\":100}]}},"
+      "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"act\"}]}]}";
+    TEST_ASSERT_TRUE(dash_set_layout(&d, L, err, sizeof(err)));
+    int i = dash_find(&d, "act");
+    d.components[i].tracks[1].value = 7;                 // valeur temoin sur la piste sans bind
+    dash_set_context(&d, "{\"cpu\":42}", 1);
+    context_apply(&d);
+    TEST_ASSERT_EQUAL_INT(42, d.components[i].tracks[0].value);   // piste 0 : lue depuis le contexte
+    TEST_ASSERT_EQUAL_INT(7,  d.components[i].tracks[1].value);   // piste 1 : bind vide -> sautee
+    TEST_ASSERT_TRUE(d.components[i].dirty);                      // un changement -> vue a rafraichir
 }
 
 // --- dash_tick_aimg : moteur d'avance de frame ---
@@ -1426,6 +1552,96 @@ void test_wifi_parse_garbage_empty(void) {
     TEST_ASSERT_EQUAL_INT(0, wifi_list_parse("{}", m, 5));              // pas de clé nets -> 0
 }
 
+// --- clock_geom : logique pure des aiguilles + format digital ---
+void test_clock_angles_noon(void) {
+    float h, m, s; clock_hand_angles(12, 0, 0, &h, &m, &s);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, h);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, m);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, s);
+}
+void test_clock_angles_quarter(void) {
+    float h, m, s; clock_hand_angles(3, 0, 0, &h, &m, &s);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 90.0f, h);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, m);
+}
+void test_clock_angles_half_past(void) {
+    float h, m, s; clock_hand_angles(6, 30, 0, &h, &m, &s);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 195.0f, h);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 180.0f, m);
+}
+void test_clock_digital(void) {
+    char buf[16];
+    clock_format_digital(9, 5, 7, false, buf, sizeof(buf));
+    TEST_ASSERT_EQUAL_STRING("09:05", buf);
+    clock_format_digital(9, 5, 7, true, buf, sizeof(buf));
+    TEST_ASSERT_EQUAL_STRING("09:05:07", buf);
+}
+
+// --- clock : parse de la config (mode + show_seconds) ---
+static const char* LAYOUT_CLOCK_DEFAULT =
+  "{\"title\":\"T\",\"background\":\"#000000\","
+  "\"components\":{\"clk\":{\"type\":\"clock\"}},"
+  "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"clk\",\"radius\":80}]}]}";
+static const char* LAYOUT_CLOCK_DIGITAL =
+  "{\"title\":\"T\",\"background\":\"#000000\","
+  "\"components\":{\"clk\":{\"type\":\"clock\",\"mode\":\"digital\",\"show_seconds\":true}},"
+  "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"clk\",\"radius\":80}]}]}";
+
+void test_clock_parse_defaults(void) {
+    Dashboard d{}; char err[80];
+    TEST_ASSERT_TRUE(dash_set_layout(&d, LAYOUT_CLOCK_DEFAULT, err, sizeof(err)));
+    int i = dash_find(&d, "clk");
+    TEST_ASSERT_TRUE(d.components[i].clock_analog);     // mode absent -> analogique par défaut
+    TEST_ASSERT_FALSE(d.components[i].show_seconds);    // défaut false
+}
+void test_clock_parse_digital_seconds(void) {
+    Dashboard d{}; char err[80];
+    TEST_ASSERT_TRUE(dash_set_layout(&d, LAYOUT_CLOCK_DIGITAL, err, sizeof(err)));
+    int i = dash_find(&d, "clk");
+    TEST_ASSERT_FALSE(d.components[i].clock_analog);    // mode:"digital" -> pas analogique
+    TEST_ASSERT_TRUE(d.components[i].show_seconds);
+}
+
+// --- ring_geom : rayon (au centre de la bande) d'une piste concentrique ---
+void test_ring_track_radius(void) {
+    // outer=90, thickness=16, gap entre pistes=4 → piste 0 centrée à 90-8=82
+    TEST_ASSERT_EQUAL_INT(82, ring_track_radius(0, 90, 16, 4));
+    TEST_ASSERT_EQUAL_INT(62, ring_track_radius(1, 90, 16, 4));   // -(16+4)
+    TEST_ASSERT_EQUAL_INT(42, ring_track_radius(2, 90, 16, 4));
+}
+
+// --- stepper_logic : step +/- avec clamp ---
+void test_stepper_step(void) {
+    TEST_ASSERT_EQUAL_INT(25, stepper_step(20, +1, 5, 0, 100));   // +step(5)
+    TEST_ASSERT_EQUAL_INT(0,  stepper_step(3,  -1, 5, 0, 100));   // clamp bas
+    TEST_ASSERT_EQUAL_INT(100, stepper_step(98, +1, 5, 0, 100));  // clamp haut
+    TEST_ASSERT_EQUAL_INT(21, stepper_step(20, +1, 0, 0, 100));   // step<=0 → 1
+}
+
+// --- stepper : parse de la config (min/max/step/unit, generiques) ---
+static const char* LAYOUT_STEPPER =
+  "{\"components\":{\"sp\":{\"type\":\"stepper\",\"bind\":\"v\",\"min\":10,\"max\":50,\"step\":5,\"unit\":\"C\"}},"
+  "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"sp\"}]}]}";
+
+void test_stepper_parsed(void) {
+    Dashboard d{}; char err[80];
+    TEST_ASSERT_TRUE(dash_set_layout(&d, LAYOUT_STEPPER, err, sizeof(err)));
+    int i = dash_find(&d, "sp");
+    TEST_ASSERT_EQUAL_INT(COMP_STEPPER, d.components[i].type);
+    TEST_ASSERT_EQUAL_INT(10, d.components[i].vmin);
+    TEST_ASSERT_EQUAL_INT(50, d.components[i].vmax);
+    TEST_ASSERT_EQUAL_INT(5,  d.components[i].step);
+    TEST_ASSERT_EQUAL_STRING("C", d.components[i].unit);
+}
+
+// --- segmented_logic : clamp d'index sélectionné ---
+void test_segmented_clamp(void) {
+    TEST_ASSERT_EQUAL_INT(0, segmented_clamp(-1, 3));
+    TEST_ASSERT_EQUAL_INT(2, segmented_clamp(5, 3));
+    TEST_ASSERT_EQUAL_INT(1, segmented_clamp(1, 3));
+    TEST_ASSERT_EQUAL_INT(0, segmented_clamp(0, 0));   // aucune option
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_remaining_seconds);
@@ -1453,6 +1669,7 @@ int main(int, char**) {
     RUN_TEST(test_update_bar_object_or_bare_value);
     RUN_TEST(test_update_label_object_or_bare_text);
     RUN_TEST(test_update_readout_object_value_formats);
+    RUN_TEST(test_update_qr_text);
     RUN_TEST(test_visible_defaults_true);
     RUN_TEST(test_update_visible_toggles);
     RUN_TEST(test_update_visible_only_keeps_value);
@@ -1479,10 +1696,12 @@ int main(int, char**) {
     RUN_TEST(test_slider_quantize_clamps_to_vmin);
     RUN_TEST(test_arc_parsed);
     RUN_TEST(test_roller_parsed);
+    RUN_TEST(test_segmented_parsed);
     RUN_TEST(test_button_momentary_parsed);
     RUN_TEST(test_button_set_defaults_not_momentary);
     RUN_TEST(test_ctxapply_button_radio);
     RUN_TEST(test_ctxapply_button_radio_str);
+    RUN_TEST(test_ctxapply_qr_string);
     RUN_TEST(test_layout_parse_counts);
     RUN_TEST(test_page_background_override_and_inherit);
     RUN_TEST(test_page_background_image_parsed);
@@ -1537,6 +1756,8 @@ int main(int, char**) {
     RUN_TEST(test_ctxapply_slider_value);
     RUN_TEST(test_ctxapply_arc_value);
     RUN_TEST(test_ctxapply_roller_index);
+    RUN_TEST(test_ctxapply_stepper_value);
+    RUN_TEST(test_ctxapply_segmented_index);
     RUN_TEST(test_bar_label_style_parsed);
     RUN_TEST(test_bar_label_style_defaults);
     RUN_TEST(test_ctxapply_unchanged_not_dirty);
@@ -1544,6 +1765,9 @@ int main(int, char**) {
     RUN_TEST(test_ctxapply_aimg_bind_selects_frame);
     RUN_TEST(test_ctxapply_aimg_bind_clamps);
     RUN_TEST(test_ctxapply_aimg_bind_ignored_while_playing);
+    RUN_TEST(test_rings_parse_and_truncate);
+    RUN_TEST(test_rings_apply_pushes_array);
+    RUN_TEST(test_rings_ctxapply_per_track_bind);
     RUN_TEST(test_aimg_tick_advances_after_period);
     RUN_TEST(test_aimg_tick_finite_loop_settles_to_rest);
     RUN_TEST(test_aimg_tick_infinite_keeps_playing);
@@ -1598,5 +1822,15 @@ int main(int, char**) {
     RUN_TEST(test_ctx_to_json_filter);
     RUN_TEST(test_ctx_to_json_filter_multi);
     RUN_TEST(test_ctx_to_json_str);
+    RUN_TEST(test_clock_angles_noon);
+    RUN_TEST(test_clock_angles_quarter);
+    RUN_TEST(test_clock_angles_half_past);
+    RUN_TEST(test_clock_digital);
+    RUN_TEST(test_clock_parse_defaults);
+    RUN_TEST(test_clock_parse_digital_seconds);
+    RUN_TEST(test_ring_track_radius);
+    RUN_TEST(test_stepper_step);
+    RUN_TEST(test_stepper_parsed);
+    RUN_TEST(test_segmented_clamp);
     return UNITY_END();
 }

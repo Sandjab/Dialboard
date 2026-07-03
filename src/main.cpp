@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <WiFi.h>
+#include <time.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
 #include "k718_lvgl.h"
@@ -34,6 +35,7 @@ static void start_services() {
     server.begin();
     net_pull_begin(&g_dash, g_ctx_mutex);   // garde-fou `started` au-dessus -> lancée une seule fois
     net_push_begin(&g_dash, g_ctx_mutex);   // push réactif des sinks (même garde `started`)
+    configTzTime(g_dash.tz, "pool.ntp.org", "time.nist.gov");   // heure device pour le composant clock ; non bloquant
     Serial.printf("[http] :%d  http://%s.local\n", HTTP_PORT, MDNS_HOST);
 }
 
@@ -90,6 +92,8 @@ void loop() {
         last_sec += elapsed * 1000;
         dash_tick_countdown(&g_dash, elapsed);
     }
+    static uint32_t last_clock = 0;
+    if (now_ms - last_clock >= 1000) { last_clock = now_ms; dash_tick_clock(&g_dash); }
     static uint32_t last_ctx = 0;
     if (millis() - last_ctx >= 100) {
         last_ctx = millis();
