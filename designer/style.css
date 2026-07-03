@@ -601,3 +601,24 @@ main > .col:last-child { border-right: 0; }
 .tpl-badge { align-self: flex-start; font-size: 11px; padding: 1px 8px; border-radius: 999px; }
 .tpl-badge.ready { background: rgba(52,211,153,.15); color: #34D399; }
 .tpl-badge.wire  { background: rgba(245,158,11,.15); color: #F59E0B; }
+
+/* --- Store (galerie distante) --- */
+.store-toolbar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.store-search { width: 100%; box-sizing: border-box; padding: 7px 10px; border-radius: 8px;
+  border: 1px solid rgba(127, 127, 127, .35); background: transparent; color: inherit; font: inherit; }
+.store-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.store-chip { padding: 3px 10px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 12px;
+  border: 1px solid rgba(127, 127, 127, .35); background: transparent; color: inherit; opacity: .7; }
+.store-chip:hover { opacity: 1; }
+.store-chip.on { opacity: 1; border-color: currentColor; font-weight: 600; }
+
+.store-card { display: flex; flex-direction: column; }
+.tpl-author { font-size: 11px; opacity: .6; margin: 2px 0; }
+.tpl-actions { display: flex; gap: 8px; margin-top: 8px; }
+.store-install, .store-dl { flex: 1; padding: 6px 8px; border-radius: 8px; cursor: pointer; font: inherit;
+  font-size: 12px; border: 1px solid rgba(127, 127, 127, .35); background: transparent; color: inherit; }
+.store-install { font-weight: 600; }
+.store-install:hover, .store-dl:hover { border-color: currentColor; }
+.store-install.confirm { border-color: #E4572E; color: #E4572E; }
+.store-install:disabled { opacity: .5; cursor: default; }
+.store-empty { opacity: .6; padding: 24px 8px; text-align: center; }
