@@ -20,13 +20,14 @@ function ensureMeasureHost() {
 
 // Renvoie un <div.tpl-thumb> contenant un stage 360×360 réduit par `scale`.
 export function buildThumbnail(layout, { scale = 0.42 } = {}) {
-  const comps = layout.components || {};
-  const page = (Array.isArray(layout.pages) && layout.pages[0]) || { place: [] };
+  const l = (layout && typeof layout === 'object') ? layout : {};   // fonction exportée : ne pas throw sur un arg non-objet
+  const comps = l.components || {};
+  const page = (Array.isArray(l.pages) && l.pages[0]) || { place: [] };
 
   const stage = document.createElement('div');
   stage.className = 'tpl-thumb-stage';
   stage.style.width = stage.style.height = SCREEN + 'px';
-  stage.style.background = page.background || layout.background || '#000';   // override de page 0 comme le canvas
+  stage.style.background = page.background || l.background || '#000';   // override de page 0 comme le canvas
   // NB : les images de fond de page (background_image) ne sont pas rendues en miniature (pas de cache d'assets ici).
 
   // 1) construire + attacher dans l'hôte de mesure (stage NON encore réduit : mesure en unités écran)
