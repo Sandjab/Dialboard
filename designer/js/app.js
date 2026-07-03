@@ -3,6 +3,7 @@ import { createValidator } from './validate.js';
 import { createStatusbar } from './statusbar.js';
 import { createConsole } from './console.js';
 import { createDrawer } from './drawer.js';
+import { mountTemplatesGallery } from './templates.js';
 import { loadLayout, pushLayout, captureScreenshot, getStatus, getContext, setDevicePage, pushValues, uploadBgImage, fetchBgImage, uploadImage, fetchImage, uploadAimg, fetchAimg, formatDeviceStatus } from './device.js';
 import { referencedKeys, cacheBytes, cachePut, previewUrl } from './bg-image.js';
 import { referencedImageKeys, cacheBytes as imageCacheBytes, previewUrl as imagePreviewUrl, rehydrate as rehydrateImage } from './image-asset.js';
@@ -249,12 +250,12 @@ async function main() {
   // Panneau Sources (pull réseau) : édition des sources top-level. Indépendant du canvas/pages.
   createSources($('sources'), model);
   createSinks($('sinks'), model);
-  const drawer = createDrawer($('drawer'), { toggleBtn: $('drawer-toggle'), onOpen: () => { settings.close(); sinksDrawer.close(); } });  // settings/sinksDrawer déclarés après — closure, pas de TDZ
-  const sinksDrawer = createDrawer($('sinks-drawer'), { toggleBtn: $('sinks-toggle'), onOpen: () => { drawer.close(); settings.close(); } });
+  const drawer = createDrawer($('drawer'), { toggleBtn: $('drawer-toggle'), onOpen: () => { settings.close(); sinksDrawer.close(); templatesDrawer.close(); } });  // settings/sinksDrawer/templatesDrawer déclarés après — closure, pas de TDZ
+  const sinksDrawer = createDrawer($('sinks-drawer'), { toggleBtn: $('sinks-toggle'), onOpen: () => { drawer.close(); settings.close(); templatesDrawer.close(); } });
   const languages = await availableLanguages();
   const settings = createSettings($('settings-drawer'), {
     toggleBtn: $('settings-toggle'),
-    onOpen: () => { drawer.close(); sinksDrawer.close(); },   // un seul tiroir ouvert à la fois
+    onOpen: () => { drawer.close(); sinksDrawer.close(); templatesDrawer.close(); },   // un seul tiroir ouvert à la fois
     getSettings, setSettings,
     languages,
     currentLang: currentLang(),
@@ -263,6 +264,23 @@ async function main() {
       model.loadJSON(JSON.stringify(DEFAULT_LAYOUT));
       canvas.setPage(0); tree.render(); setSelection(null);
       logs.logActivity(t('activity.new_layout'));
+    },
+  });
+
+  // Tiroir « Modèles » : gallery de templates prêts à l'emploi. Chargement = même reset que l'import
+  // fichier (onLoad : ensurePhysicals/pruneOrphans/setPage/tree). templatesDrawer référencé en closure
+  // dans les onOpen des 3 autres tiroirs (déclaré ici, appelé au clic → pas de TDZ).
+  const templatesDrawer = createDrawer($('templates-drawer'), {
+    toggleBtn: $('templates-toggle'),
+    onOpen: () => { drawer.close(); sinksDrawer.close(); settings.close(); },   // un seul tiroir ouvert à la fois
+  });
+  mountTemplatesGallery($('templates-gallery'), model, {
+    onPick: (text, entry) => {
+      model.loadJSON(text);
+      onLoad();                                   // même reset que l'import fichier (ensurePhysicals…)
+      templatesDrawer.close();
+      showToast(t('toast.template_loaded'), { kind: 'ok' });
+      logs.logActivity(t('activity.template_loaded', { id: entry.id }));
     },
   });
 
