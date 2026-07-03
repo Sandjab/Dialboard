@@ -121,6 +121,7 @@ export default {
   'comp.slider': 'Slider',
   'comp.arc': 'Arc',
   'comp.roller': 'Roller',
+  'comp.stepper': 'Stepper',
   'comp.rect': 'Rectangle',
   'comp.circle': 'Circle',
   'comp.line': 'Line',

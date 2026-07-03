@@ -82,7 +82,7 @@ const TYPES = Object.entries(COMPONENTS).filter(([, d]) => !d.physical).map(([t,
 export const FAMILY = {
   label: 'data', readout: 'data', bar: 'data', chart: 'data', meter: 'data', ring: 'data', clock: 'data', rings: 'data',
   image: 'rich', image_anim: 'rich', led: 'rich', icon: 'rich', qr: 'rich',
-  switch: 'effectors', button: 'effectors', slider: 'effectors', arc: 'effectors', roller: 'effectors',
+  switch: 'effectors', button: 'effectors', slider: 'effectors', arc: 'effectors', roller: 'effectors', stepper: 'effectors',
   rect: 'shapes', circle: 'shapes', line: 'shapes',
 };
 

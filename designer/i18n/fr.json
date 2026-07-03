@@ -117,6 +117,7 @@
   "comp.slider": "Slider",
   "comp.arc": "Arc",
   "comp.roller": "Roller",
+  "comp.stepper": "Incrément",
   "comp.rect": "Rectangle",
   "comp.circle": "Cercle",
   "comp.line": "Droite",

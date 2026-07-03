@@ -18,7 +18,8 @@ export const MOCKS = {
   icon:    { value: 0 },
   slider:  { value: 50 },
   arc:     { value: 50 },
-  roller:  { value: 0 }
+  roller:  { value: 0 },
+  stepper: { value: 21 }
 };
 
 // Réglages PRIMAIRES du rendu LED réaliste (réglés au playground ; cf. spec led-look-realiste),
@@ -762,6 +763,20 @@ export function buildRoller(comp, placement = {}, mock = MOCKS.roller) {
     list.appendChild(d);
   });
   wrap.appendChild(list);
+  return wrap;
+}
+
+// stepper : boutons -/+ encadrant la valeur d'aperçu (mock.value + unit). Le clamp/pas
+// (stepper_step) est pur et testé côté firmware (test_core) ; ici, pure assemblage DOM.
+export function buildStepper(comp, placement = {}, mock = { value: 21 }) {
+  const wrap = document.createElement('div');
+  wrap.className = 'w w-stepper';
+  const mk = (txt) => { const b = document.createElement('div'); b.className = 'w-step-btn'; b.textContent = txt; return b; };
+  const val = document.createElement('div'); val.className = 'w-step-val';
+  val.style.font = font(comp.font_family, comp.bold, comp.italic, pickFontPx(comp.font ?? 32));
+  val.style.color = comp.color || '#FFFFFF';
+  val.textContent = `${mock.value}${comp.unit || ''}`;
+  wrap.append(mk('−'), val, mk('+'));
   return wrap;
 }
 

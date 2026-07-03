@@ -125,6 +125,7 @@
         { "$ref": "#/$defs/comp_slider" },
         { "$ref": "#/$defs/comp_arc" },
         { "$ref": "#/$defs/comp_roller" },
+        { "$ref": "#/$defs/comp_stepper" },
         { "$ref": "#/$defs/comp_clock" },
         { "$ref": "#/$defs/comp_rings" },
         { "$ref": "#/$defs/comp_qr" }
@@ -471,6 +472,21 @@
         "bind": { "$ref": "#/$defs/id", "description": "Variable écrite à la sélection (index numérique)." },
         "options": { "type": "array", "items": { "$ref": "#/$defs/display" }, "minItems": 1, "description": "Libellés des options (une par ligne dans l'éditeur)." },
         "rows": { "type": "integer", "minimum": 1, "maximum": 7, "description": "Rangées visibles (défaut 3, max MAX_ROLLER_ROWS)." }
+      }
+    },
+    "comp_stepper": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "description": "Effecteur : incrément +/- ; écrit bind = valeur (origine UI).",
+      "properties": {
+        "type": { "const": "stepper" },
+        "visible": { "type": "boolean" },
+        "bind": { "$ref": "#/$defs/id", "description": "Variable écrite (origine UI)." },
+        "min": { "type": "number" }, "max": { "type": "number" },
+        "step": { "type": "integer", "description": "Pas (défaut 1)." },
+        "unit": { "$ref": "#/$defs/display" },
+        "color": { "$ref": "#/$defs/hexColor" }
       }
     },
     "comp_clock": {
