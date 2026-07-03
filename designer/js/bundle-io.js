@@ -19,7 +19,9 @@ export function bindBundleIO(model, { exportBtn, importBtn, importInput, onLoad 
     a.href = url;
     a.download = 'layout.dboard';
     a.click();
-    URL.revokeObjectURL(url);
+    // Révocation différée : un bundle .dboard peut être volumineux (images base64) ; révoquer
+    // synchro juste après click() risque d'annuler le download avant son démarrage (cf. revue PR #31).
+    setTimeout(() => URL.revokeObjectURL(url), 100);
     logs.logActivity(t('activity.bundle_exported'));
   });
 
