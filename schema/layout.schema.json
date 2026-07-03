@@ -125,7 +125,8 @@
         { "$ref": "#/$defs/comp_slider" },
         { "$ref": "#/$defs/comp_arc" },
         { "$ref": "#/$defs/comp_roller" },
-        { "$ref": "#/$defs/comp_clock" }
+        { "$ref": "#/$defs/comp_clock" },
+        { "$ref": "#/$defs/comp_rings" }
       ]
     },
     "comp_label": {
@@ -486,6 +487,27 @@
         "font_family": { "$ref": "#/$defs/fontFamily" },
         "bold": { "type": "boolean" },
         "italic": { "type": "boolean" }
+      }
+    },
+    "ring_track": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "bind": { "$ref": "#/$defs/id", "description": "Variable lue (pull/context) pour cette piste." },
+        "min": { "type": "number", "description": "Defaut 0." },
+        "max": { "type": "number", "description": "Defaut 100." },
+        "color": { "$ref": "#/$defs/hexColor" }
+      }
+    },
+    "comp_rings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "description": "Affichage : 1-3 anneaux concentriques. Push par ID : {\"id\":[v0,v1,v2]}. Chaque piste a un bind optionnel (pull).",
+      "properties": {
+        "type": { "const": "rings" },
+        "visible": { "type": "boolean" },
+        "tracks": { "type": "array", "maxItems": 3, "items": { "$ref": "#/$defs/ring_track" } }
       }
     },
     "page": {

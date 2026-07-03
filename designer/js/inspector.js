@@ -1,7 +1,7 @@
 // Inspecteur : édite le composant + le placement sélectionnés. Pilote les champs par des tables de
 // descripteurs (DRY). Chaque édition committée = UN commit (sur 'change', pas par frappe → pas de
 // flood undo). Le signalement ASCII est live (sur 'input'). S'abonne au modèle pour se rafraîchir.
-import { setComponentProp, setPlacementProp, setBarOrientation, setThresholds, setIconStates, removePlacementAndOrphan, setPageBackground, setPageBackgroundImage, setNavWrap, renamePage, pageNameTaken, isValidId } from './mutations.js';
+import { setComponentProp, setPlacementProp, setBarOrientation, setThresholds, setIconStates, setTrackProp, addTrack, removeTrack, removePlacementAndOrphan, setPageBackground, setPageBackgroundImage, setNavWrap, renamePage, pageNameTaken, isValidId } from './mutations.js';
 import { showToast } from './toast.js';
 import { imageFileToBg, previewUrl } from './bg-image.js';
 import { imageFileToAsset, previewUrl as imagePreviewUrl } from './image-asset.js';
@@ -494,6 +494,47 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     return row;
   }
 
+  // Éditeur « Pistes » du rings : liste bespoke (bind/min/max/color par piste), plafonnée à 3 (miroir
+  // MAX_RING_TRACKS firmware, cf. addTrack). Calqué sur la section seuils (renderExtras) pour les idiomes
+  // commit/ref figée/coalesce num ; couleur avec aperçu live (canvas seul, hors modèle) comme seuils/états icon.
+  function tracksField(label, c) {
+    const ref = sel.ref;   // figée au rendu (cf. invariant inspecteur : le 'change' du color picker part en différé)
+    const wrap = document.createElement('div'); wrap.className = 'insp-tracks';
+    const head = document.createElement('div'); head.className = 'insp-label'; head.textContent = t(label);
+    wrap.appendChild(head);
+    const tracks = Array.isArray(c.tracks) ? c.tracks : [];
+    tracks.forEach((tk, i) => {
+      // 2 lignes/piste (pas 1) : bind + min/max/color/suppr en une seule ligne se retrouvent écrasés à
+      // ~30px chacun dans la colonne inspecteur (242px, --insp-w) — le champ bind (texte libre) devient
+      // illisible/invisible (vérifié au navigateur). Ligne dédiée = même largeur que le champ bind
+      // générique (icône ⛓ + field.bind, cf. compFields), min/max/couleur/suppr restent confortables ensuite.
+      const bindRow = document.createElement('div'); bindRow.className = 'insp-row';
+      const bindLbl = document.createElement('span'); bindLbl.className = 'insp-label'; bindLbl.textContent = '⛓ ' + t('field.bind');
+      const bind = makeInput('idtext', tk.bind ?? '', v => model.commit(s => setTrackProp(s, ref, i, 'bind', v)));
+      bindRow.append(bindLbl, bind);
+      wrap.appendChild(bindRow);
+
+      const row = document.createElement('div'); row.className = 'insp-row';
+      const min = makeInput('num', tk.min ?? '', v => model.commit(s => setTrackProp(s, ref, i, 'min', v), { coalesce: 'num' }));   // F2
+      const max = makeInput('num', tk.max ?? '', v => model.commit(s => setTrackProp(s, ref, i, 'max', v), { coalesce: 'num' }));   // F2
+      const col = makeInput('color', tk.color ?? '#38BDF8', v => { clearPreview?.(); model.commit(s => setTrackProp(s, ref, i, 'color', v)); });
+      // Aperçu live de la couleur de la piste : override du tableau tracks complet (canvas seul, hors modèle/undo).
+      col.addEventListener('input', () => previewProp?.(ref, {
+        tracks: tracks.map((t2, j) => j === i ? { ...t2, color: col.value.toUpperCase() } : t2),
+      }));
+      const rm = document.createElement('button'); rm.className = 'insp-th-rm'; rm.textContent = '×';
+      rm.addEventListener('click', () => model.commit(s => removeTrack(s, ref, i)));
+      row.append(min, max, col, rm);
+      wrap.appendChild(row);
+    });
+    if (tracks.length < 3) {
+      const add = document.createElement('button'); add.className = 'insp-th-add'; add.textContent = t('inspector.btn.add_track');
+      add.addEventListener('click', () => model.commit(s => addTrack(s, ref)));
+      wrap.appendChild(add);
+    }
+    return wrap;
+  }
+
   // Rien de sélectionné (null / sélection périmée / ref orpheline) : placeholder neutre. Cohérence stricte
   // arbre↔inspecteur (Option 1) : on n'édite rien tant que rien n'est sélectionné.
   function renderEmpty(body) {
@@ -672,6 +713,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
         if (kind === 'fill') { propBody.appendChild(fillField(label, c)); continue; }   // forme : fond optionnel (bespoke : enableWhen non supporté, comme image/image_anim)
         if (kind === 'value') { propBody.appendChild(valueField(label, c)); continue; }  // button : valeur num|str (bespoke)
         if (kind === 'options') { propBody.appendChild(optionsField(label, c)); continue; }   // roller : liste bespoke
+        if (kind === 'tracks') { propBody.appendChild(tracksField(label, c)); continue; }   // rings : liste bespoke
         // Color picker : aperçu live sur 'input' (canvas seul, hors modèle → pas de flood undo) ; commit
         // unique sur 'change' (makeInput), précédé d'un clearPreview pour que le commit re-rende l'état réel.
         // ref figée au rendu : le color picker émet son 'change' en DIFFÉRÉ (après qu'un clic ailleurs a

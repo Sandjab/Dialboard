@@ -127,6 +127,7 @@ export default {
   'comp.led_ring': 'LED ring',
   'comp.sound': 'Sound',
   'comp.clock': 'Clock',
+  'comp.rings': 'Rings',
   // --- Modes de l'anneau LED (panneau Device) ---
   'ledmode.off': 'Off',
   'ledmode.solid': 'Solid',
@@ -186,6 +187,7 @@ export default {
   'field.mock_pct': 'Value % (preview)',
   'field.countdown_s': 'Countdown (s)',
   'field.points': 'Points',
+  'field.tracks': 'Tracks',
   'field.image': 'Image',
   'field.animation': 'Animation',
   'field.period': 'Period (ms)',
@@ -278,6 +280,7 @@ export default {
   'inspector.note.page_count': '{n} component(s) placed on this page',
   'inspector.btn.add_threshold': '+ threshold',
   'inspector.btn.add_state': '+ state',
+  'inspector.btn.add_track': '+ Track',
   'inspector.btn.remove_from_page': 'Remove from page',
   'inspector.btn.show_device': 'Show on the device',
   'inspector.btn.hide_device': 'Hide on the device',

@@ -80,7 +80,7 @@ const TYPES = Object.entries(COMPONENTS).filter(([, d]) => !d.physical).map(([t,
 // effecteurs (saisie) restent groupés. Le nom de groupe = suffixe de la clé i18n `family` d'une ZONE.
 // Un type absent de la carte retombe dans « shapes » (jamais perdu) ; l'ajouter ici pour le classer.
 export const FAMILY = {
-  label: 'data', readout: 'data', bar: 'data', chart: 'data', meter: 'data', ring: 'data', clock: 'data',
+  label: 'data', readout: 'data', bar: 'data', chart: 'data', meter: 'data', ring: 'data', clock: 'data', rings: 'data',
   image: 'rich', image_anim: 'rich', led: 'rich', icon: 'rich',
   switch: 'effectors', button: 'effectors', slider: 'effectors', arc: 'effectors', roller: 'effectors',
   rect: 'shapes', circle: 'shapes', line: 'shapes',

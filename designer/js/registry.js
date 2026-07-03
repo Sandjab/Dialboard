@@ -8,7 +8,7 @@
 // défaut (default.*) est localisé À LA CRÉATION via t() — Latin-1 garanti (contrat WS-2).
 import { snapPlacement } from './geometry.js';
 import { t } from './i18n.js';
-import { buildLabel, buildReadout, buildBar, buildRing, buildChart, buildMeter, buildImage, buildImageAnim, buildLed, buildRect, buildCircle, buildLine, buildIcon, buildSwitch, buildButton, buildSlider, buildArc, buildRoller, buildClock } from './render.js';
+import { buildLabel, buildReadout, buildBar, buildRing, buildChart, buildMeter, buildImage, buildImageAnim, buildLed, buildRect, buildCircle, buildLine, buildIcon, buildSwitch, buildButton, buildSlider, buildArc, buildRoller, buildClock, buildRings } from './render.js';
 
 // Modes de l'anneau LED physique (value firmware → clé i18n du libellé). Partagé designer/firmware via le schéma.
 export const LED_MODES = [
@@ -76,6 +76,16 @@ export const COMPONENTS = {
     placeFields: [['radius', 'field.radius', 'num'], ['thickness', 'field.thickness', 'num'], ['gap_deg', 'field.gap_deg', 'num'], ['start_angle', 'field.start_angle', 'num']],
     mockFields: [['value', 'field.mock_pct'], ['reset_in_s', 'field.countdown_s']],
     build: (comp, pl, mock) => buildRing(comp, pl, mock),
+  },
+  rings: {
+    label: 'comp.rings',
+    defaults: () => ({ type: 'rings', tracks: [{ min: 0, max: 100, color: '#34D399' }] }),
+    makePlacement: (id) => ({ ref: id, radius: 90, thickness: 14 }),   // centré : anchor/dx/dy ignorés (cf. ring), pas de gap/start_angle (firmware build_rings ne lit que radius/thickness)
+    centered: true, physical: false,
+    compFields: [['tracks', 'field.tracks', 'tracks']],
+    placeFields: [['radius', 'field.radius', 'num', 90], ['thickness', 'field.thickness', 'num', 14]],
+    mockFields: [],
+    build: (comp, pl) => buildRings(comp, pl),
   },
   chart: {
     label: 'comp.chart',

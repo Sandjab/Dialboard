@@ -764,6 +764,35 @@ export function buildRoller(comp, placement = {}, mock = MOCKS.roller) {
   return wrap;
 }
 
+// rings : 1-3 anneaux concentriques (parité firmware build_rings/ring_geom.cpp : rayon de piste i =
+// outer - th/2 - i*(th+4), anneau quasi complet de 90° à 90+359° comme lv_arc_set_bg_angles). Pas de
+// bind/mock au niveau composant (per-track). Valeurs d'aperçu fixes (_RINGS_MOCK), Plan futur pour l'édition.
+export const _RINGS_MOCK = { values: [72, 55, 40] };
+export function buildRings(comp, placement = {}, mock = _RINGS_MOCK) {
+  const outer = placement.radius || 90, th = placement.thickness || 14, size = outer * 2;
+  const svg = document.createElementNS(SVGNS, 'svg');
+  svg.setAttribute('width', size); svg.setAttribute('height', size);
+  svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
+  svg.classList.add('w', 'w-rings');
+  const tracks = Array.isArray(comp.tracks) ? comp.tracks : [];
+  tracks.forEach((tk, i) => {
+    const r = outer - th / 2 - i * (th + 4);
+    const frac = Math.max(0, Math.min(1, ((mock.values?.[i] ?? 0) - (tk.min ?? 0)) / ((tk.max ?? 100) - (tk.min ?? 0) || 1)));
+    const track = arcPath(outer, outer, r, 90, 359);
+    const ind = arcPath(outer, outer, r, 90, 359 * frac);
+    const mk = (cls, d, stroke) => {
+      const p = document.createElementNS(SVGNS, 'path');
+      p.setAttribute('class', cls); p.setAttribute('d', d);
+      p.setAttribute('fill', 'none'); p.setAttribute('stroke', stroke);
+      p.setAttribute('stroke-width', th); p.setAttribute('stroke-linecap', 'round');
+      svg.appendChild(p);
+    };
+    mk('rings-track', track, '#1F2937');
+    mk('rings-ind', ind, tk.color || '#38BDF8');
+  });
+  return svg;
+}
+
 // clock (digital) : texte figé HH:MM[:SS] (parité d'ALLURE, pas de sync live). Pur -> testable sans DOM.
 export function clockDigitalText(comp) {
   return comp.show_seconds ? '10:10:36' : '10:10';

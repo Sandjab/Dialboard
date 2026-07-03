@@ -123,6 +123,25 @@ export function setThresholds(state, id, thresholds) {
   else delete c.thresholds;
 }
 
+// --- rings : pistes concentriques (tableau tracks[], plafonné à MAX_RING_TRACKS=3 côté firmware) ---
+
+// Édite une prop d'une piste. Valeur vide (''/null/undefined) => suppression de la clé (parité setComponentProp).
+export function setTrackProp(state, ref, i, key, v) {
+  const c = state.components[ref]; if (!Array.isArray(c.tracks)) c.tracks = [];
+  if (!c.tracks[i]) return;
+  if (v === '' || v == null) delete c.tracks[i][key]; else c.tracks[i][key] = v;
+}
+
+// Ajoute une piste (défauts min/max/color) ; no-op au-delà de 3 (miroir MAX_RING_TRACKS firmware).
+export function addTrack(state, ref) {
+  const c = state.components[ref]; if (!Array.isArray(c.tracks)) c.tracks = [];
+  if (c.tracks.length < 3) c.tracks.push({ min: 0, max: 100, color: '#38BDF8' });
+}
+
+export function removeTrack(state, ref, i) {
+  const c = state.components[ref]; if (Array.isArray(c.tracks)) c.tracks.splice(i, 1);
+}
+
 // Navigation circulaire (nav.wrap) : true = boucle (dernière page → première, défaut firmware), false =
 // bute au bord. Crée l'objet nav au besoin ; n'écrit que la clé wrap (le spread préserve d'éventuelles
 // futures clés nav). Coerce en booléen — le layout ne porte jamais de wrap non-bool.

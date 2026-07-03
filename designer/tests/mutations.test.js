@@ -15,7 +15,10 @@ import {
   uniqueCopyName,
   duplicatePage,
   setIconStates,
-  isValidId
+  isValidId,
+  setTrackProp,
+  addTrack,
+  removeTrack
 } from '../js/mutations.js';
 
 const fresh = () => ({ components: {}, pages: [{ name: 'P1', place: [] }] });
@@ -765,4 +768,18 @@ test('renamePage : accepte un nom valide (retourne true)', () => {
 test('uniqueCopyName : produit toujours un id valide', () => {
   const s = { pages: [{ name: 'A' }, { name: 'A_copie' }] };
   assert.equal(isValidId(uniqueCopyName(s, 'A')), true);
+});
+
+test('rings: addTrack ajoute jusqu\'à 3 pistes, setTrackProp édite, removeTrack retire', () => {
+  const st = { components: { r: { type: 'rings' } } };
+  addTrack(st, 'r'); addTrack(st, 'r');
+  assert.equal(st.components.r.tracks.length, 2);
+  setTrackProp(st, 'r', 0, 'bind', 'cpu');
+  assert.equal(st.components.r.tracks[0].bind, 'cpu');
+  setTrackProp(st, 'r', 0, 'bind', '');            // vide → clé supprimée
+  assert.equal('bind' in st.components.r.tracks[0], false);
+  addTrack(st, 'r'); addTrack(st, 'r');            // plafonne à 3
+  assert.equal(st.components.r.tracks.length, 3);
+  removeTrack(st, 'r', 0);
+  assert.equal(st.components.r.tracks.length, 2);
 });
