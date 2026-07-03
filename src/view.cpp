@@ -847,7 +847,9 @@ static void sync_clock(Component& c, Placement& q, lv_obj_t* w, lv_obj_t*, lv_ob
     int nlines = c.show_seconds ? 3 : 2;
     // Les aiguilles sont les nlines DERNIERS enfants du conteneur (les 4 ticks cardinaux
     // sont créés avant elles dans build_clock) -> on indexe depuis la fin.
-    int child0 = lv_obj_get_child_count(w) - nlines;
+    int child_count = lv_obj_get_child_count(w);
+    if (child_count < nlines) return;   // garde : conteneur incomplet -> pas d'index négatif
+    int child0 = child_count - nlines;
     for (int j = 0; j < nlines; j++) {
         float rad = hands[j].deg * DEG2RAD;
         pts[j][1].x = (lv_value_precise_t)(r + hands[j].len * sinf(rad));

@@ -810,8 +810,9 @@ export function buildRings(comp, placement = {}, mock = _RINGS_MOCK) {
   svg.classList.add('w', 'w-rings');
   const tracks = Array.isArray(comp.tracks) ? comp.tracks : [];
   tracks.forEach((tk, i) => {
+    const tkObj = (tk && typeof tk === 'object') ? tk : {};   // repli si élément malformé (layout externe)
     const r = outer - th / 2 - i * (th + 4);
-    const frac = Math.max(0, Math.min(1, ((mock.values?.[i] ?? 0) - (tk.min ?? 0)) / ((tk.max ?? 100) - (tk.min ?? 0) || 1)));
+    const frac = Math.max(0, Math.min(1, ((mock.values?.[i] ?? 0) - (tkObj.min ?? 0)) / ((tkObj.max ?? 100) - (tkObj.min ?? 0) || 1)));
     const track = arcPath(outer, outer, r, 90, 359);
     const ind = arcPath(outer, outer, r, 90, 359 * frac);
     const mk = (cls, d, stroke) => {
@@ -822,7 +823,7 @@ export function buildRings(comp, placement = {}, mock = _RINGS_MOCK) {
       svg.appendChild(p);
     };
     mk('rings-track', track, '#1F2937');
-    mk('rings-ind', ind, tk.color || '#38BDF8');
+    mk('rings-ind', ind, tkObj.color || '#38BDF8');
   });
   return svg;
 }

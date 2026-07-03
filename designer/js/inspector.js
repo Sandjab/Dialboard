@@ -504,23 +504,27 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     wrap.appendChild(head);
     const tracks = Array.isArray(c.tracks) ? c.tracks : [];
     tracks.forEach((tk, i) => {
+      const tkObj = (tk && typeof tk === 'object') ? tk : {};   // repli si élément malformé (layout externe)
       // 2 lignes/piste (pas 1) : bind + min/max/color/suppr en une seule ligne se retrouvent écrasés à
       // ~30px chacun dans la colonne inspecteur (242px, --insp-w) — le champ bind (texte libre) devient
       // illisible/invisible (vérifié au navigateur). Ligne dédiée = même largeur que le champ bind
       // générique (icône ⛓ + field.bind, cf. compFields), min/max/couleur/suppr restent confortables ensuite.
       const bindRow = document.createElement('div'); bindRow.className = 'insp-row';
       const bindLbl = document.createElement('span'); bindLbl.className = 'insp-label'; bindLbl.textContent = '⛓ ' + t('field.bind');
-      const bind = makeInput('idtext', tk.bind ?? '', v => model.commit(s => setTrackProp(s, ref, i, 'bind', v)));
+      const bind = makeInput('idtext', tkObj.bind ?? '', v => model.commit(s => setTrackProp(s, ref, i, 'bind', v)));
       bindRow.append(bindLbl, bind);
       wrap.appendChild(bindRow);
 
       const row = document.createElement('div'); row.className = 'insp-row';
-      const min = makeInput('num', tk.min ?? '', v => model.commit(s => setTrackProp(s, ref, i, 'min', v), { coalesce: 'num' }));   // F2
-      const max = makeInput('num', tk.max ?? '', v => model.commit(s => setTrackProp(s, ref, i, 'max', v), { coalesce: 'num' }));   // F2
-      const col = makeInput('color', tk.color ?? '#38BDF8', v => { clearPreview?.(); model.commit(s => setTrackProp(s, ref, i, 'color', v)); });
+      const min = makeInput('num', tkObj.min ?? '', v => model.commit(s => setTrackProp(s, ref, i, 'min', v), { coalesce: 'num' }));   // F2
+      const max = makeInput('num', tkObj.max ?? '', v => model.commit(s => setTrackProp(s, ref, i, 'max', v), { coalesce: 'num' }));   // F2
+      const col = makeInput('color', tkObj.color ?? '#38BDF8', v => { clearPreview?.(); model.commit(s => setTrackProp(s, ref, i, 'color', v)); });
       // Aperçu live de la couleur de la piste : override du tableau tracks complet (canvas seul, hors modèle/undo).
       col.addEventListener('input', () => previewProp?.(ref, {
-        tracks: tracks.map((t2, j) => j === i ? { ...t2, color: col.value.toUpperCase() } : t2),
+        tracks: tracks.map((t2, j) => {
+          const t2Obj = (t2 && typeof t2 === 'object') ? t2 : {};
+          return j === i ? { ...t2Obj, color: col.value.toUpperCase() } : t2Obj;
+        }),
       }));
       const rm = document.createElement('button'); rm.className = 'insp-th-rm'; rm.textContent = '×';
       rm.addEventListener('click', () => model.commit(s => removeTrack(s, ref, i)));
