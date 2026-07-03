@@ -1,0 +1,25 @@
+{
+  "title": "Server",
+  "background": "#0B0F0B",
+  "components": {
+    "cpu":  { "type": "meter", "color": "#38BDF8", "min": 0, "max": 100, "bind": "cpu",
+              "thresholds": [[70, "#F59E0B"], [90, "#EF4444"]] },
+    "cpul": { "type": "readout", "label": "CPU", "unit": " %", "font": 18, "color": "#F5F5F7", "bind": "cpu" },
+    "ram":  { "type": "bar", "label": "RAM", "min": 0, "max": 100, "color": "#A78BFA", "bind": "ram" },
+    "up":   { "type": "readout", "label": "Uptime", "unit": " h", "font": 14, "color": "#9AA0AA", "bind": "uptime" }
+  },
+  "pages": [
+    { "name": "Server", "place": [
+      { "ref": "cpu",  "anchor": "CENTER", "dy": -30 },
+      { "ref": "cpul", "anchor": "CENTER", "dy": 60 },
+      { "ref": "ram",  "anchor": "BOTTOM_MID", "dy": -50, "width": 220, "height": 16 },
+      { "ref": "up",   "anchor": "BOTTOM_MID", "dy": -20 }
+    ] }
+  ],
+  "sources": [
+    { "name": "My server (edit me)",
+      "url": "http://192.168.1.10:9000/metrics.json",
+      "interval_s": 10,
+      "vars": { "cpu": "/cpu", "ram": "/ram", "uptime": "/uptime" } }
+  ]
+}

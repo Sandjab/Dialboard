@@ -1,0 +1,23 @@
+{
+  "title": "Crypto",
+  "background": "#0B0B0F",
+  "components": {
+    "chg":   { "type": "ring", "color": "#34D399", "min": -10, "max": 10, "bind": "chg",
+               "thresholds": [[0, "#EF4444"], [10, "#34D399"]] },
+    "price": { "type": "readout", "label": "BTC", "unit": " $", "font": 34, "color": "#F5F5F7", "bind": "price" },
+    "chgv":  { "type": "readout", "label": "24h", "unit": " %", "font": 16, "color": "#9AA0AA", "bind": "chg" }
+  },
+  "pages": [
+    { "name": "Crypto", "place": [
+      { "ref": "chg",   "radius": 150, "thickness": 16, "gap_deg": 90 },
+      { "ref": "price", "anchor": "CENTER", "dy": -6 },
+      { "ref": "chgv",  "anchor": "BOTTOM_MID", "dy": -60 }
+    ] }
+  ],
+  "sources": [
+    { "name": "CoinGecko",
+      "url": "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true",
+      "interval_s": 120,
+      "vars": { "price": "/bitcoin/usd", "chg": "/bitcoin/usd_24h_change" } }
+  ]
+}
