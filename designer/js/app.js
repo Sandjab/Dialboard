@@ -5,6 +5,7 @@ import { createConsole } from './console.js';
 import { createDrawer } from './drawer.js';
 import { mountTemplatesGallery } from './templates.js';
 import { mountStore } from './store-gallery.js';
+import { mountPublishDialog } from './publish-dialog.js';
 import { loadLayout, pushLayout, captureScreenshot, getStatus, getContext, setDevicePage, pushValues, uploadBgImage, fetchBgImage, uploadImage, fetchImage, uploadAimg, fetchAimg, formatDeviceStatus } from './device.js';
 import { referencedKeys, cacheBytes, cachePut, previewUrl } from './bg-image.js';
 import { referencedImageKeys, cacheBytes as imageCacheBytes, previewUrl as imagePreviewUrl, rehydrate as rehydrateImage } from './image-asset.js';
@@ -300,6 +301,7 @@ async function main() {
       logs.logActivity(t('activity.template_loaded', { id: entry.id }));
     },
   });
+  mountPublishDialog(model, { openBtn: $('publish-open'), overlay: $('publish-overlay') });
 
   // Pull on-demand pour l'onglet Device : /context (blackboard) + /status (télémétrie + uptime pour l'âge).
   const pullDeviceContext = async () => {
