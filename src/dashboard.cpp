@@ -41,6 +41,7 @@ static const struct { const char* name; CompType type; } COMP_NAMES[] = {
     { "clock",  COMP_CLOCK  },
     { "rings",  COMP_RINGS  },
     { "qr",     COMP_QR     },
+    { "stepper", COMP_STEPPER },
 };
 
 static uint8_t parse_font_family(const char *s) {
@@ -513,6 +514,7 @@ static const comp_apply_fn APPLY[] = {
     /* COMP_CLOCK    */ nullptr,             // heure = device, pas de push-by-id
     /* COMP_RINGS    */ apply_rings,
     /* COMP_QR       */ apply_qr,
+    /* COMP_STEPPER  */ nullptr,             // effecteur : reflet via context_apply
 };
 static_assert(sizeof(APPLY) / sizeof(APPLY[0]) == COMP_COUNT,
               "APPLY desync avec CompType : ajoute la ligne du nouveau type");
@@ -655,6 +657,7 @@ void context_apply(Dashboard* d) {
             case COMP_SLIDER:
             case COMP_ARC:
             case COMP_ROLLER:                           // effecteur : scalaire -> valeur (index pour roller)
+            case COMP_STEPPER:
                 if (v.type == CTX_NUM) {
                     int32_t nv = (int32_t)v.num;
                     if (c.value != nv) { c.value = nv; changed = true; }

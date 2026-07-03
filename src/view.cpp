@@ -17,6 +17,7 @@
 #include <Arduino.h>                 // millis()
 #include "freertos/semphr.h"
 #include "dashboard.h"               // dash_ctx_write_ui_num/str (deja tire via view.h, explicite ici)
+#include "stepper_logic.h"
 
 extern SemaphoreHandle_t g_ctx_mutex;   // defini dans main.cpp, sérialise l'accès au contexte
 
@@ -591,6 +592,8 @@ static void button_event_cb(lv_event_t* e);
 static void slider_event_cb(lv_event_t* e);
 static void arc_event_cb(lv_event_t* e);
 static void roller_event_cb(lv_event_t* e);
+static void stepper_minus_cb(lv_event_t* e);
+static void stepper_plus_cb(lv_event_t* e);
 
 // Reflets d'effecteurs différés pendant l'appui : un sync_* sous LV_STATE_PRESSED n'arrache pas le doigt
 // mais NE DOIT PAS perdre la valeur du contexte. On enregistre le composant ici ; view_sync le re-marque
@@ -690,6 +693,36 @@ static void sync_roller(Component& c, Placement&, lv_obj_t* w, lv_obj_t*, lv_obj
     int32_t idx = c.value < 0 ? 0 : c.value;
     if (cnt && idx >= (int32_t)cnt) idx = (int32_t)cnt - 1;   // clamp au dernier : évite le wrap uint16 sur une valeur aberrante (ctx externe)
     lv_roller_set_selected(w, (uint16_t)idx, LV_ANIM_OFF);
+}
+static void stepper_label_text(Component& c, char* out, size_t n) {
+    if (c.unit[0]) snprintf(out, n, "%d%s", (int)c.value, c.unit);
+    else           snprintf(out, n, "%d", (int)c.value);
+}
+static void build_stepper(lv_obj_t* parent, Component& c, Placement& q,
+                          lv_obj_t** main, lv_obj_t** sub1, lv_obj_t**) {
+    lv_obj_t* box = lv_obj_create(parent);
+    lv_obj_remove_style_all(box);
+    lv_obj_set_size(box, q.width ? q.width : 200, q.height ? q.height : 80);
+    lv_obj_set_flex_flow(box, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(box, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_align(box, ALIGN_MAP[q.anchor], q.dx, q.dy);
+    lv_obj_t* minus = lv_button_create(box);
+    lv_obj_set_user_data(minus, &c);
+    lv_obj_add_event_cb(minus, stepper_minus_cb, LV_EVENT_CLICKED, nullptr);
+    lv_obj_t* ml = lv_label_create(minus); lv_label_set_text(ml, "-");
+    lv_obj_t* val = lv_label_create(box);
+    lv_obj_set_style_text_font(val, get_font(c.font_family, c.font, c.bold, c.italic), 0);
+    lv_obj_set_style_text_color(val, lv_color_hex(c.color), 0);
+    char b[24]; stepper_label_text(c, b, sizeof(b)); lv_label_set_text(val, b);
+    lv_obj_t* plus = lv_button_create(box);
+    lv_obj_set_user_data(plus, &c);
+    lv_obj_add_event_cb(plus, stepper_plus_cb, LV_EVENT_CLICKED, nullptr);
+    lv_obj_t* pl = lv_label_create(plus); lv_label_set_text(pl, "+");
+    *main = box;
+    *sub1 = val;   // le label central (sync)
+}
+static void sync_stepper(Component& c, Placement&, lv_obj_t*, lv_obj_t* val, lv_obj_t*) {
+    if (val) { char b[24]; stepper_label_text(c, b, sizeof(b)); lv_label_set_text(val, b); }
 }
 
 // clock : cadran analogique (conteneur + 4 ticks cardinaux décoratifs + aiguilles lv_line)
@@ -827,6 +860,7 @@ static const ViewVTable VIEW[] = {
     /* COMP_CLOCK    */ { build_clock,  sync_clock  },
     /* COMP_RINGS    */ { build_rings,  sync_rings  },
     /* COMP_QR       */ { build_qr,     sync_qr     },
+    /* COMP_STEPPER  */ { build_stepper, sync_stepper },
 };
 static_assert(sizeof(VIEW) / sizeof(VIEW[0]) == COMP_COUNT,
               "VIEW desync avec CompType : ajoute la ligne du nouveau type");
@@ -901,6 +935,18 @@ static void roller_event_cb(lv_event_t* e) {
     dash_ctx_write_ui_num(s_dash, c->bind, (double)sel, millis());
     if (g_ctx_mutex) xSemaphoreGive(g_ctx_mutex);
 }
+static void stepper_apply(Component* c, int dir) {
+    if (!c || !s_dash) return;
+    c->value = stepper_step(c->value, dir, c->step, c->vmin, c->vmax);
+    if (c->bind[0]) {
+        if (g_ctx_mutex) xSemaphoreTake(g_ctx_mutex, portMAX_DELAY);
+        dash_ctx_write_ui_num(s_dash, c->bind, (double)c->value, millis());
+        if (g_ctx_mutex) xSemaphoreGive(g_ctx_mutex);
+    }
+    c->dirty = true; s_dash->values_dirty = true;   // met à jour le label central
+}
+static void stepper_minus_cb(lv_event_t* e) { stepper_apply((Component*)lv_obj_get_user_data(lv_event_get_target_obj(e)), -1); }
+static void stepper_plus_cb(lv_event_t* e)  { stepper_apply((Component*)lv_obj_get_user_data(lv_event_get_target_obj(e)), +1); }
 
 // Met à jour la coloration des points indicateurs sans toucher aux flags hidden des pages
 // (partagé par la bascule instantanée et la transition animée).
