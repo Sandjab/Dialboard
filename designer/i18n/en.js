@@ -122,6 +122,7 @@ export default {
   'comp.arc': 'Arc',
   'comp.roller': 'Roller',
   'comp.stepper': 'Stepper',
+  'comp.segmented': 'Segmented',
   'comp.rect': 'Rectangle',
   'comp.circle': 'Circle',
   'comp.line': 'Line',

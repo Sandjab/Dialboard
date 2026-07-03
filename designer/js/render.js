@@ -19,7 +19,8 @@ export const MOCKS = {
   slider:  { value: 50 },
   arc:     { value: 50 },
   roller:  { value: 0 },
-  stepper: { value: 21 }
+  stepper: { value: 21 },
+  segmented: { value: 0 }
 };
 
 // Réglages PRIMAIRES du rendu LED réaliste (réglés au playground ; cf. spec led-look-realiste),
@@ -763,6 +764,23 @@ export function buildRoller(comp, placement = {}, mock = MOCKS.roller) {
     list.appendChild(d);
   });
   wrap.appendChild(list);
+  return wrap;
+}
+
+// segmented : options en boutons côte-à-côte, la sélectionnée (index d'aperçu) surlignée.
+// écrit bind = index sélectionné (comme roller). width via placement.
+export function buildSegmented(comp, placement = {}, mock = { value: 0 }) {
+  const opts = Array.isArray(comp.options) ? comp.options : [];
+  const wrap = document.createElement('div');
+  wrap.className = 'w w-segmented';
+  if (placement.width) wrap.style.width = placement.width + 'px';
+  const sel = Math.max(0, Math.min(opts.length - 1, mock.value | 0));
+  opts.forEach((o, i) => {
+    const d = document.createElement('div');
+    d.className = 'w-seg-opt' + (i === sel ? ' selected' : '');
+    d.textContent = o;
+    wrap.appendChild(d);
+  });
   return wrap;
 }
 

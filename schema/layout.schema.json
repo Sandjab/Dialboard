@@ -126,6 +126,7 @@
         { "$ref": "#/$defs/comp_arc" },
         { "$ref": "#/$defs/comp_roller" },
         { "$ref": "#/$defs/comp_stepper" },
+        { "$ref": "#/$defs/comp_segmented" },
         { "$ref": "#/$defs/comp_clock" },
         { "$ref": "#/$defs/comp_rings" },
         { "$ref": "#/$defs/comp_qr" }
@@ -487,6 +488,18 @@
         "step": { "type": "integer", "description": "Pas (défaut 1)." },
         "unit": { "$ref": "#/$defs/display" },
         "color": { "$ref": "#/$defs/hexColor" }
+      }
+    },
+    "comp_segmented": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "options"],
+      "description": "Effecteur : contrôle segmenté (choix exclusif) ; écrit bind = index sélectionné.",
+      "properties": {
+        "type": { "const": "segmented" },
+        "visible": { "type": "boolean" },
+        "bind": { "$ref": "#/$defs/id", "description": "Variable écrite (index)." },
+        "options": { "type": "array", "items": { "$ref": "#/$defs/display" }, "minItems": 2, "maxItems": 4 }
       }
     },
     "comp_clock": {

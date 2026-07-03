@@ -8,7 +8,7 @@
 // défaut (default.*) est localisé À LA CRÉATION via t() — Latin-1 garanti (contrat WS-2).
 import { snapPlacement } from './geometry.js';
 import { t } from './i18n.js';
-import { buildLabel, buildReadout, buildBar, buildRing, buildChart, buildMeter, buildImage, buildImageAnim, buildLed, buildRect, buildCircle, buildLine, buildIcon, buildSwitch, buildButton, buildSlider, buildArc, buildRoller, buildStepper, buildClock, buildRings, buildQr } from './render.js';
+import { buildLabel, buildReadout, buildBar, buildRing, buildChart, buildMeter, buildImage, buildImageAnim, buildLed, buildRect, buildCircle, buildLine, buildIcon, buildSwitch, buildButton, buildSlider, buildArc, buildRoller, buildStepper, buildSegmented, buildClock, buildRings, buildQr } from './render.js';
 
 // Modes de l'anneau LED physique (value firmware → clé i18n du libellé). Partagé designer/firmware via le schéma.
 export const LED_MODES = [
@@ -238,6 +238,17 @@ export const COMPONENTS = {
                   ['width', 'field.width', 'num', 200], ['height', 'field.height', 'num', 80]],
     mockFields: [['value', 'field.mock_value']],
     build: (comp, pl, mock) => buildStepper(comp, pl, mock),
+  },
+  segmented: {
+    label: 'comp.segmented',
+    defaults: () => ({ type: 'segmented', options: ['A', 'B'] }),
+    makePlacement: (id, x, y) => ({ ...screenPlacement(id, x, y), width: 240 }),
+    centered: false, physical: false,
+    compFields: [['bind', 'field.bind', 'idtext'], ['options', 'field.options', 'options']],
+    placeFields: [['anchor', 'field.anchor', 'anchor'], ['dx', 'field.dx', 'num'], ['dy', 'field.dy', 'num'],
+                  ['width', 'field.width', 'num', 240]],
+    mockFields: [['value', 'field.mock_value']],
+    build: (comp, pl, mock) => buildSegmented(comp, pl, mock),
   },
   rect: {
     label: 'comp.rect',

@@ -118,6 +118,7 @@
   "comp.arc": "Arc",
   "comp.roller": "Roller",
   "comp.stepper": "Incrément",
+  "comp.segmented": "Segmenté",
   "comp.rect": "Rectangle",
   "comp.circle": "Cercle",
   "comp.line": "Droite",
