@@ -1,5 +1,6 @@
 #include "ring_geom.h"
 #include "clock_geom.h"
+#include "stepper_logic.h"
 #include <unity.h>
 #include <string.h>
 #include "format.h"
@@ -1546,6 +1547,14 @@ void test_ring_track_radius(void) {
     TEST_ASSERT_EQUAL_INT(42, ring_track_radius(2, 90, 16, 4));
 }
 
+// --- stepper_logic : step +/- avec clamp ---
+void test_stepper_step(void) {
+    TEST_ASSERT_EQUAL_INT(25, stepper_step(20, +1, 5, 0, 100));   // +step(5)
+    TEST_ASSERT_EQUAL_INT(0,  stepper_step(3,  -1, 5, 0, 100));   // clamp bas
+    TEST_ASSERT_EQUAL_INT(100, stepper_step(98, +1, 5, 0, 100));  // clamp haut
+    TEST_ASSERT_EQUAL_INT(21, stepper_step(20, +1, 0, 0, 100));   // step<=0 → 1
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_remaining_seconds);
@@ -1728,5 +1737,6 @@ int main(int, char**) {
     RUN_TEST(test_clock_parse_defaults);
     RUN_TEST(test_clock_parse_digital_seconds);
     RUN_TEST(test_ring_track_radius);
+    RUN_TEST(test_stepper_step);
     return UNITY_END();
 }
