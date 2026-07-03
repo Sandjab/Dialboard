@@ -68,3 +68,25 @@ test('decodeBundle : accepte un bundle v2 avec meta (intent : consommer un .dboa
 test('decodeBundle : rejette une version inconnue (intent : ne pas charger un format futur non géré)', () => {
   assert.throws(() => decodeBundle(JSON.stringify({ version: 3, layout, assets: {} })), /version|invalid/i);
 });
+
+test('encodeBundle : sans meta reste v1 sans clé meta (intent : l\'export perso est inchangé)', () => {
+  const o = JSON.parse(encodeBundle(JSON.stringify(layout), assets));
+  assert.equal(o.version, 1);
+  assert.ok(!('meta' in o), 'pas de clé meta en v1');
+});
+
+test('encodeBundle : avec meta écrit v2 + bloc meta (intent : « Publier » produit un bundle de store)', () => {
+  const meta = { name: 'X', author: 'a', description: 'd', domain: 'time', tags: ['t'], requires: '' };
+  const o = JSON.parse(encodeBundle(JSON.stringify(layout), assets, meta));
+  assert.equal(o.version, 2);
+  assert.deepEqual(o.meta, meta);
+  assert.deepEqual(o.layout, layout);
+  assert.equal(typeof o.assets.bg.a1, 'string');   // assets toujours base64
+});
+
+test('encodeBundle+decode v2 : round-trip fidèle (intent : ce qu\'on publie se recharge)', () => {
+  const meta = { name: 'X', author: 'a', description: 'd', domain: 'time' };
+  const back = decodeBundle(encodeBundle(JSON.stringify(layout), assets, meta));
+  assert.deepEqual(JSON.parse(back.layout), layout);
+  assert.deepEqual([...back.assets.bg.a1], [1, 2, 3]);
+});

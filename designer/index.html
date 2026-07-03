@@ -133,6 +133,7 @@
     <div class="drawer-panel" role="dialog" aria-label="Store" data-i18n-aria-label="drawer.templates.aria">
       <div class="drawer-head">
         <h2 data-i18n="drawer.templates.title">Store</h2>
+        <button id="publish-open" class="drawer-head-btn" type="button" data-i18n="publish.open">Publier le vôtre</button>
         <button class="drawer-close" type="button" data-i18n-title="drawer.close" title="Fermer">✕</button>
       </div>
       <div id="templates-pane" class="drawer-pane">
@@ -153,6 +154,22 @@
         <span id="shot-page"></span>
         <button id="shot-next" data-i18n-title="shot.next" title="Page suivante sur le device">▶</button>
         <button id="shot-close" data-i18n="shot.close">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="publish-overlay" class="shot-overlay" hidden>
+    <div class="publish-box">
+      <h2 data-i18n="publish.title">Publier au Store</h2>
+      <label class="pub-field"><span data-i18n="publish.name">Nom</span><input id="pub-name" type="text" /></label>
+      <label class="pub-field"><span data-i18n="publish.author">Pseudo GitHub</span><input id="pub-author" type="text" /></label>
+      <label class="pub-field"><span data-i18n="publish.description">Description</span><input id="pub-description" type="text" /></label>
+      <label class="pub-field"><span data-i18n="publish.domain">Domaine</span><select id="pub-domain"></select></label>
+      <label class="pub-field"><span data-i18n="publish.tags">Tags</span><input id="pub-tags" type="text" /></label>
+      <label class="pub-field"><span data-i18n="publish.requires">À brancher</span><textarea id="pub-requires" rows="2"></textarea></label>
+      <div class="publish-actions">
+        <button id="pub-cancel" type="button" data-i18n="publish.cancel">Annuler</button>
+        <button id="pub-submit" type="button" data-i18n="publish.submit" disabled>Publier</button>
       </div>
     </div>
   </div>
