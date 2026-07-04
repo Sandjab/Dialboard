@@ -19,3 +19,16 @@ export function validateBinary(bytes, kind, part = PART) {
   if (bytes.length > part.spiffs) return { ok: false, reason: 'fs_too_big' };
   return { ok: true, reason: null };
 }
+
+// { hasFw, hasFs, sdMounted } → liste ordonnee d'etapes { op[, assets] }. op ∈ 'backup' | 'flashFs' |
+// 'flashFw' | 'reboot' | 'wait' | 'restore'. FS avant firmware (reboot auto du fw remonte le FS) ;
+// fs seul → reboot explicite ; restore.assets = !sdMounted (avec SD les assets survivent au /fs).
+export function planFlash({ hasFw, hasFs, sdMounted } = {}) {
+  const steps = [];
+  if (hasFs) { steps.push({ op: 'backup' }); steps.push({ op: 'flashFs' }); }
+  if (hasFw) steps.push({ op: 'flashFw' });          // reboot automatique
+  else if (hasFs) steps.push({ op: 'reboot' });      // fs seul : reboot explicite pour remonter le FS
+  if (hasFw || hasFs) steps.push({ op: 'wait' });
+  if (hasFs) steps.push({ op: 'restore', assets: !sdMounted });
+  return steps;
+}
