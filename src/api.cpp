@@ -13,6 +13,7 @@
 #include <lvgl.h>
 #include "esp_heap_caps.h"
 #include <LittleFS.h>
+#include <Update.h>
 #include "asset_fs.h"
 #include "context.h"
 
@@ -484,6 +485,45 @@ static void h_aimg_get() {
     f.close();
 }
 
+// Octets ecrits par l'upload OTA en cours (firmware ou fs ; les 2 routes ne tournent jamais en
+// concurrence, WebServer est synchrone). Garde contre un POST sans partie fichier : sinon le
+// callback d'upload ne se declenche pas, Update.begin n'est jamais appele, hasError() reste faux
+// -> fausse reussite (200 + reboot du firmware sans rien avoir flashe). Cf. le compteur de /image.
+static size_t s_ota_written = 0;
+
+// --- OTA firmware : ecrit le slot app INACTIF ; bascule otadata au reboot. Calque du pattern
+// d'upload streame de /image (S->upload() : START/WRITE/END). Le double-slot protege d'un
+// transfert rate (l'ancien slot reste actif tant que Update.end(true) n'a pas reussi). ---
+static void h_firmware_upload() {
+    HTTPUpload& up = S->upload();
+    if (up.status == UPLOAD_FILE_START)      { s_ota_written = 0; Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH); }
+    else if (up.status == UPLOAD_FILE_WRITE) s_ota_written += Update.write(up.buf, up.currentSize);
+    else if (up.status == UPLOAD_FILE_END)   Update.end(true);
+}
+static void h_firmware_done() {
+    size_t written = s_ota_written; s_ota_written = 0;   // consomme l'etat : pas de fuite entre requetes
+    if (Update.hasError()) { S->send(500, "text/plain", "update failed\n"); return; }  // erreur d'abord (begin rate)
+    if (written == 0)      { S->send(400, "text/plain", "no image\n"); return; }
+    S->send(200, "text/plain", "ok, rebooting\n");
+    delay(200); ESP.restart();
+}
+
+// --- OTA filesystem (LittleFS, U_SPIFFS = partition data 'spiffs'). ECRASE toute la partition,
+// assets compris : primitive BRUTE. La sauvegarde/restauration des assets vit cote designer
+// (chantier 2). Pas de reboot ici : l'appelant decidera de redemarrer pour remonter le FS. ---
+static void h_fs_upload() {
+    HTTPUpload& up = S->upload();
+    if (up.status == UPLOAD_FILE_START)      { s_ota_written = 0; Update.begin(UPDATE_SIZE_UNKNOWN, U_SPIFFS); }
+    else if (up.status == UPLOAD_FILE_WRITE) s_ota_written += Update.write(up.buf, up.currentSize);
+    else if (up.status == UPLOAD_FILE_END)   Update.end(true);
+}
+static void h_fs_done() {
+    size_t written = s_ota_written; s_ota_written = 0;   // consomme l'etat : pas de fuite entre requetes
+    if (Update.hasError()) { S->send(500, "text/plain", "fs update failed\n"); return; }  // erreur d'abord (begin rate)
+    if (written == 0)      { S->send(400, "text/plain", "no image\n"); return; }
+    S->send(200, "text/plain", "ok, reboot to remount\n");
+}
+
 void api_register(WebServer& server, Dashboard* d) {
     S = &server; D = d;
     server.enableCORS(true);   // Allow-Origin/Methods/Headers: * sur toutes les réponses (outil de dev LAN mono-utilisateur)
@@ -506,6 +546,8 @@ void api_register(WebServer& server, Dashboard* d) {
     server.on("/image", HTTP_GET,  h_image_get);
     server.on("/aimg", HTTP_POST, h_aimg_done, h_aimg_upload);
     server.on("/aimg", HTTP_GET,  h_aimg_get);
+    server.on("/firmware", HTTP_POST, h_firmware_done, h_firmware_upload);   // OTA firmware (U_FLASH)
+    server.on("/fs",       HTTP_POST, h_fs_done,       h_fs_upload);         // OTA filesystem (U_SPIFFS)
     // Designer embarque (LittleFS) : http://<ip>/designer/ sert l'editeur en MEME origin (plus de
     // serveur local ni de CORS). serveStatic cherche index.htm pour une URL de repertoire ("/designer/").
     // Fichiers stages par tools/stage_fs.sh puis flashes via --uploadfs. Le schema partage est servi a
