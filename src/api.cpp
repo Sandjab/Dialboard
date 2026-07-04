@@ -501,8 +501,9 @@ static void h_firmware_upload() {
     else if (up.status == UPLOAD_FILE_END)   Update.end(true);
 }
 static void h_firmware_done() {
-    if (s_ota_written == 0) { S->send(400, "text/plain", "no image\n"); return; }
-    if (Update.hasError())  { S->send(500, "text/plain", "update failed\n"); return; }
+    size_t written = s_ota_written; s_ota_written = 0;   // consomme l'etat : pas de fuite entre requetes
+    if (Update.hasError()) { S->send(500, "text/plain", "update failed\n"); return; }  // erreur d'abord (begin rate)
+    if (written == 0)      { S->send(400, "text/plain", "no image\n"); return; }
     S->send(200, "text/plain", "ok, rebooting\n");
     delay(200); ESP.restart();
 }
@@ -517,8 +518,9 @@ static void h_fs_upload() {
     else if (up.status == UPLOAD_FILE_END)   Update.end(true);
 }
 static void h_fs_done() {
-    if (s_ota_written == 0) { S->send(400, "text/plain", "no image\n"); return; }
-    if (Update.hasError())  { S->send(500, "text/plain", "fs update failed\n"); return; }
+    size_t written = s_ota_written; s_ota_written = 0;   // consomme l'etat : pas de fuite entre requetes
+    if (Update.hasError()) { S->send(500, "text/plain", "fs update failed\n"); return; }  // erreur d'abord (begin rate)
+    if (written == 0)      { S->send(400, "text/plain", "no image\n"); return; }
     S->send(200, "text/plain", "ok, reboot to remount\n");
 }
 
