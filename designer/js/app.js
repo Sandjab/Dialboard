@@ -310,7 +310,7 @@ async function main() {
   });
   mountUsbDialog({
     openBtn: $('usb-open'), overlay: $('usb-overlay'),
-    manifestUrl: './firmware/manifest.json',              // servi same-origine par Pages
+    manifestUrl: '../firmware/manifest.json',             // frère de designer/ sur Pages (_site/firmware/), comme ../schema/ — pas ./firmware
   });
   if (!('serial' in navigator)) $('usb-open').hidden = true;   // dégradation : pas d'entrée morte hors Chromium
 

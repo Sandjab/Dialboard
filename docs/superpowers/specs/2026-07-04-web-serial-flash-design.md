@@ -137,7 +137,7 @@ verrou `busy`. Flux :
 - `style.css` : réemploi des classes `.ota-*` (barre, log, warn) ; twin `.usb-*` seulement si un
   écart de structure l'impose.
 - `js/app.js` : `mountUsbDialog(model, {openBtn:$('usb-flash-toggle'), overlay:$('usb-overlay'),
-  manifestUrl:'./firmware/manifest.json'})`. **Dégradation** : si `!('serial' in navigator)`,
+  manifestUrl:'../firmware/manifest.json'})`. **Dégradation** : si `!('serial' in navigator)`,
   masquer `#usb-flash-toggle` (pas d'entrée morte).
 - i18n `usb.*` **EN + FR** (parité, cf. `i18n-parity.test.js`).
 

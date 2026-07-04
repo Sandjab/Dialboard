@@ -44,7 +44,7 @@
 - [ ] **Step 1 : Vendoriser esptool-js (version épinglée)**
 
 ```bash
-cd /Users/jean-paulgavini/Documents/Dev/Dialboard/designer
+cd <repo>/designer
 # Récupère la version publiée pour l'épingler dans un commentaire :
 curl -s https://unpkg.com/esptool-js/package.json | grep '"version"'
 # Télécharge le bundle ES (contient esptool-js + pako) :
@@ -98,7 +98,7 @@ document.getElementById('go').onclick = async () => {
 Servir en no-store depuis la racine `designer/` puis l'utilisateur ouvre `usb-spike.html` **dans Chrome**, branche le K718 en USB, clique « Connecter », choisit le port.
 
 ```bash
-cd /Users/jean-paulgavini/Documents/Dev/Dialboard/designer
+cd <repo>/designer
 python3 -m http.server 8123
 # → l'utilisateur ouvre http://localhost:8123/usb-spike.html dans Chrome
 ```
@@ -109,7 +109,7 @@ Attendu : « OK — puce détectée : ESP32-S3 » puis « déconnecté propremen
 - [ ] **Step 5 : Nettoyer + commiter le bundle vendorisé**
 
 ```bash
-cd /Users/jean-paulgavini/Documents/Dev/Dialboard
+cd <repo>
 rm designer/usb-spike.html                      # le harnais est jetable ; le bundle reste
 git add designer/vendor/esptool-bundle.js
 git commit -m "feat(2b): vendorise esptool-js + spike bootloader on-device (connect-only) OK
@@ -505,7 +505,7 @@ Monter (près du `mountOtaDialog(...)` ~l.306) :
 ```js
   mountUsbDialog(model, {
     openBtn: $('usb-open'), overlay: $('usb-overlay'),
-    manifestUrl: './firmware/manifest.json',              // servi same-origine par Pages
+    manifestUrl: '../firmware/manifest.json',             // frère de designer/ sur Pages (_site/firmware/), comme ../schema/
   });
   if (!('serial' in navigator)) $('usb-open').hidden = true;   // dégradation : pas d'entrée morte hors Chromium
 ```
