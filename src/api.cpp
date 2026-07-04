@@ -13,6 +13,7 @@
 #include <lvgl.h>
 #include "esp_heap_caps.h"
 #include <LittleFS.h>
+#include <Update.h>
 #include "asset_fs.h"
 #include "context.h"
 
@@ -484,6 +485,21 @@ static void h_aimg_get() {
     f.close();
 }
 
+// --- OTA firmware : ecrit le slot app INACTIF ; bascule otadata au reboot. Calque du pattern
+// d'upload streame de /image (S->upload() : START/WRITE/END). Le double-slot protege d'un
+// transfert rate (l'ancien slot reste actif tant que Update.end(true) n'a pas reussi). ---
+static void h_firmware_upload() {
+    HTTPUpload& up = S->upload();
+    if (up.status == UPLOAD_FILE_START)      Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH);
+    else if (up.status == UPLOAD_FILE_WRITE) Update.write(up.buf, up.currentSize);
+    else if (up.status == UPLOAD_FILE_END)   Update.end(true);
+}
+static void h_firmware_done() {
+    if (Update.hasError()) { S->send(500, "text/plain", "update failed\n"); return; }
+    S->send(200, "text/plain", "ok, rebooting\n");
+    delay(200); ESP.restart();
+}
+
 void api_register(WebServer& server, Dashboard* d) {
     S = &server; D = d;
     server.enableCORS(true);   // Allow-Origin/Methods/Headers: * sur toutes les réponses (outil de dev LAN mono-utilisateur)
@@ -506,6 +522,7 @@ void api_register(WebServer& server, Dashboard* d) {
     server.on("/image", HTTP_GET,  h_image_get);
     server.on("/aimg", HTTP_POST, h_aimg_done, h_aimg_upload);
     server.on("/aimg", HTTP_GET,  h_aimg_get);
+    server.on("/firmware", HTTP_POST, h_firmware_done, h_firmware_upload);   // OTA firmware (U_FLASH)
     // Designer embarque (LittleFS) : http://<ip>/designer/ sert l'editeur en MEME origin (plus de
     // serveur local ni de CORS). serveStatic cherche index.htm pour une URL de repertoire ("/designer/").
     // Fichiers stages par tools/stage_fs.sh puis flashes via --uploadfs. Le schema partage est servi a
