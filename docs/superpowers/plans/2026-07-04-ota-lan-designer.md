@@ -602,6 +602,7 @@ export function mountOtaDialog(model, options) {
 
   // Bouton « sauvegarde .dboard » : bundle COMPLET (layout + tous les assets references), filet universel.
   $('ota-backup').addEventListener('click', async () => {
+    if (busy) return;                                        // pas de GET concurrent pendant un flash (invariant une I/O device)
     const base = getBase();
     if (!base) return void showToast(t('toast.device_url_q'));
     try {
