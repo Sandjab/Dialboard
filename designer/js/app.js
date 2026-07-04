@@ -6,6 +6,7 @@ import { createDrawer } from './drawer.js';
 import { mountTemplatesGallery } from './templates.js';
 import { mountStore } from './store-gallery.js';
 import { mountPublishDialog } from './publish-dialog.js';
+import { mountOtaDialog } from './ota-dialog.js';
 import { loadLayout, pushLayout, captureScreenshot, getStatus, getContext, setDevicePage, pushValues, uploadBgImage, fetchBgImage, uploadImage, fetchImage, uploadAimg, fetchAimg, formatDeviceStatus } from './device.js';
 import { referencedKeys, cacheBytes, cachePut, previewUrl } from './bg-image.js';
 import { referencedImageKeys, cacheBytes as imageCacheBytes, previewUrl as imagePreviewUrl, rehydrate as rehydrateImage } from './image-asset.js';
@@ -302,6 +303,10 @@ async function main() {
     },
   });
   mountPublishDialog(model, { openBtn: $('publish-open'), overlay: $('publish-overlay') });
+  mountOtaDialog(model, {
+    openBtn: $('ota-open'), overlay: $('ota-overlay'),
+    getBase: () => $('base').value, onBusy: (b) => setDeviceBusy(b),
+  });
 
   // Pull on-demand pour l'onglet Device : /context (blackboard) + /status (télémétrie + uptime pour l'âge).
   const pullDeviceContext = async () => {
@@ -419,7 +424,7 @@ async function main() {
   // --- Notifications unifiées + verrou busy (modèle A, cf. spec §3) ---
   // Une seule I/O device en vol à la fois : `busy` bloque la ré-entrée (double-clic) ET désactive les
   // boutons device (feedback visuel). Les éditions locales (inspecteur/arbre/undo) ne sont PAS bloquées.
-  const deviceBtns = ['load', 'push', 'values', 'statusbtn', 'capture', 'shot-prev', 'shot-next'].map($);
+  const deviceBtns = ['load', 'push', 'values', 'statusbtn', 'capture', 'shot-prev', 'shot-next', 'ota-open'].map($);
   let busy = false;
   const setDeviceBusy = (b) => { busy = b; for (const el of deviceBtns) if (el) el.disabled = b; };
 
