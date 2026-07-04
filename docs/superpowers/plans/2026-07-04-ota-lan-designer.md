@@ -447,7 +447,8 @@ export async function rebootDevice(base) {
 }
 
 // Poll GET /status jusqu'a ce que le device reponde (source de verite apres un reboot). true si revenu, false si timeout.
-export async function waitForDevice(base, timeoutMs = 45000, stepMs = 1500) {
+// 120 s : mesure on-device — reboot ESP32-S3 + reassociation WiFi (DHCP) peut depasser 60 s (45 s trop court).
+export async function waitForDevice(base, timeoutMs = 120000, stepMs = 1500) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     try { await getStatus(base); return true; } catch (e) { /* pas encore revenu */ }
