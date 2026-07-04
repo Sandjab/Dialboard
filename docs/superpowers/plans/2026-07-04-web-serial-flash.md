@@ -35,7 +35,7 @@
 
 > **But :** prouver que l'auto-reset DTR/RTS entre en mode bootloader **via Web Serial** sur le K718, **sans rien écrire**. Confirme aussi l'API réelle du bundle vendorisé (noms exportés, ctor `Transport`, `main()`, méthode de reset). **Si le spike échoue, STOP** : ne pas construire l'UI avant d'avoir confirmé l'entrée bootloader (ou conçu le fallback BOOT manuel). Étape **pilotée par l'utilisateur** (branchement K718 + geste `requestPort()` dans Chrome).
 >
-> **✅ RÉSULTAT (2026-07-04, spike passé) :** esptool-js **0.6.0** (Apache-2.0) vendorisé ; exports ESM `ESPLoader`/`Transport` (+ stratégies `ClassicReset`/`HardReset`/`UsbJtagSerialReset`). `ESPLoader.main()` a **détecté « ESP32-S3 (QFN56) rev v0.2 » du premier coup → auto-reset OK, PAS de fallback BOOT manuel obligatoire**. Méthode de reset réelle = **`ESPLoader.after('hard_reset')`** (et NON `loader.hardReset`, qui n'existe pas sur l'instance). Ctor `new Transport(port, tracing)`, `new ESPLoader({transport, baudrate, romBaudrate})`. Steps 1-5 ci-dessous **faits** (bundle committé, harnais supprimé).
+> **✅ RÉSULTAT (2026-07-04, spike passé) :** esptool-js **0.6.0** (Apache-2.0) vendorisé ; exports ESM `ESPLoader`/`Transport` (+ stratégies `ClassicReset`/`HardReset`/`UsbJtagSerialReset`). `ESPLoader.main()` a **détecté « ESP32-S3 (QFN56) rev v0.2 » du premier coup → auto-reset OK, PAS de fallback BOOT manuel obligatoire**. Méthode de reset réelle = **`ESPLoader.after('hard_reset')`** (et NON `loader.hardReset`, qui n'existe pas sur l'instance). Ctor `new Transport(port, tracing)`, `new ESPLoader({transport, baudrate})` (le ctor 0.6.0 ne lit PAS `romBaudrate` — hardcodé 115200). Steps 1-5 ci-dessous **faits** (bundle committé, harnais supprimé).
 
 **Files:**
 - Create: `designer/vendor/esptool-bundle.js`
@@ -275,7 +275,7 @@ import { ESPLoader, Transport } from '../vendor/esptool-bundle.js';
 // onProgress(frac 0..1) pondéré par taille des parts ; onLog(op, arg?) pour le journal ; eraseAll (efface la NVS/WiFi).
 export async function flashDevice(port, fileArray, { onProgress, onLog, eraseAll = false } = {}) {
   const transport = new Transport(port, true);
-  const loader = new ESPLoader({ transport, baudrate: 921600, romBaudrate: 115200 });
+  const loader = new ESPLoader({ transport, baudrate: 921600 });   // esptool-js 0.6.0 : le ctor ne lit PAS romBaudrate (hardcodé 115200)
   try {
     onLog && onLog('connect');
     const chip = await loader.main();                    // reset DTR/RTS + sync + détection de puce
