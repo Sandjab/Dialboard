@@ -34,6 +34,8 @@
 ## Task 1 : Spike de dé-risque (connect-only, on-device) — **GATE**
 
 > **But :** prouver que l'auto-reset DTR/RTS entre en mode bootloader **via Web Serial** sur le K718, **sans rien écrire**. Confirme aussi l'API réelle du bundle vendorisé (noms exportés, ctor `Transport`, `main()`, méthode de reset). **Si le spike échoue, STOP** : ne pas construire l'UI avant d'avoir confirmé l'entrée bootloader (ou conçu le fallback BOOT manuel). Étape **pilotée par l'utilisateur** (branchement K718 + geste `requestPort()` dans Chrome).
+>
+> **✅ RÉSULTAT (2026-07-04, spike passé) :** esptool-js **0.6.0** (Apache-2.0) vendorisé ; exports ESM `ESPLoader`/`Transport` (+ stratégies `ClassicReset`/`HardReset`/`UsbJtagSerialReset`). `ESPLoader.main()` a **détecté « ESP32-S3 (QFN56) rev v0.2 » du premier coup → auto-reset OK, PAS de fallback BOOT manuel obligatoire**. Méthode de reset réelle = **`ESPLoader.after('hard_reset')`** (et NON `loader.hardReset`, qui n'existe pas sur l'instance). Ctor `new Transport(port, tracing)`, `new ESPLoader({transport, baudrate, romBaudrate})`. Steps 1-5 ci-dessous **faits** (bundle committé, harnais supprimé).
 
 **Files:**
 - Create: `designer/vendor/esptool-bundle.js`
@@ -291,13 +293,12 @@ export async function flashDevice(port, fileArray, { onProgress, onLog, eraseAll
       },
     });
     onLog && onLog('reset');
-    await loader.hardReset();                             // ← méthode confirmée en Task 1 ; remet le device en boot normal
+    await loader.after('hard_reset');                    // reset confirmé Task 1 (esptool-js 0.6.0 : ESPLoader.after, défaut 'hard_reset')
   } finally {
     try { await transport.disconnect(); } catch { /* déjà fermé / débranché */ }
   }
 }
 ```
-> Si Task 1 a révélé un nom de reset ≠ `hardReset`, l'employer ici (un seul endroit).
 
 - [ ] **Step 2 : Sanity-check syntaxe (import ES résolu par le navigateur en Task 5 ; ici juste la forme)**
 
