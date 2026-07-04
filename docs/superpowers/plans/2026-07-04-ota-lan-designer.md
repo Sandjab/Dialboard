@@ -556,10 +556,12 @@ export function mountOtaDialog(model, options) {
       for (const [k, b] of Object.entries(backup.assets.aimg))  await uploadAimg(base, k, b);
     }
   }
-  // /firmware reboote au succes : une coupure reseau (TypeError) est un succes probable, tranche par waitForDevice.
+  // /firmware reboote au succes : une coupure (TypeError) APRES upload complet (frac ~1) = reboot attendu, tranche par
+  // waitForDevice. Une coupure a mi-transfert (frac < 0.99) = vrai echec → rethrow (sinon fausse reussite sans rien flasher).
   async function flashFirmware(base, bytes) {
-    try { await postFirmware(base, bytes, setBar); }
-    catch (e) { if (!(e instanceof TypeError)) throw e; }
+    let frac = 0;
+    try { await postFirmware(base, bytes, f => { frac = f; setBar(f); }); }
+    catch (e) { if (!(e instanceof TypeError) || frac < 0.99) throw e; }
   }
   // /reboot envoie 200 avant de redemarrer, mais la coupure peut preceder la reponse : tolerer TypeError (waitForDevice tranche).
   async function rebootQuietly(base) {
@@ -622,7 +624,7 @@ export function mountOtaDialog(model, options) {
   };
   const close = () => { overlay.hidden = true; };
   openBtn.addEventListener('click', open);
-  $('ota-cancel').addEventListener('click', close);
+  $('ota-cancel').addEventListener('click', () => { if (!busy) close(); });   // pas de fermeture aveugle en plein flash
   overlay.addEventListener('click', e => { if (e.target === overlay && !busy) close(); });
   submit.addEventListener('click', run);
 }
