@@ -561,6 +561,11 @@ export function mountOtaDialog(model, options) {
     try { await postFirmware(base, bytes, setBar); }
     catch (e) { if (!(e instanceof TypeError)) throw e; }
   }
+  // /reboot envoie 200 avant de redemarrer, mais la coupure peut preceder la reponse : tolerer TypeError (waitForDevice tranche).
+  async function rebootQuietly(base) {
+    try { await rebootDevice(base); }
+    catch (e) { if (!(e instanceof TypeError)) throw e; }
+  }
 
   async function run() {
     const base = getBase();
@@ -575,10 +580,13 @@ export function mountOtaDialog(model, options) {
       let backup = null;
       for (const step of steps) {
         logStep(step.op); progress.hidden = true; bar.style.width = '0';
-        if (step.op === 'backup')       backup = await backupDevice(base, !sdMounted);
+        if (step.op === 'backup') {
+          try { backup = await backupDevice(base, !sdMounted); }
+          catch (e) { throw new Error(!sdMounted ? t('ota.backup_incomplete') : e.message); }   // pas de SD → ne pas flasher sur un backup rate
+        }
         else if (step.op === 'flashFs') await postFs(base, fs.bytes, setBar);
         else if (step.op === 'flashFw') await flashFirmware(base, fw.bytes);
-        else if (step.op === 'reboot')  await rebootDevice(base);
+        else if (step.op === 'reboot')  await rebootQuietly(base);
         else if (step.op === 'wait')    { if (!await waitForDevice(base)) throw new Error(t('ota.reconnect_timeout')); }
         else if (step.op === 'restore') await restoreDevice(base, backup, step.assets);
       }
