@@ -155,6 +155,49 @@ export async function fetchAimg(base, key) {
   return new Uint8Array(await r.arrayBuffer());
 }
 
+// --- OTA (chantier 2a). Upload en XHR (et non fetch) pour exposer la progression via upload.onprogress.
+// Le champ multipart 'img' est aligne sur /image ; le handler firmware lit S->upload() sans filtrer le nom.
+function xhrUpload(base, path, bytes, filename, onProgress) {
+  return new Promise((resolve, reject) => {
+    const t0 = performance.now();
+    const fd = new FormData();
+    fd.append('img', new Blob([bytes], { type: 'application/octet-stream' }), filename);
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', clean(base) + path);
+    xhr.upload.onprogress = e => { if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total); };
+    xhr.onload = () => {
+      logs.logNet({ method: 'POST', path, status: xhr.status, ms: Math.round(performance.now() - t0), ok: xhr.status >= 200 && xhr.status < 300 });
+      (xhr.status >= 200 && xhr.status < 300) ? resolve(xhr.responseText) : reject(new Error('HTTP ' + xhr.status));
+    };
+    xhr.onerror = () => {   // connexion coupee (p. ex. reboot du firmware) → l'appelant tranche via waitForDevice
+      logs.logNet({ method: 'POST', path, status: 0, ms: Math.round(performance.now() - t0), ok: false });
+      reject(new TypeError('network'));
+    };
+    xhr.send(fd);
+  });
+}
+// POST /firmware (U_FLASH) : ecrit le slot app inactif ; le device reboote au succes (peut couper la connexion).
+export function postFirmware(base, bytes, onProgress) { return xhrUpload(base, '/firmware', bytes, 'firmware.bin', onProgress); }
+// POST /fs (U_SPIFFS) : ecrase le LittleFS ; PAS de reboot (l'appelant enchaine rebootDevice).
+export function postFs(base, bytes, onProgress) { return xhrUpload(base, '/fs', bytes, 'littlefs.bin', onProgress); }
+
+// POST /reboot : reboot logiciel du device.
+export async function rebootDevice(base) {
+  const r = await devFetch(base, '/reboot', { method: 'POST' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.text().catch(() => '');
+}
+
+// Poll GET /status jusqu'a ce que le device reponde (source de verite apres un reboot). true si revenu, false si timeout.
+export async function waitForDevice(base, timeoutMs = 45000, stepMs = 1500) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try { await getStatus(base); return true; } catch (e) { /* pas encore revenu */ }
+    await new Promise(r => setTimeout(r, stepMs));
+  }
+  return false;
+}
+
 // Présentation de GET /status pour la pastille device (séparée du transport → testable node).
 // { label } : court, pour la toolbar (pastille pleine ● + ip). { tooltip } : détail (page 1-based,
 // uptime, composants, état de chaque source pull). En Phase 5 le tooltip alimente le `title` de la
