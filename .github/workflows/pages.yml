@@ -16,6 +16,8 @@ on:
       - 'designer/**'
       - 'schema/**'
       - '.github/workflows/pages.yml'
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
@@ -48,6 +50,14 @@ jobs:
           <meta http-equiv="refresh" content="0; url=./designer/" />
           <a href="./designer/">Dialboard Designer →</a>
           HTML
+
+      - name: Fetch latest firmware release into _site/firmware
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p _site/firmware
+          gh release download --dir _site/firmware --pattern '*' \
+            || echo "Pas encore de release firmware — flash USB désactivé jusqu'au premier tag."
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

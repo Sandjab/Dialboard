@@ -1,0 +1,57 @@
+# Build le firmware ESP32-S3 + l'image LittleFS sur tag v*, assemble les 5 images d'un device
+# vierge + un manifest.json, et publie le tout en assets de Release. Consommé par pages.yml
+# (téléchargées dans _site/firmware/, servies same-origine au designer pour le flash USB — chantier 2b).
+name: Build & release firmware
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: write          # pour `gh workflow run` (dispatch de pages.yml)
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            .pio
+          key: pio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+      - run: pip install --upgrade platformio
+      - name: Build firmware (app + bootloader + partitions)
+        run: pio run -e esp32s3
+      - name: Build LittleFS image (designer + schema + layout)
+        run: |
+          bash tools/stage_fs.sh
+          pio run -e esp32s3 -t buildfs
+      - name: Assemble firmware images + manifest
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          B=.pio/build/esp32s3
+          cp "$B/bootloader.bin" "$B/partitions.bin" "$B/firmware.bin" "$B/littlefs.bin" out/
+          cp "$(find ~/.platformio/packages/framework-arduinoespressif32 -name boot_app0.bin | head -1)" out/boot_app0.bin
+          cat > out/manifest.json <<JSON
+          { "version": "${GITHUB_REF_NAME}",
+            "parts": [
+              { "path": "bootloader.bin", "offset": 0 },
+              { "path": "partitions.bin", "offset": 32768 },
+              { "path": "boot_app0.bin",  "offset": 57344 },
+              { "path": "firmware.bin",   "offset": 65536 },
+              { "path": "littlefs.bin",   "offset": 8454144 } ] }
+          JSON
+          python3 -c "import json; json.load(open('out/manifest.json'))"   # fail loud si le tag rend le JSON invalide
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: out/*
+      - name: Redéploie Pages (sert le firmware neuf same-origine)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml     # workflow_dispatch cascade avec le token par défaut (contrairement à release:published)
