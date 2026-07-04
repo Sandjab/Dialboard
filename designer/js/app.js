@@ -7,6 +7,7 @@ import { mountTemplatesGallery } from './templates.js';
 import { mountStore } from './store-gallery.js';
 import { mountPublishDialog } from './publish-dialog.js';
 import { mountOtaDialog } from './ota-dialog.js';
+import { mountUsbDialog } from './usb-dialog.js';
 import { loadLayout, pushLayout, captureScreenshot, getStatus, getContext, setDevicePage, pushValues, uploadBgImage, fetchBgImage, uploadImage, fetchImage, uploadAimg, fetchAimg, formatDeviceStatus } from './device.js';
 import { referencedKeys, cacheBytes, cachePut, previewUrl } from './bg-image.js';
 import { referencedImageKeys, cacheBytes as imageCacheBytes, previewUrl as imagePreviewUrl, rehydrate as rehydrateImage } from './image-asset.js';
@@ -307,6 +308,11 @@ async function main() {
     openBtn: $('ota-open'), overlay: $('ota-overlay'),
     getBase: () => $('base').value, onBusy: (b) => setDeviceBusy(b),
   });
+  mountUsbDialog({
+    openBtn: $('usb-open'), overlay: $('usb-overlay'),
+    manifestUrl: '../firmware/manifest.json',             // frère de designer/ sur Pages (_site/firmware/), comme ../schema/ — pas ./firmware
+  });
+  if (!('serial' in navigator)) $('usb-open').hidden = true;   // dégradation : pas d'entrée morte hors Chromium
 
   // Pull on-demand pour l'onglet Device : /context (blackboard) + /status (télémétrie + uptime pour l'âge).
   const pullDeviceContext = async () => {
