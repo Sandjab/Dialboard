@@ -43,6 +43,7 @@
       <button id="values" class="tb-btn" data-i18n-tip="toolbar.values.tip" data-i18n-title="toolbar.values.title" data-tip="Valeurs test (POST /update)" title="Pousse les valeurs d'aperçu (mocks) au device via POST /update"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg></button>
       <button id="statusbtn" class="tb-btn" data-i18n-tip="toolbar.status.tip" data-i18n-title="toolbar.status.title" data-tip="Statut (GET /status)" title="Lit GET /status (santé device + état des sources)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 9h3l2-5 2 9 2-4h3"/></svg></button>
       <button id="capture" class="tb-btn" data-i18n-tip="toolbar.capture.tip" data-i18n-title="toolbar.capture.title" data-tip="Capture écran (GET /screenshot)" title="Capture l'écran du device (GET /screenshot)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="12" height="9"/><circle cx="8" cy="8.5" r="2.2"/><rect x="6" y="2.5" width="4" height="1.5"/></svg></button>
+      <button id="ota-open" class="tb-btn" data-i18n-tip="toolbar.ota.tip" data-i18n-title="toolbar.ota.title" data-tip="Mettre à jour (OTA)" title="Flasher firmware / FS par le réseau"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v7M5 6l3 3 3-3"/><path d="M3 11v2h10v-2"/></svg></button>
     </div>
     <!-- Tiroir Sources -->
     <div class="tb-group">
@@ -170,6 +171,24 @@
       <div class="publish-actions">
         <button id="pub-cancel" type="button" data-i18n="publish.cancel">Annuler</button>
         <button id="pub-submit" type="button" data-i18n="publish.submit" disabled>Publier</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="ota-overlay" class="shot-overlay" hidden>
+    <div class="ota-box">
+      <h2 data-i18n="ota.title">Mettre à jour le device</h2>
+      <p id="ota-warn" class="ota-warn"></p>
+      <label class="ota-field"><span data-i18n="ota.firmware">Firmware (.bin)</span><input id="ota-fw" type="file" accept=".bin" /></label>
+      <div id="ota-fw-err" class="ota-err"></div>
+      <label class="ota-field"><span data-i18n="ota.fs">Image système de fichiers (.bin)</span><input id="ota-fs" type="file" accept=".bin" /></label>
+      <div id="ota-fs-err" class="ota-err"></div>
+      <button id="ota-backup" class="ota-secondary" type="button" data-i18n="ota.backup">Télécharger une sauvegarde .dboard</button>
+      <div id="ota-progress" class="ota-progress" hidden><div id="ota-bar"></div></div>
+      <ul id="ota-log" class="ota-log"></ul>
+      <div class="ota-actions">
+        <button id="ota-cancel" type="button" data-i18n="ota.cancel">Fermer</button>
+        <button id="ota-submit" type="button" data-i18n="ota.submit" disabled>Mettre à jour</button>
       </div>
     </div>
   </div>

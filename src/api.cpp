@@ -524,6 +524,13 @@ static void h_fs_done() {
     S->send(200, "text/plain", "ok, reboot to remount\n");
 }
 
+// --- Reboot logiciel : primitive pour l'UI OTA (remonter le LittleFS apres un /fs, qui ne reboote
+// pas de lui-meme). Reponse envoyee AVANT le restart (marge 200 ms), comme /firmware. ---
+static void h_reboot() {
+    S->send(200, "text/plain", "ok, rebooting\n");
+    delay(200); ESP.restart();
+}
+
 void api_register(WebServer& server, Dashboard* d) {
     S = &server; D = d;
     server.enableCORS(true);   // Allow-Origin/Methods/Headers: * sur toutes les réponses (outil de dev LAN mono-utilisateur)
@@ -548,6 +555,7 @@ void api_register(WebServer& server, Dashboard* d) {
     server.on("/aimg", HTTP_GET,  h_aimg_get);
     server.on("/firmware", HTTP_POST, h_firmware_done, h_firmware_upload);   // OTA firmware (U_FLASH)
     server.on("/fs",       HTTP_POST, h_fs_done,       h_fs_upload);         // OTA filesystem (U_SPIFFS)
+    server.on("/reboot", HTTP_POST, h_reboot);                              // reboot logiciel (UI OTA)
     // Designer embarque (LittleFS) : http://<ip>/designer/ sert l'editeur en MEME origin (plus de
     // serveur local ni de CORS). serveStatic cherche index.htm pour une URL de repertoire ("/designer/").
     // Fichiers stages par tools/stage_fs.sh puis flashes via --uploadfs. Le schema partage est servi a
