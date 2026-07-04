@@ -101,3 +101,19 @@ test('weightedProgress : fracs plus court que weights → parts non commencées 
 test('weightedProgress : poids total nul → 0 sans throw (intent : défensif)', () => {
   assert.equal(weightedProgress([], []), 0);
 });
+
+test('weightedProgress : args non-tableaux → 0 sans throw (intent : garde défensive Gemini)', () => {
+  assert.equal(weightedProgress(null, undefined), 0);
+  assert.equal(weightedProgress('x', 5), 0);
+});
+
+test('planParts : part malformée (offset non numérique) → shape sans throw (intent : garde par-élément)', () => {
+  // on appelle planParts directement (hors validateManifest) avec une part cassée
+  const m = { version: 'v1', parts: [{ path: 'firmware.bin', offset: '0x10000' }, ...goodManifest().parts.slice(1)] };
+  assert.equal(planParts(m, {}).reason, 'shape');
+});
+
+test('planParts : part nulle → shape sans throw (intent : garde par-élément)', () => {
+  const m = { version: 'v1', parts: [null, ...goodManifest().parts.slice(1)] };
+  assert.equal(planParts(m, {}).reason, 'shape');
+});

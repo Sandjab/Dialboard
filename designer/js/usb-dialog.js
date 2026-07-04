@@ -42,21 +42,23 @@ export function mountUsbDialog(options) {
     if (submit.disabled) return;
     busy = true; refresh(); clearLog();
     try {
-      const port = await requestPort();                    // geste utilisateur
-      // fetch des 5 blobs same-origine (résolus relativement au manifest)
+      // requestPort() EN PREMIER : l'activation transitoire du geste utilisateur ne survivrait pas à l'await
+      // d'un download de ~8 Mo (littlefs) → requestPort planterait. On télécharge APRÈS, mais EN PARALLÈLE.
+      const port = await requestPort();
       const blobs = {};
-      for (const p of manifest.parts) {
+      await Promise.all(manifest.parts.map(async (p) => {           // 5 blobs same-origine en parallèle
         const url = new URL(p.path, new URL(manifestUrl, location.href)).href;
         const res = await fetch(url, { cache: 'no-store' });
         if (!res.ok) throw new Error(t('usb.fetch_failed', { msg: p.path + ' HTTP ' + res.status }));
         blobs[p.path] = new Uint8Array(await res.arrayBuffer());
-      }
+      }));
       const plan = planParts(manifest, blobs);
       if (!plan.ok) throw new Error(t('usb.bad_release'));
       await flash(port, plan.fileArray, { onProgress: setBar, onLog: logStep, eraseAll: erase.checked });
       close();
       showToast(t('usb.done'), { kind: 'ok', ms: 10000 });
     } catch (e) {
+      if (e && (e.name === 'NotFoundError' || e.name === 'AbortError')) return;   // annulation du choix de port → silencieux (finally réarme)
       logErr(e.message);
       logErr(t('usb.bootloader_hint'));                    // repli bootloader (auto-reset raté possible)
       showToast(t('usb.failed', { msg: e.message }), { kind: 'warn', ms: 6000 });

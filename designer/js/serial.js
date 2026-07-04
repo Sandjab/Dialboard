@@ -8,6 +8,7 @@ const USB_JTAG_SERIAL_PID = 0x1001;   // PID de l'USB-Serial/JTAG natif de l'ESP
 // onProgress(frac 0..1) ; onLog(op, arg?) pour le journal ; eraseAll (efface la NVS/WiFi).
 // Retourne { reset } — reset:false ⇒ le device n'a PAS pu redémarrer seul (l'UI invite à débrancher/rebrancher).
 export async function flashDevice(port, fileArray, { onProgress, onLog, eraseAll = false } = {}) {
+  if (!Array.isArray(fileArray) || !fileArray.length) return;   // défensif : rien à flasher
   const transport = new Transport(port, true);
   const loader = new ESPLoader({ transport, baudrate: 921600 });   // 0.6.0 : le ctor ne lit PAS romBaudrate (hardcodé 115200)
   try {

@@ -26,6 +26,9 @@ export function validateManifest(obj) {
 // reason ∈ 'shape' | 'missing_blob' | 'app_magic'. Réutilise validateBinary (magic 0xE9) sur l'image app.
 export function planParts(manifest, blobs) {
   if (!manifest || !Array.isArray(manifest.parts)) return { ok: false, reason: 'shape' };
+  // defense-in-depth (validateManifest en amont le garantit déjà) : chaque part = objet {path:string, offset:number}
+  if (!manifest.parts.every(p => p && typeof p === 'object' && typeof p.path === 'string' && typeof p.offset === 'number'))
+    return { ok: false, reason: 'shape' };
   const parts = [...manifest.parts].sort((a, b) => a.offset - b.offset);
   const fileArray = [];
   for (const p of parts) {
@@ -42,6 +45,7 @@ export function planParts(manifest, blobs) {
 // → fraction globale 0..1 qui monte fluide jusqu'à 1 (le gros littlefs domine le poids). fracs plus court
 // que weights → parts non commencées comptées à 0. Défensif : total nul → 0.
 export function weightedProgress(fracs, weights) {
+  if (!Array.isArray(fracs) || !Array.isArray(weights)) return 0;   // défensif
   let done = 0, total = 0;
   for (let i = 0; i < weights.length; i++) { total += weights[i]; done += (fracs[i] || 0) * weights[i]; }
   return total ? done / total : 0;
