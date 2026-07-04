@@ -500,6 +500,20 @@ static void h_firmware_done() {
     delay(200); ESP.restart();
 }
 
+// --- OTA filesystem (LittleFS, U_SPIFFS = partition data 'spiffs'). ECRASE toute la partition,
+// assets compris : primitive BRUTE. La sauvegarde/restauration des assets vit cote designer
+// (chantier 2). Pas de reboot ici : l'appelant decidera de redemarrer pour remonter le FS. ---
+static void h_fs_upload() {
+    HTTPUpload& up = S->upload();
+    if (up.status == UPLOAD_FILE_START)      Update.begin(UPDATE_SIZE_UNKNOWN, U_SPIFFS);
+    else if (up.status == UPLOAD_FILE_WRITE) Update.write(up.buf, up.currentSize);
+    else if (up.status == UPLOAD_FILE_END)   Update.end(true);
+}
+static void h_fs_done() {
+    if (Update.hasError()) { S->send(500, "text/plain", "fs update failed\n"); return; }
+    S->send(200, "text/plain", "ok, reboot to remount\n");
+}
+
 void api_register(WebServer& server, Dashboard* d) {
     S = &server; D = d;
     server.enableCORS(true);   // Allow-Origin/Methods/Headers: * sur toutes les réponses (outil de dev LAN mono-utilisateur)
@@ -523,6 +537,7 @@ void api_register(WebServer& server, Dashboard* d) {
     server.on("/aimg", HTTP_POST, h_aimg_done, h_aimg_upload);
     server.on("/aimg", HTTP_GET,  h_aimg_get);
     server.on("/firmware", HTTP_POST, h_firmware_done, h_firmware_upload);   // OTA firmware (U_FLASH)
+    server.on("/fs",       HTTP_POST, h_fs_done,       h_fs_upload);         // OTA filesystem (U_SPIFFS)
     // Designer embarque (LittleFS) : http://<ip>/designer/ sert l'editeur en MEME origin (plus de
     // serveur local ni de CORS). serveStatic cherche index.htm pour une URL de repertoire ("/designer/").
     // Fichiers stages par tools/stage_fs.sh puis flashes via --uploadfs. Le schema partage est servi a
