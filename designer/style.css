@@ -638,3 +638,19 @@ main > .col:last-child { border-right: 0; }
   border: 1px solid rgba(127,127,127,.35); background: transparent; color: inherit; }
 #pub-submit { font-weight: 600; border-color: currentColor; }
 #pub-submit:disabled { opacity: .4; cursor: default; }
+
+/* Overlay OTA — réutilise .shot-overlay (fond + centrage). Boîte façon .publish-box. */
+.ota-box { background: var(--panel, #1b2330); color: var(--ink, #F4F1E8); border-radius: 10px;
+  padding: 20px; width: min(460px, 92vw); display: flex; flex-direction: column; gap: 10px; }
+.ota-warn { margin: 0; font-size: 13px; color: var(--text-dim, #9fb0c3); }
+.ota-field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.ota-err { min-height: 0; color: #ef6a6a; font-size: 12px; }
+.ota-err:empty { display: none; }
+.ota-secondary { align-self: flex-start; background: none; border: 1px solid var(--border-2, #3A3A3A);
+  color: var(--text-dim, #9fb0c3); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+.ota-progress { height: 8px; background: var(--border-2, #3A3A3A); border-radius: 4px; overflow: hidden; }
+.ota-progress > #ota-bar { height: 100%; width: 0; background: var(--accent, #4c9ffe); transition: width .1s linear; }
+.ota-log { list-style: none; margin: 0; padding: 0; font-size: 12px; max-height: 30vh; overflow: auto; }
+.ota-log li { padding: 2px 0; color: var(--text-dim, #9fb0c3); }
+.ota-log li.err { color: #ef6a6a; }
+.ota-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
