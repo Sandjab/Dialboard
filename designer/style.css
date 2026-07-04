@@ -210,6 +210,7 @@ main > .col:last-child { border-right: 0; }
 /* Panneau WiFi (liste/ajout/suppression de réseaux device), gaté par le réglage deviceWifi. */
 .console-wifi { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden; }
 .console-wifi[hidden] { display: none; }   /* même gotcha que .console-devctx : display auteur l'emporterait sur [hidden] (UA) */
+#usb-open[hidden] { display: none; }   /* display auteur (.tb-btn) l'emporterait sinon sur [hidden] (UA) */
 
 /* --- Plan B : webfont + canvas --- */
 @font-face {
@@ -649,8 +650,10 @@ main > .col:last-child { border-right: 0; }
 .ota-secondary { align-self: flex-start; background: none; border: 1px solid var(--border-2, #3A3A3A);
   color: var(--text-dim, #9fb0c3); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
 .ota-progress { height: 8px; background: var(--border-2, #3A3A3A); border-radius: 4px; overflow: hidden; }
-.ota-progress > #ota-bar { height: 100%; width: 0; background: var(--accent, #4c9ffe); transition: width .1s linear; }
+.ota-progress > #ota-bar, .ota-progress > #usb-bar { height: 100%; width: 0; background: var(--accent, #4c9ffe); transition: width .1s linear; }
 .ota-log { list-style: none; margin: 0; padding: 0; font-size: 12px; max-height: 30vh; overflow: auto; }
 .ota-log li { padding: 2px 0; color: var(--text-dim, #9fb0c3); }
 .ota-log li.err { color: #ef6a6a; }
 .ota-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.usb-erase { display: flex; align-items: center; gap: .5rem; font-size: .9rem; margin: .5rem 0; }
+#usb-version { font-weight: 600; margin: .25rem 0; }

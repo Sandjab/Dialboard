@@ -44,6 +44,7 @@
       <button id="statusbtn" class="tb-btn" data-i18n-tip="toolbar.status.tip" data-i18n-title="toolbar.status.title" data-tip="Statut (GET /status)" title="Lit GET /status (santé device + état des sources)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 9h3l2-5 2 9 2-4h3"/></svg></button>
       <button id="capture" class="tb-btn" data-i18n-tip="toolbar.capture.tip" data-i18n-title="toolbar.capture.title" data-tip="Capture écran (GET /screenshot)" title="Capture l'écran du device (GET /screenshot)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="12" height="9"/><circle cx="8" cy="8.5" r="2.2"/><rect x="6" y="2.5" width="4" height="1.5"/></svg></button>
       <button id="ota-open" class="tb-btn" data-i18n-tip="toolbar.ota.tip" data-i18n-title="toolbar.ota.title" data-tip="Mettre à jour (OTA)" title="Flasher firmware / FS par le réseau"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v7M5 6l3 3 3-3"/><path d="M3 11v2h10v-2"/></svg></button>
+      <button id="usb-open" class="tb-btn" data-i18n-tip="toolbar.usb.tip" data-i18n-title="toolbar.usb.title" data-tip="Installer un nouveau device (USB)" title="Flasher un device vierge par USB"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1v9M5 7l3 3 3-3"/><rect x="6" y="12" width="4" height="3" rx="1"/></svg></button>
     </div>
     <!-- Tiroir Sources -->
     <div class="tb-group">
@@ -189,6 +190,22 @@
       <div class="ota-actions">
         <button id="ota-cancel" type="button" data-i18n="ota.cancel">Fermer</button>
         <button id="ota-submit" type="button" data-i18n="ota.submit" disabled>Mettre à jour</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="usb-overlay" class="shot-overlay" hidden>
+    <div class="ota-box">
+      <h2 data-i18n="usb.title">Installer un nouveau device (USB)</h2>
+      <p id="usb-intro" class="ota-warn" data-i18n="usb.intro">Branche l'écran en USB, puis flashe.</p>
+      <p id="usb-unsupported" class="ota-err" data-i18n="usb.unsupported" hidden></p>
+      <p id="usb-version"></p>
+      <label class="usb-erase"><input id="usb-erase" type="checkbox" /> <span data-i18n="usb.erase">Tout effacer (efface aussi le Wi-Fi enregistré)</span></label>
+      <div id="usb-progress" class="ota-progress" hidden><div id="usb-bar"></div></div>
+      <ul id="usb-log" class="ota-log"></ul>
+      <div class="ota-actions">
+        <button id="usb-cancel" type="button" data-i18n="usb.close">Fermer</button>
+        <button id="usb-submit" type="button" data-i18n="usb.connect" disabled>Connecter & flasher</button>
       </div>
     </div>
   </div>
