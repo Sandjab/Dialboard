@@ -550,7 +550,7 @@ export default {
   'usb.step.detected': 'Detected: {chip}',
   'usb.step.write': 'Writing firmware…',
   'usb.step.reset': 'Restarting the device…',
-  'usb.done': 'Device flashed. It restarts as a Dialboard (Wi-Fi setup portal “Dialboard-XXXX” if no Wi-Fi is saved).',
+  'usb.done': 'Device flashed! Unplug and replug it (or press RESET) to start — it comes up as a Dialboard (Wi-Fi setup portal “Dialboard-XXXX” if no Wi-Fi is saved).',
   'usb.failed': 'Flashing failed: {msg}',
   'usb.fetch_failed': 'Could not download the firmware: {msg}',
   'usb.bad_release': 'The firmware release looks corrupt. Please try again later.',

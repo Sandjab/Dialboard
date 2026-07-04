@@ -54,8 +54,8 @@ export function mountUsbDialog(options) {
       const plan = planParts(manifest, blobs);
       if (!plan.ok) throw new Error(t('usb.bad_release'));
       await flash(port, plan.fileArray, { onProgress: setBar, onLog: logStep, eraseAll: erase.checked });
-      showToast(t('usb.done'), { kind: 'ok', ms: 8000 });
       close();
+      showToast(t('usb.done'), { kind: 'ok', ms: 10000 });
     } catch (e) {
       logErr(e.message);
       logErr(t('usb.bootloader_hint'));                    // repli bootloader (auto-reset raté possible)

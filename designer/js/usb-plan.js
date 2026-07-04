@@ -36,3 +36,13 @@ export function planParts(manifest, blobs) {
   }
   return { ok: true, fileArray };
 }
+
+// Progression pondérée d'un flash multi-parts. fracs[i] = avancement du fichier i (0..1, robuste à la
+// compression car esptool reporte written/total dans la MÊME unité) ; weights[i] = taille non-compressée.
+// → fraction globale 0..1 qui monte fluide jusqu'à 1 (le gros littlefs domine le poids). fracs plus court
+// que weights → parts non commencées comptées à 0. Défensif : total nul → 0.
+export function weightedProgress(fracs, weights) {
+  let done = 0, total = 0;
+  for (let i = 0; i < weights.length; i++) { total += weights[i]; done += (fracs[i] || 0) * weights[i]; }
+  return total ? done / total : 0;
+}

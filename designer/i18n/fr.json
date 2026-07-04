@@ -524,7 +524,7 @@
   "usb.step.detected": "Détecté : {chip}",
   "usb.step.write": "Écriture du firmware…",
   "usb.step.reset": "Redémarrage du device…",
-  "usb.done": "Device flashé. Il redémarre en Dialboard (portail de config « Dialboard-XXXX » si aucun Wi-Fi enregistré).",
+  "usb.done": "Device flashé ! Débranche/rebranche-le (ou appuie sur RESET) pour le démarrer — il revient en Dialboard (portail « Dialboard-XXXX » si aucun Wi-Fi enregistré).",
   "usb.failed": "Échec du flash : {msg}",
   "usb.fetch_failed": "Téléchargement du firmware impossible : {msg}",
   "usb.bad_release": "La version du firmware semble corrompue. Réessaie plus tard.",

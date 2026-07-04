@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { OFFSETS, validateManifest, planParts } from '../js/usb-plan.js';
+import { OFFSETS, validateManifest, planParts, weightedProgress } from '../js/usb-plan.js';
 
 const goodManifest = () => ({
   version: 'v1.2.3',
@@ -79,4 +79,25 @@ test('planParts : manifest non conforme → shape sans throw (intent : couvrir l
 test('planParts : image app sans magic 0xE9 → app_magic (intent : anti-brick, réutilise validateBinary)', () => {
   const blobs = { 'bootloader.bin': raw(), 'partitions.bin': raw(), 'boot_app0.bin': raw(), 'firmware.bin': raw(), 'littlefs.bin': raw() };
   assert.equal(planParts(goodManifest(), blobs).reason, 'app_magic');
+});
+
+test('weightedProgress : tous les fichiers finis → 1 (intent : la barre atteint bien 100%)', () => {
+  assert.equal(weightedProgress([1, 1, 1], [10, 20, 70]), 1);
+});
+
+test('weightedProgress : rien fait → 0 (intent : départ à 0%)', () => {
+  assert.equal(weightedProgress([0, 0], [5, 5]), 0);
+});
+
+test('weightedProgress : pondéré par la taille non-compressée (intent : le gros fichier domine, pas le nombre de parts)', () => {
+  // petit fichier fini, gros pas commencé → ~10%, PAS 50% (ce que donnerait une moyenne non pondérée)
+  assert.equal(weightedProgress([1, 0], [1, 9]), 0.1);
+});
+
+test('weightedProgress : fracs plus court que weights → parts non commencées à 0 (intent : robuste au reporting par fichier)', () => {
+  assert.equal(weightedProgress([1], [1, 1]), 0.5);   // 1re part finie sur 2 de même poids
+});
+
+test('weightedProgress : poids total nul → 0 sans throw (intent : défensif)', () => {
+  assert.equal(weightedProgress([], []), 0);
 });
