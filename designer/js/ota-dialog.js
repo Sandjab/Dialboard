@@ -37,10 +37,12 @@ export function mountOtaDialog(model, options) {
     slot.bytes = null; slot.err.textContent = '';
     const file = slot.input.files[0];
     if (file) {
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      const v = validateBinary(bytes, kind);
-      if (v.ok) slot.bytes = bytes;
-      else slot.err.textContent = t('ota.err.' + v.reason);
+      try {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        const v = validateBinary(bytes, kind);
+        if (v.ok) slot.bytes = bytes;
+        else slot.err.textContent = t('ota.err.' + v.reason);
+      } catch (e) { slot.err.textContent = e.message; }   // lecture fichier ratee → afficher, pas d'unhandled rejection
     }
     refresh();
   }

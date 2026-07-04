@@ -61,3 +61,9 @@ test('planFlash restore.assets : true ssi pas de SD (avec SD les assets surviven
 test('planFlash rien : sequence vide', () => {
   assert.deepEqual(planFlash({ hasFw: false, hasFs: false, sdMounted: true }), []);
 });
+
+test('planFlash : arg non-objet (null/undefined/absent) → [] sans throw (defensif, convention projet)', () => {
+  assert.deepEqual(planFlash(null), []);
+  assert.deepEqual(planFlash(undefined), []);
+  assert.deepEqual(planFlash(), []);
+});

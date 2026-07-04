@@ -223,7 +223,8 @@ Ajouter à `designer/js/ota-plan.js` :
 // { hasFw, hasFs, sdMounted } → liste ordonnee d'etapes { op[, assets] }. op ∈ 'backup' | 'flashFs' |
 // 'flashFw' | 'reboot' | 'wait' | 'restore'. FS avant firmware (reboot auto du fw remonte le FS) ;
 // fs seul → reboot explicite ; restore.assets = !sdMounted (avec SD les assets survivent au /fs).
-export function planFlash({ hasFw, hasFs, sdMounted } = {}) {
+export function planFlash(options) {
+  const { hasFw, hasFs, sdMounted } = (options && typeof options === 'object') ? options : {};   // defensif : arg non-objet → {}
   const steps = [];
   if (hasFs) { steps.push({ op: 'backup' }); steps.push({ op: 'flashFs' }); }
   if (hasFw) steps.push({ op: 'flashFw' });          // reboot automatique
@@ -527,10 +528,12 @@ export function mountOtaDialog(model, options) {
     slot.bytes = null; slot.err.textContent = '';
     const file = slot.input.files[0];
     if (file) {
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      const v = validateBinary(bytes, kind);
-      if (v.ok) slot.bytes = bytes;
-      else slot.err.textContent = t('ota.err.' + v.reason);
+      try {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        const v = validateBinary(bytes, kind);
+        if (v.ok) slot.bytes = bytes;
+        else slot.err.textContent = t('ota.err.' + v.reason);
+      } catch (e) { slot.err.textContent = e.message; }   // lecture fichier ratee → afficher, pas d'unhandled rejection
     }
     refresh();
   }
