@@ -485,17 +485,24 @@ static void h_aimg_get() {
     f.close();
 }
 
+// Octets ecrits par l'upload OTA en cours (firmware ou fs ; les 2 routes ne tournent jamais en
+// concurrence, WebServer est synchrone). Garde contre un POST sans partie fichier : sinon le
+// callback d'upload ne se declenche pas, Update.begin n'est jamais appele, hasError() reste faux
+// -> fausse reussite (200 + reboot du firmware sans rien avoir flashe). Cf. le compteur de /image.
+static size_t s_ota_written = 0;
+
 // --- OTA firmware : ecrit le slot app INACTIF ; bascule otadata au reboot. Calque du pattern
 // d'upload streame de /image (S->upload() : START/WRITE/END). Le double-slot protege d'un
 // transfert rate (l'ancien slot reste actif tant que Update.end(true) n'a pas reussi). ---
 static void h_firmware_upload() {
     HTTPUpload& up = S->upload();
-    if (up.status == UPLOAD_FILE_START)      Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH);
-    else if (up.status == UPLOAD_FILE_WRITE) Update.write(up.buf, up.currentSize);
+    if (up.status == UPLOAD_FILE_START)      { s_ota_written = 0; Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH); }
+    else if (up.status == UPLOAD_FILE_WRITE) s_ota_written += Update.write(up.buf, up.currentSize);
     else if (up.status == UPLOAD_FILE_END)   Update.end(true);
 }
 static void h_firmware_done() {
-    if (Update.hasError()) { S->send(500, "text/plain", "update failed\n"); return; }
+    if (s_ota_written == 0) { S->send(400, "text/plain", "no image\n"); return; }
+    if (Update.hasError())  { S->send(500, "text/plain", "update failed\n"); return; }
     S->send(200, "text/plain", "ok, rebooting\n");
     delay(200); ESP.restart();
 }
@@ -505,12 +512,13 @@ static void h_firmware_done() {
 // (chantier 2). Pas de reboot ici : l'appelant decidera de redemarrer pour remonter le FS. ---
 static void h_fs_upload() {
     HTTPUpload& up = S->upload();
-    if (up.status == UPLOAD_FILE_START)      Update.begin(UPDATE_SIZE_UNKNOWN, U_SPIFFS);
-    else if (up.status == UPLOAD_FILE_WRITE) Update.write(up.buf, up.currentSize);
+    if (up.status == UPLOAD_FILE_START)      { s_ota_written = 0; Update.begin(UPDATE_SIZE_UNKNOWN, U_SPIFFS); }
+    else if (up.status == UPLOAD_FILE_WRITE) s_ota_written += Update.write(up.buf, up.currentSize);
     else if (up.status == UPLOAD_FILE_END)   Update.end(true);
 }
 static void h_fs_done() {
-    if (Update.hasError()) { S->send(500, "text/plain", "fs update failed\n"); return; }
+    if (s_ota_written == 0) { S->send(400, "text/plain", "no image\n"); return; }
+    if (Update.hasError())  { S->send(500, "text/plain", "fs update failed\n"); return; }
     S->send(200, "text/plain", "ok, reboot to remount\n");
 }
 
