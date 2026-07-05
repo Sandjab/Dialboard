@@ -79,7 +79,7 @@ Clé de mémorisation : `localStorage['dboard.lang']` ∈ `{ 'en', 'fr' }`.
 
 **Au chargement :**
 1. Déterminer la langue de la page courante (`fr` si le chemin finit par `.fr.html`, sinon `en`).
-2. Lire le choix mémorisé. **Aucun choix** → langue voulue = `fr` si `navigator.language` commence par `fr`, sinon `en`. Si la voulue ≠ la courante → `location.replace()` vers le fichier jumeau (pas d'entrée d'historique). Un choix **mémorisé** est respecté tel quel (pas de redirection sauvage).
+2. Langue voulue = choix mémorisé s'il existe, sinon `fr` si `navigator.language` commence par `fr`, sinon `en`. Si la voulue ≠ la courante → `location.replace()` vers le fichier jumeau (pas d'entrée d'historique). **Le choix manuel est « collant »** : il redirige sur toutes les pages (pas seulement au premier passage), pour qu'un utilisateur ayant choisi une langue la retrouve partout.
 3. Refléter la langue active sur `<html lang>` et l'état visuel de la bascule.
 
 **Bascule FR/EN** (boutons `data-lang="fr|en"`) : au clic → mémoriser le choix dans `localStorage`, puis `location.assign()` vers le fichier jumeau (si on n'y est pas déjà).

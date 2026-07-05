@@ -247,14 +247,16 @@ Dans `site/index.fr.html` : **supprimer** les trois `<link ... fonts.googleapis 
   @font-face{font-family:'JetBrains Mono';src:url('assets/fonts/jetbrains-mono.woff2') format('woff2');font-weight:400 700;font-display:swap}
 </style>
 <script>
-  /* Anti-FOUC : redirige AVANT le premier rendu si le navigateur veut l'autre langue
-     et qu'aucun choix n'est mémorisé. Logique volontairement inline et autonome. */
+  /* Anti-FOUC : redirige AVANT le premier rendu vers la langue voulue. Voulue =
+     choix mémorisé s'il existe, sinon langue du navigateur (fr seulement si « fr… »).
+     Un choix manuel est donc « collant » : il suit l'utilisateur sur toutes les pages.
+     Logique volontairement inline et autonome. */
   (function () { try {
     var K = 'dboard.lang', s = localStorage.getItem(K);
     var here = /\.fr\.html$/.test(location.pathname) ? 'fr' : 'en';
     var want = (s === 'fr' || s === 'en') ? s
       : ((navigator.language || '').toLowerCase().indexOf('fr') === 0 ? 'fr' : 'en');
-    if (!s && want !== here) {
+    if (want !== here) {
       var p = location.pathname.endsWith('/') ? location.pathname + 'index.html' : location.pathname;
       var en = p.replace(/\.fr\.html$/, '.html');
       var t = want === 'fr' ? en.replace(/\.html$/, '.fr.html') : en;
