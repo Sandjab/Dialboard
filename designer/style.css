@@ -1,23 +1,24 @@
 :root {
-  /* Palette « noir chaud + ambre » — reprise verbatim de la maquette (designer-redesign.html).
+  /* Palette « noir chaud + ambre » — affinée dans l'esprit de la refonte landing (site/, 2026-07).
      Les noms historiques (--bg/--panel/--line/--ink/--muted/--accent/--info/--ok/--warn/--err)
      sont conservés : ils pilotent aussi les affordances d'édition du canvas (sélection/poignées/
      guides), qui passent donc en ambre. Le rendu des composants reste en couleurs de parité (en dur). */
-  --bg: #0E0E0E;
-  --panel: #161616;
-  --panel-2: #1F1F1F;
-  --panel-3: #252525;
+  --bg: #0C0C0D;
+  --panel: #151516;
+  --panel-2: #1C1C1E;
+  --panel-3: #232326;
   --input: #0A0A0A;
   --canvas: #131313;
-  --line: #2A2A2A;            /* ex --line (bordures) */
-  --border-2: #3A3A3A;
-  --ink: #F4F1E8;             /* texte principal (off-white) */
+  --line: #282829;            /* ex --line (bordures) */
+  --border-2: #3A3A3C;
+  --ink: #F5F2EA;             /* texte principal (off-white) */
   --muted: #6B6864;           /* texte atténué */
   --text-dim: #A8A29E;
   --text-label: #BFBAB0;
   --accent: #FF9F40;          /* primaire + sélection (ambre) */
   --accent-strong: #FF9F40;   /* fond bouton primaire */
-  --accent-hover: #FFB84D;
+  --accent-hover: #FFC06B;    /* ambre clair (esprit landing) */
+  --accent-deep: #E07A1F;     /* stop bas du dégradé ambre */
   --accent-dim: rgba(255,159,64,.10);
   --accent-soft: rgba(255,159,64,.18);
   --ghost-opacity: .38;       /* opacité d'aperçu des composants visible:false (réglable via Settings) */
@@ -52,25 +53,26 @@ body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: var(--bg); c
 header { display: flex; align-items: center; gap: 0; padding: 0 10px; height: 42px; flex: none; border-bottom: 1px solid var(--line); background: var(--panel); }
 header .grow { flex: 1; }
 /* --- Top bar : brand --- */
-/* Lockup de marque (titre + icône) coloré par var(--accent) : il suit donc le thème actif.
-   color cascade sur .tb-brand-name + le currentColor du mark. */
-.tb-brand { display: flex; align-items: center; gap: 8px; padding-right: 14px; margin-right: 8px; border-right: 1px solid var(--line); height: 100%; color: var(--accent); }
-.tb-brand-mark { width: 18px; height: 18px; }
+/* Lockup de marque repris de la landing (site/) : logo image + titre bicolore « Dial » (ink) + « board » (ambre).
+   Le « board » suit var(--accent) donc le thème actif ; le logo reste l'icône ambre de la marque. */
+.tb-brand { display: flex; align-items: center; gap: 8px; padding-right: 14px; margin-right: 8px; border-right: 1px solid var(--line); height: 100%; color: var(--ink); }
+.tb-brand-mark { width: 20px; height: 20px; display: block; filter: drop-shadow(0 0 8px rgba(255,159,64,.4)); }
 .tb-brand-name { font-family: var(--font-mono); font-weight: 500; font-size: calc(12px * var(--scale)); letter-spacing: .18em; text-transform: uppercase; }
+.tb-brand-name b { color: var(--accent); font-weight: inherit; }
 /* --- Groupes de boutons --- */
 .tb-group { display: flex; gap: 1px; padding: 0 6px; height: 100%; align-items: center; }
 .tb-group + .tb-group { border-left: 1px solid var(--line); }
 /* --- Bouton icône toolbar --- */
 .tb-btn { background: transparent; border: 1px solid transparent; border-radius: 2px; height: 30px; min-width: 30px; padding: 0 7px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: var(--text-dim); position: relative; }
-.tb-btn:hover:not(:disabled) { background: var(--panel-2); border-color: var(--border-2); color: var(--ink); }
+.tb-btn:hover:not(:disabled) { background: var(--panel-2); border-color: var(--accent-soft); color: var(--accent-hover); box-shadow: 0 0 16px rgba(255,159,64,.14); }
 .tb-btn:active:not(:disabled) { background: var(--accent-soft); color: var(--accent); }
 .tb-btn:disabled { opacity: .4; cursor: default; }
 .tb-btn svg { width: 17px; height: 17px; }
 /* Tooltip */
 .tb-btn[data-tip]:hover::after { content: attr(data-tip); position: absolute; top: 100%; left: 50%; transform: translateX(-50%) translateY(4px); background: #000; color: var(--ink); font-family: var(--font-mono); font-size: 10px; letter-spacing: .05em; padding: 4px 8px; border: 1px solid var(--border-2); white-space: nowrap; z-index: 100; pointer-events: none; }
 /* Bouton primaire (Pousser) */
-.tb-btn.primary { background: var(--accent-strong); border-color: var(--accent-strong); color: #0e0e0e; font-weight: 600; }
-.tb-btn.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); color: #0e0e0e; }
+.tb-btn.primary { background: linear-gradient(180deg, var(--accent-hover), var(--accent-strong)); border-color: var(--accent-strong); color: #0e0e0e; font-weight: 600; box-shadow: 0 2px 10px rgba(255,159,64,.22), inset 0 1px 0 rgba(255,255,255,.28); }
+.tb-btn.primary:hover:not(:disabled) { background: linear-gradient(180deg, #FFD08F, var(--accent-hover)); border-color: var(--accent-hover); color: #0e0e0e; box-shadow: 0 4px 14px rgba(255,159,64,.32), inset 0 1px 0 rgba(255,255,255,.34); }
 /* Bouton accent (Charger) */
 .tb-btn.accent { border-color: var(--accent); color: var(--ink); }
 /* État « armé » du garde-fou double-clic (confirm.js) : signal warn. Fond plein pour les boutons device
@@ -84,10 +86,10 @@ header .grow { flex: 1; }
 
 /* Boutons : ghost par défaut (calme) ; .primary = action engageante (Pousser) ; .accent = lecture device courante. */
 button { background: transparent; border: 1px solid var(--line); color: var(--muted); border-radius: 6px; padding: 4px 10px; cursor: pointer; font: inherit; transition: border-color .12s, color .12s, background .12s; }
-button:hover:not(:disabled) { border-color: var(--accent); color: var(--ink); background: var(--accent-dim); }
+button:hover:not(:disabled) { border-color: var(--accent); color: var(--ink); background: var(--accent-dim); box-shadow: 0 0 16px rgba(255,159,64,.12); }
 button:disabled { border-color: var(--line); color: #55525e; cursor: default; }
-button.primary { background: var(--accent-strong); border-color: var(--accent-strong); color: #0E0E0E; font-weight: 600; }
-button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); color: #0E0E0E; }
+button.primary { background: linear-gradient(180deg, var(--accent-hover), var(--accent-strong)); border-color: var(--accent-strong); color: #0E0E0E; font-weight: 600; box-shadow: 0 2px 10px rgba(255,159,64,.22), inset 0 1px 0 rgba(255,255,255,.28); }
+button.primary:hover:not(:disabled) { background: linear-gradient(180deg, #FFD08F, var(--accent-hover)); border-color: var(--accent-hover); color: #0E0E0E; box-shadow: 0 4px 14px rgba(255,159,64,.32), inset 0 1px 0 rgba(255,255,255,.34); }
 button.accent { border-color: var(--accent); color: var(--ink); }
 input, select { background: var(--panel-2); border: 1px solid var(--line); color: var(--ink); border-radius: 5px; padding: 3px 6px; font: inherit; }
 /* Cases à cocher au thème ambre (case custom, comme la maquette) — sinon checkbox natif (« ancien style »). */
@@ -247,7 +249,11 @@ main > .col:last-child { border-right: 0; }
 
 /* Halo ambre derrière l'écran rond : la marge généreuse devient atmosphère plutôt que vide résiduel. */
 #canvas-col { display: flex; flex-direction: column; align-items: center; overflow: auto;
-  background: radial-gradient(circle at 50% 34%, rgba(255,159,64,.07), transparent 58%), var(--panel); }
+  /* Lueur ambrée (existante) + trame de dial concentrique très discrète (esprit landing).
+     Le device (.stage) est background:#000 opaque → la trame ne transparaît jamais dessous : parité intacte. */
+  background:
+    repeating-radial-gradient(circle at 50% 40%, transparent 0 46px, rgba(255,159,64,.03) 46px 47px),
+    radial-gradient(circle at 50% 34%, rgba(255,159,64,.07), transparent 58%), var(--panel); }
 /* Boîte qui RÉSERVE la place du canvas mis à l'échelle (fit) : le transform du .stage ne crée pas de boîte
    de mise en page, donc le wrap porte la taille à l'échelle pour pousser le footer et garder le centrage. */
 /* board-fit réserve la taille scalée (posée par app.js) → centrage + footer poussé ; board porte l'échelle. */
