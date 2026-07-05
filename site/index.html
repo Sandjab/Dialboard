@@ -34,112 +34,199 @@
 </script>
 <style>
   :root{
-    --bg:#0E0E0E; --panel:#161616; --panel2:#1F1F1F; --line:#2A2A2A; --line2:#3A3A3A;
-    --ink:#F4F1E8; --muted:#A8A29E; --dim:#6B6864; --text-dim:#C9C3B8;
-    --amber:#FF9F40; --amber-hi:#FFB84D; --amber-soft:rgba(255,159,64,.14); --amber-line:rgba(255,159,64,.38);
+    --bg:#0C0C0D; --panel:#151516; --panel2:#1C1C1E; --line:#282829; --line2:#3A3A3C;
+    --ink:#F5F2EA; --muted:#A6A099; --dim:#6A6762; --text-dim:#C8C2B7;
+    --amber:#FF9F40; --amber-hi:#FFC06B; --amber-deep:#E07A1F;
+    --amber-soft:rgba(255,159,64,.13); --amber-line:rgba(255,159,64,.36);
     --font:'Inter',system-ui,-apple-system,sans-serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+    --ease:cubic-bezier(.22,.61,.36,1);
   }
   *{box-sizing:border-box}
   html,body{margin:0}
-  body{background:
-      radial-gradient(90% 55% at 82% 6%,rgba(255,159,64,.10),transparent 55%),
-      radial-gradient(70% 45% at 6% 42%,rgba(255,159,64,.05),transparent 60%),
-      var(--bg);
-    color:var(--ink);font-family:var(--font);min-height:100vh;line-height:1.5;-webkit-font-smoothing:antialiased}
-  .wrap{width:100%;max-width:1080px;margin:0 auto;padding:0 28px}
-  a{color:inherit}
-  code{font-family:var(--mono);font-size:.86em;background:var(--panel2);border:1px solid var(--line);
-    border-radius:5px;padding:1px 6px;color:var(--text-dim)}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font);min-height:100vh;
+    line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:hidden;position:relative}
 
-  /* header + wordmark placeholder */
-  header{padding:24px 0;display:flex;align-items:center;justify-content:space-between}
-  .brand{display:flex;align-items:center;gap:14px}
-  .brand .name{font-weight:800;font-size:32px;letter-spacing:-.02em}
-  .brand .name b{color:var(--amber)}
-  .brand .mark{width:42px;height:42px;border-radius:50%;position:relative;flex:none;
-    background:radial-gradient(circle at 50% 36%,#1e1e1e,#0b0b0b 72%);border:1px solid #343434;
-    box-shadow:0 0 20px rgba(255,159,64,.45), inset 0 1px 7px rgba(0,0,0,.7)}
-  .brand .mark::after{content:"";position:absolute;inset:8px;border-radius:50%;
-    border:2.5px solid var(--amber);border-right-color:transparent;border-bottom-color:transparent;transform:rotate(28deg)}
-  .lang{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;font-size:12px;font-weight:600}
-  .lang button{background:none;border:0;color:var(--muted);padding:6px 13px;cursor:pointer;font:inherit}
+  /* fond : lueurs ambrées + trame de dial concentrique très discrète */
+  .bg{position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:
+      radial-gradient(80% 50% at 84% -4%,rgba(255,159,64,.11),transparent 58%),
+      radial-gradient(60% 44% at 2% 40%,rgba(255,159,64,.045),transparent 62%),
+      var(--bg)}
+  .bg::before{content:"";position:absolute;top:-140px;right:-120px;width:620px;height:620px;border-radius:50%;
+    background:
+      repeating-radial-gradient(circle at 50% 50%,transparent 0 38px,rgba(255,159,64,.05) 38px 39px);
+    -webkit-mask:radial-gradient(circle at 50% 50%,#000 62%,transparent 72%);
+    mask:radial-gradient(circle at 50% 50%,#000 62%,transparent 72%);opacity:.7}
+  .bg::after{content:"";position:absolute;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px);
+    background-size:56px 56px;-webkit-mask:radial-gradient(120% 80% at 50% 0,#000,transparent 75%);
+    mask:radial-gradient(120% 80% at 50% 0,#000,transparent 75%)}
+
+  .wrap{width:100%;max-width:1120px;margin:0 auto;padding:0 32px}
+  a{color:inherit}
+  code{font-family:var(--mono);font-size:.85em;background:var(--panel2);border:1px solid var(--line);
+    border-radius:6px;padding:1.5px 6px;color:var(--amber-hi)}
+
+  /* header */
+  header{padding:26px 0 22px;display:flex;align-items:center;justify-content:space-between;
+    position:relative}
+  header::after{content:"";position:absolute;left:32px;right:32px;bottom:0;height:1px;
+    background:linear-gradient(90deg,var(--line),transparent 70%)}
+  .brand{display:flex;align-items:center;gap:13px}
+  .brand .markimg{width:44px;height:44px;display:block;filter:drop-shadow(0 0 14px rgba(255,159,64,.5))}
+  .brand .name{font-weight:750;font-size:26px;letter-spacing:-.03em}
+  .brand .name b{color:var(--amber);font-weight:750}
+  .lang{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;font-size:11.5px;
+    font-weight:650;background:var(--panel)}
+  .lang button{background:none;border:0;color:var(--muted);padding:7px 15px;cursor:pointer;font:inherit;
+    transition:color .18s}
+  .lang button:hover{color:var(--text-dim)}
   .lang button.on{background:var(--amber-soft);color:var(--amber)}
 
-  .hero{display:grid;grid-template-columns:1.15fr .85fr;gap:40px;align-items:center;padding:30px 0 44px}
-  .eyebrow{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);
-    display:flex;align-items:center;gap:9px}
-  .eyebrow::before{content:"";width:26px;height:1px;background:var(--amber-line)}
-  .hero h1{font-size:46px;line-height:1.04;letter-spacing:-.025em;margin:16px 0 0;font-weight:700}
-  .hero h1 .g{background:linear-gradient(90deg,var(--amber),var(--amber-hi));-webkit-background-clip:text;background-clip:text;color:transparent}
-  .lead{color:var(--muted);font-size:16px;max-width:450px;margin:16px 0 0}
-  .meta-chips{display:flex;gap:8px;margin-top:22px;flex-wrap:wrap}
-  .chip{font-size:12px;color:var(--text-dim);border:1px solid var(--line);border-radius:8px;padding:6px 11px;
+  /* hero */
+  .hero{display:grid;grid-template-columns:1.12fr .88fr;gap:48px;align-items:center;padding:56px 0 60px}
+  .eyebrow{font-size:11.5px;font-weight:650;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);
+    display:inline-flex;align-items:center;gap:10px}
+  .eyebrow::before{content:"";width:28px;height:1px;background:linear-gradient(90deg,var(--amber),transparent)}
+  .hero h1{font-size:clamp(40px,5.4vw,60px);line-height:1.02;letter-spacing:-.035em;margin:20px 0 0;
+    font-weight:720}
+  .hero h1 .g{background:linear-gradient(96deg,var(--amber-hi),var(--amber) 45%,var(--amber-deep));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .lead{color:var(--muted);font-size:16.5px;max-width:456px;margin:22px 0 0;text-wrap:pretty}
+  .cta-row{display:flex;align-items:center;gap:16px;margin-top:30px;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:9px;font-weight:650;font-size:14.5px;text-decoration:none;
+    padding:12px 20px;border-radius:11px;transition:transform .18s var(--ease),box-shadow .18s,background .18s}
+  .btn .arw{transition:transform .22s var(--ease)}
+  .btn:hover .arw{transform:translateX(4px)}
+  .btn.primary{background:linear-gradient(180deg,var(--amber-hi),var(--amber));color:#241505;
+    box-shadow:0 8px 26px rgba(255,159,64,.28),inset 0 1px 0 rgba(255,255,255,.35)}
+  .btn.primary:hover{transform:translateY(-2px);box-shadow:0 12px 34px rgba(255,159,64,.38),inset 0 1px 0 rgba(255,255,255,.4)}
+  .btn.ghost{color:var(--text-dim);border:1px solid var(--line2)}
+  .btn.ghost:hover{border-color:var(--amber-line);color:var(--ink)}
+  .meta-chips{display:flex;gap:8px;margin-top:26px;flex-wrap:wrap}
+  .chip{font-size:11.5px;color:var(--text-dim);border:1px solid var(--line);border-radius:8px;padding:6px 11px;
     background:var(--panel);font-family:var(--mono);font-weight:600}
   .chip b{color:var(--amber)}
 
-  .stage{display:grid;place-items:center}
-  .device{width:238px;height:238px;border-radius:50%;position:relative;display:grid;place-items:center;
-    background:radial-gradient(circle at 50% 34%,#1d1d1d,#0c0c0c 74%);border:1px solid #2f2f2f;
-    box-shadow:inset 0 2px 30px rgba(0,0,0,.8), 0 0 0 10px #111, 0 0 60px rgba(255,159,64,.18), 0 30px 70px rgba(0,0,0,.6)}
+  /* device / dial */
+  .stage{display:grid;place-items:center;position:relative}
+  .stage::before{content:"";position:absolute;width:340px;height:340px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,159,64,.16),transparent 66%);filter:blur(8px)}
+  .float{animation:float 7s var(--ease) infinite}
+  .device{width:290px;height:290px;border-radius:50%;position:relative;display:grid;place-items:center;
+    background:
+      radial-gradient(120% 120% at 50% 8%,#2a2a2c,#161617 46%,#0a0a0b 78%);
+    box-shadow:
+      inset 0 3px 2px rgba(255,255,255,.10), inset 0 -10px 26px rgba(0,0,0,.9),
+      0 0 0 1px #0a0a0a, 0 34px 64px rgba(0,0,0,.62), 0 0 70px rgba(255,159,64,.14)}
+  .device::before{content:"";position:absolute;inset:14px;border-radius:50%;
+    background:radial-gradient(120% 120% at 50% 12%,#141416,#050506 80%);
+    box-shadow:inset 0 2px 22px rgba(0,0,0,.95),inset 0 0 0 1px rgba(255,255,255,.03)}
   .device svg{position:absolute;inset:0;width:100%;height:100%}
-  .device .big{font-family:var(--mono);font-weight:700;font-size:60px;line-height:1;letter-spacing:-.02em}
-  .device .big span{font-size:24px;color:var(--muted)}
-  .device .lbl{position:absolute;top:60px;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim)}
-  .device .sub{position:absolute;bottom:52px;font-family:var(--mono);font-size:13px;color:var(--amber)}
+  .ticks{animation:spin 44s linear infinite;transform-origin:50% 50%;opacity:.5}
+  .screen{position:relative;z-index:2;display:grid;place-items:center;text-align:center}
+  .screen .lbl{position:absolute;top:-58px;left:50%;transform:translateX(-50%);font-size:10.5px;
+    letter-spacing:.24em;text-transform:uppercase;color:var(--dim);white-space:nowrap}
+  .screen .big{font-family:var(--mono);font-weight:700;font-size:64px;line-height:1;letter-spacing:-.03em;
+    color:var(--ink);text-shadow:0 0 24px rgba(255,159,64,.18)}
+  .screen .big span{font-size:24px;color:var(--muted)}
+  .screen .sub{position:absolute;bottom:-52px;left:50%;transform:translateX(-50%);font-family:var(--mono);
+    font-size:12.5px;color:var(--amber);white-space:nowrap}
 
   /* cards */
-  .cards{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:6px 0 8px}
-  .card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:14px;
-    padding:16px 14px 14px;text-decoration:none;color:inherit;display:flex;flex-direction:column;gap:8px;
-    min-height:146px;transition:transform .16s,border-color .16s}
-  .card:hover{transform:translateY(-4px);border-color:var(--line2)}
-  .card .ic{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;
-    background:var(--panel2);color:var(--text-dim);border:1px solid var(--line)}
+  .cards{display:grid;grid-template-columns:repeat(5,1fr);gap:13px;padding:8px 0 10px}
+  .card{position:relative;background:linear-gradient(180deg,var(--panel),#111112);border:1px solid var(--line);
+    border-radius:16px;padding:17px 15px 15px;text-decoration:none;color:inherit;display:flex;
+    flex-direction:column;gap:9px;min-height:158px;overflow:hidden;
+    transition:transform .2s var(--ease),border-color .2s,box-shadow .2s}
+  .card::before{content:"";position:absolute;top:0;left:14px;right:14px;height:1px;
+    background:linear-gradient(90deg,transparent,var(--line2),transparent);opacity:.6;transition:opacity .2s,background .2s}
+  .card:hover{transform:translateY(-5px);border-color:var(--line2);box-shadow:0 20px 40px rgba(0,0,0,.5)}
+  .card:hover::before{background:linear-gradient(90deg,transparent,var(--amber),transparent);opacity:1}
+  .card .idx{position:absolute;top:14px;right:14px;font-family:var(--mono);font-size:10.5px;color:var(--dim);
+    font-weight:600;letter-spacing:.04em}
+  .card .ic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;
+    background:var(--panel2);color:var(--text-dim);border:1px solid var(--line);transition:.2s}
+  .card:hover .ic{color:var(--amber-hi);border-color:var(--amber-line)}
   .card .ic svg{width:18px;height:18px;display:block}
-  .card h3{margin:2px 0 0;font-size:14.5px;font-weight:650;letter-spacing:-.01em}
-  .card p{margin:0;color:var(--muted);font-size:12px;line-height:1.4}
-  .card .go{margin-top:auto;font-size:11.5px;color:var(--dim);font-weight:600}
-  .card.primary{background:linear-gradient(180deg,rgba(255,159,64,.16),rgba(255,159,64,.04));border-color:var(--amber-line)}
-  .card.primary .ic{background:var(--amber);color:#1a1206;border-color:transparent}
+  .card h3{margin:3px 0 0;font-size:15px;font-weight:650;letter-spacing:-.015em}
+  .card p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
+  .card .go{margin-top:auto;font-size:11.5px;color:var(--dim);font-weight:650;display:inline-flex;
+    align-items:center;gap:5px;transition:color .2s}
+  .card .go .arw{transition:transform .22s var(--ease)}
+  .card:hover .go{color:var(--amber)}
+  .card:hover .go .arw{transform:translateX(3px)}
+  .card.primary{background:linear-gradient(180deg,rgba(255,159,64,.17),rgba(255,159,64,.03));
+    border-color:var(--amber-line)}
+  .card.primary::before{background:linear-gradient(90deg,transparent,var(--amber),transparent);opacity:1}
+  .card.primary .ic{background:linear-gradient(180deg,var(--amber-hi),var(--amber));color:#1c1206;border-color:transparent;
+    box-shadow:0 4px 14px rgba(255,159,64,.35)}
   .card.primary:hover{border-color:var(--amber)}
   .card.primary .go{color:var(--amber)}
-  .card .soon{position:absolute;top:12px;right:12px;font-size:9px;font-weight:700;letter-spacing:.05em;
-    text-transform:uppercase;color:var(--amber);background:var(--amber-soft);border-radius:999px;padding:3px 6px}
+  .card.primary .idx{color:var(--amber-deep)}
+  .card.soon-card{opacity:.72}
+  .card .soon{position:absolute;top:13px;right:13px;font-size:8.5px;font-weight:700;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--amber);background:var(--amber-soft);border:1px solid var(--amber-line);
+    border-radius:999px;padding:3px 7px}
 
-  .story{padding:56px 0 20px}
-  .story .eyebrow{margin-bottom:10px}
-  .story h2{font-size:30px;letter-spacing:-.02em;margin:0 0 6px;font-weight:700}
-  .story .intro{color:var(--muted);font-size:15px;max-width:620px;margin:0 0 24px}
-  .block{display:grid;grid-template-columns:1fr 1fr;gap:34px;align-items:center;padding:22px 0}
+  /* story */
+  .story{padding:64px 0 24px}
+  .story .eyebrow{margin-bottom:12px}
+  .story h2{font-size:clamp(28px,3.4vw,36px);letter-spacing:-.03em;margin:0 0 8px;font-weight:720}
+  .story .intro{color:var(--muted);font-size:15.5px;max-width:640px;margin:0 0 12px;text-wrap:pretty}
+  .blocks{margin-top:30px;position:relative}
+  .block{display:grid;grid-template-columns:1fr 1fr;gap:44px;align-items:center;padding:34px 0;
+    position:relative;border-top:1px solid var(--line)}
+  .block:first-child{border-top:0}
   .block.rev .txt{order:2}
-  .block h3{font-size:19px;margin:0 0 10px;letter-spacing:-.01em}
-  .block p{color:var(--muted);font-size:14px;margin:0 0 10px;max-width:420px}
-  .media{aspect-ratio:16/10;border-radius:14px;border:1px dashed var(--line2);
-    background:linear-gradient(180deg,var(--panel),var(--bg));display:grid;place-items:center;gap:8px;
-    color:var(--dim);position:relative;overflow:hidden}
+  .block .num{font-family:var(--mono);font-size:12px;color:var(--amber);font-weight:600;letter-spacing:.1em;
+    display:inline-flex;align-items:center;gap:10px;margin-bottom:14px}
+  .block .num::after{content:"";width:34px;height:1px;background:var(--amber-line)}
+  .block h3{font-size:21px;margin:0 0 12px;letter-spacing:-.02em;font-weight:650}
+  .block p{color:var(--muted);font-size:14px;margin:0 0 10px;max-width:430px;line-height:1.55}
+  .media{aspect-ratio:16/10;border-radius:16px;border:1px solid var(--line);
+    background:radial-gradient(120% 120% at 50% 0,#161617,#0a0a0b);display:grid;place-items:center;gap:10px;
+    color:var(--dim);position:relative;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.03),0 20px 40px rgba(0,0,0,.4)}
   .media::before{content:"";position:absolute;inset:0;
-    background:radial-gradient(60% 60% at 50% 40%,rgba(255,159,64,.06),transparent 70%)}
-  .media .play{width:46px;height:46px;border-radius:50%;border:1px solid var(--line2);display:grid;place-items:center;
-    color:var(--amber);font-size:16px;background:rgba(0,0,0,.3)}
-  .media .cap{font-size:12px;letter-spacing:.02em;padding:0 12px;text-align:center}
+    background:radial-gradient(60% 70% at 50% 30%,rgba(255,159,64,.08),transparent 68%)}
+  .media::after{content:"";position:absolute;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px);background-size:100% 28px;opacity:.6}
+  .media .play{width:52px;height:52px;border-radius:50%;border:1px solid var(--amber-line);display:grid;
+    place-items:center;color:var(--amber);font-size:15px;background:rgba(0,0,0,.4);position:relative;z-index:1;
+    box-shadow:0 0 0 8px rgba(255,159,64,.05),0 6px 20px rgba(0,0,0,.4);transition:.2s}
+  .block:hover .play{transform:scale(1.07);box-shadow:0 0 0 12px rgba(255,159,64,.07),0 6px 24px rgba(0,0,0,.5)}
+  .media .cap{font-size:12px;letter-spacing:.02em;padding:0 14px;text-align:center;position:relative;z-index:1}
 
-  footer{border-top:1px solid var(--line);margin-top:40px;padding:20px 0 40px;
+  footer{border-top:1px solid var(--line);margin-top:52px;padding:24px 0 44px;
     display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
   footer .specs{font-family:var(--mono);font-size:12px;color:var(--dim)}
   footer .specs b{color:var(--muted);font-weight:600}
-  footer a{color:var(--muted);text-decoration:none;font-size:12.5px}
+  footer a{color:var(--muted);text-decoration:none;font-size:12.5px;transition:color .18s}
   footer a:hover{color:var(--amber)}
+
+  /* entrée */
+  .rise{opacity:0;transform:translateY(16px);animation:rise .7s var(--ease) forwards}
+  .rise.d1{animation-delay:.05s}.rise.d2{animation-delay:.14s}.rise.d3{animation-delay:.22s}
+  @keyframes rise{to{opacity:1;transform:none}}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
 
   @media(max-width:980px){.cards{grid-template-columns:repeat(3,1fr)}}
   @media(max-width:860px){
-    .hero{grid-template-columns:1fr;gap:30px}.stage{order:-1}.hero h1{font-size:38px}
+    .hero{grid-template-columns:1fr;gap:40px;padding:40px 0 48px}.stage{order:-1}
     .block,.block.rev .txt{grid-template-columns:1fr;order:0}.media{order:-1}
+    .block{gap:24px}
   }
-  @media(max-width:560px){.cards{grid-template-columns:repeat(2,1fr)}}
-  .brand .markimg{width:48px;height:48px;display:block;filter:drop-shadow(0 0 12px rgba(255,159,64,.45))}
+  @media(max-width:560px){.cards{grid-template-columns:repeat(2,1fr)}.wrap{padding:0 20px}
+    header::after{left:20px;right:20px}}
+  @media(prefers-reduced-motion:reduce){
+    .float,.ticks,.rise{animation:none!important}.rise{opacity:1;transform:none}
+  }
 </style>
 </head>
 <body>
+  <div class="bg"></div>
   <div class="wrap">
     <header>
       <div class="brand"><img class="markimg" alt="Dialboard" src="assets/brand/dialboard-icon.png"><span class="name">Dial<b>board</b></span></div>
@@ -151,33 +238,50 @@
 
     <section class="hero">
       <div>
-        <div class="eyebrow">Round touchscreen · ESP32-S3</div>
-        <h1>Dashboards,<br>on a <span class="g">dial</span>.</h1>
-        <p class="lead">Design dashboards in your browser and push them to a small round touchscreen costing a few tens of euros — no recompiling. Values arrive from any HTTP source, pull or push.</p>
-        <div class="meta-chips">
+        <div class="eyebrow rise">Round touchscreen · ESP32-S3</div>
+        <h1 class="rise d1">Dashboards,<br>on a <span class="g">dial</span>.</h1>
+        <p class="lead rise d2">Design dashboards in your browser and push them to a small round touchscreen costing a few tens of euros — no recompiling. Values arrive from any HTTP source, pull or push.</p>
+        <div class="cta-row rise d2">
+          <a class="btn primary" href="designer/">Open the Designer <span class="arw">→</span></a>
+          <a class="btn ghost" href="docs/">Documentation</a>
+        </div>
+        <div class="meta-chips rise d3">
           <span class="chip"><b>360×360</b> px</span>
           <span class="chip">config-driven</span>
           <span class="chip">LVGL 9.5</span>
         </div>
       </div>
-      <div class="stage">
+      <div class="stage rise d2">
+        <div class="float">
         <div class="device">
-          <svg viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="43" fill="none" stroke="#232323" stroke-width="6"/>
-            <circle cx="50" cy="50" r="43" fill="none" stroke="url(#g)" stroke-width="6" stroke-linecap="round"
-              stroke-dasharray="192 999" transform="rotate(131 50 50)"/>
+          <svg viewBox="0 0 100 100" aria-hidden="true">
+            <g class="ticks">
+              <g stroke="#3a3a3c" stroke-width="1" stroke-linecap="round">
+                <line x1="50" y1="6" x2="50" y2="11"/><line x1="50" y1="89" x2="50" y2="94"/>
+                <line x1="6" y1="50" x2="11" y2="50"/><line x1="89" y1="50" x2="94" y2="50"/>
+                <line x1="19" y1="19" x2="22.5" y2="22.5"/><line x1="77.5" y1="77.5" x2="81" y2="81"/>
+                <line x1="81" y1="19" x2="77.5" y2="22.5"/><line x1="22.5" y1="77.5" x2="19" y2="81"/>
+              </g>
+            </g>
+            <circle cx="50" cy="50" r="40" fill="none" stroke="#202022" stroke-width="6"/>
+            <circle cx="50" cy="50" r="40" fill="none" stroke="url(#g)" stroke-width="6" stroke-linecap="round"
+              stroke-dasharray="150 999" transform="rotate(131 50 50)"/>
             <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stop-color="#FF9F40"/><stop offset="1" stop-color="#FFB84D"/></linearGradient></defs>
+              <stop offset="0" stop-color="#FFC06B"/><stop offset="1" stop-color="#E07A1F"/></linearGradient></defs>
           </svg>
-          <span class="lbl">Living room</span>
-          <span class="big">21<span>°C</span></span>
-          <span class="sub">◐ 58 %</span>
+          <div class="screen">
+            <span class="lbl">Living room</span>
+            <span class="big">21<span>°C</span></span>
+            <span class="sub">◐ 58 %  ·  live</span>
+          </div>
+        </div>
         </div>
       </div>
     </section>
 
     <nav class="cards">
-      <a class="card primary" href="designer/">
+      <a class="card primary rise" href="designer/">
+        <span class="idx">01</span>
         <div class="ic">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
             <rect x="2" y="2.5" width="8" height="8" rx="1.5"/>
@@ -186,9 +290,10 @@
         </div>
         <h3>Designer</h3>
         <p>WYSIWYG editor, drag and drop, no recompiling.</p>
-        <span class="go">Open →</span>
+        <span class="go">Open <span class="arw">→</span></span>
       </a>
-      <a class="card" href="docs/">
+      <a class="card rise d1" href="docs/">
+        <span class="idx">02</span>
         <div class="ic">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
             <path d="M8 4c-1.2-1-3-1.3-5-1v9c2-.3 3.8 0 5 1 1.2-1 3-1.3 5-1V3c-2-.3-3.8 0-5 1z"/>
@@ -197,9 +302,9 @@
         </div>
         <h3>Documentation</h3>
         <p>The full manual: layout, components, API.</p>
-        <span class="go">Read →</span>
+        <span class="go">Read <span class="arw">→</span></span>
       </a>
-      <div class="card" aria-disabled="true" style="cursor:default">
+      <div class="card soon-card rise d1" aria-disabled="true" style="cursor:default">
         <span class="soon">soon</span>
         <div class="ic">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
@@ -212,7 +317,7 @@
         <p>Ready-to-install dashboards, shared.</p>
         <span class="go">Soon →</span>
       </div>
-      <div class="card" aria-disabled="true" style="cursor:default">
+      <div class="card soon-card rise d2" aria-disabled="true" style="cursor:default">
         <span class="soon">soon</span>
         <div class="ic">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
@@ -224,7 +329,8 @@
         <p>Send REST requests to your device.</p>
         <span class="go">Soon →</span>
       </div>
-      <a class="card" href="https://github.com/Sandjab/Dialboard" rel="noopener">
+      <a class="card rise d2" href="https://github.com/Sandjab/Dialboard" rel="noopener">
+        <span class="idx">05</span>
         <div class="ic">
           <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
             <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
@@ -232,7 +338,7 @@
         </div>
         <h3>GitHub</h3>
         <p>Source code, firmware and releases.</p>
-        <span class="go">View →</span>
+        <span class="go">View <span class="arw">→</span></span>
       </a>
     </nav>
 
@@ -241,31 +347,36 @@
       <h2>Design, push, display.</h2>
       <p class="intro">Dialboard turns a round screen costing a few tens of euros into a dashboard for the home, workshop or office — driven entirely from the web, with no build chain.</p>
 
-      <div class="block">
-        <div class="txt">
-          <h3>A designer in your browser</h3>
-          <p>Compose your pages by drag and drop: gauges, rings, charts, values. The editor is embedded in the device — no install, no recompiling.</p>
-          <p>Export, import, publish to the community gallery.</p>
+      <div class="blocks">
+        <div class="block">
+          <div class="txt">
+            <div class="num">01</div>
+            <h3>A designer in your browser</h3>
+            <p>Compose your pages by drag and drop: gauges, rings, charts, values. The editor is embedded in the device — no install, no recompiling.</p>
+            <p>Export, import, publish to the community gallery.</p>
+          </div>
+          <div class="media"><div class="play">▶</div><div class="cap">Image or video — designer demo</div></div>
         </div>
-        <div class="media"><div class="play">▶</div><div class="cap">Image or video — designer demo</div></div>
-      </div>
 
-      <div class="block rev">
-        <div class="txt">
-          <h3>Values from any source</h3>
-          <p>A simple <code>POST /update</code> from Home Assistant, a Python script, a webhook… and the screen updates. The layout itself lives in JSON.</p>
-          <p>ESP32-S3 firmware, LVGL rendering, OTA updates.</p>
+        <div class="block rev">
+          <div class="txt">
+            <div class="num">02</div>
+            <h3>Values from any source</h3>
+            <p>Un simple <code>POST /update</code> from Home Assistant, a Python script, a webhook… and the screen updates. The layout itself lives in JSON.</p>
+            <p>ESP32-S3 firmware, LVGL rendering, OTA updates.</p>
+          </div>
+          <div class="media"><div class="cap">Image or video — the device in place</div></div>
         </div>
-        <div class="media"><div class="cap">Image or video — the device in place</div></div>
-      </div>
 
-      <div class="block">
-        <div class="txt">
-          <h3>A gallery of ready-made templates</h3>
-          <p>Browse dashboards shared by the community and install them in one click from the designer. Publish your own in return.</p>
-          <p>Each template is a self-contained <code>.dboard</code> file.</p>
+        <div class="block">
+          <div class="txt">
+            <div class="num">03</div>
+            <h3>A gallery of ready-made templates</h3>
+            <p>Browse dashboards shared by the community and install them in one click from the designer. Publish your own in return.</p>
+            <p>Each template is a self-contained <code>.dboard</code> file.</p>
+          </div>
+          <div class="media"><div class="play">▶</div><div class="cap">Image or video — templates from the store</div></div>
         </div>
-        <div class="media"><div class="play">▶</div><div class="cap">Image or video — templates from the store</div></div>
       </div>
     </section>
 
