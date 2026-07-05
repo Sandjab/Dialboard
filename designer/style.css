@@ -53,11 +53,12 @@ body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: var(--bg); c
 header { display: flex; align-items: center; gap: 0; padding: 0 10px; height: 42px; flex: none; border-bottom: 1px solid var(--line); background: var(--panel); }
 header .grow { flex: 1; }
 /* --- Top bar : brand --- */
-/* Lockup de marque (titre + icône) coloré par var(--accent) : il suit donc le thème actif.
-   color cascade sur .tb-brand-name + le currentColor du mark. */
-.tb-brand { display: flex; align-items: center; gap: 8px; padding-right: 14px; margin-right: 8px; border-right: 1px solid var(--line); height: 100%; color: var(--accent); }
-.tb-brand-mark { width: 18px; height: 18px; }
+/* Lockup de marque repris de la landing (site/) : logo image + titre bicolore « Dial » (ink) + « board » (ambre).
+   Le « board » suit var(--accent) donc le thème actif ; le logo reste l'icône ambre de la marque. */
+.tb-brand { display: flex; align-items: center; gap: 8px; padding-right: 14px; margin-right: 8px; border-right: 1px solid var(--line); height: 100%; color: var(--ink); }
+.tb-brand-mark { width: 20px; height: 20px; display: block; filter: drop-shadow(0 0 8px rgba(255,159,64,.4)); }
 .tb-brand-name { font-family: var(--font-mono); font-weight: 500; font-size: calc(12px * var(--scale)); letter-spacing: .18em; text-transform: uppercase; }
+.tb-brand-name b { color: var(--accent); font-weight: inherit; }
 /* --- Groupes de boutons --- */
 .tb-group { display: flex; gap: 1px; padding: 0 6px; height: 100%; align-items: center; }
 .tb-group + .tb-group { border-left: 1px solid var(--line); }

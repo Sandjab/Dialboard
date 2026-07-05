@@ -16,6 +16,7 @@ mkdir -p data/designer/js data/designer/vendor data/designer/i18n data/schema
 
 cp designer/index.html        data/designer/index.htm
 cp designer/style.css         data/designer/
+cp designer/dialboard-icon.png data/designer/
 cp designer/js/*.js           data/designer/js/
 cp -R designer/vendor/.        data/designer/vendor/
 cp -R designer/i18n/.         data/designer/i18n/
