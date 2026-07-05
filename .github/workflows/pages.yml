@@ -1,18 +1,23 @@
-# Publie le designer WYSIWYG sur GitHub Pages.
+# Publie la landing, le manuel et le designer WYSIWYG sur GitHub Pages.
 #
-# Ne publie QUE designer/ + schema/ (pas le firmware), avec une redirection
-# racine vers designer/. Le schema reste un cran au-dessus de designer/ pour
-# que le fetch('../schema/layout.schema.json') de app.js résolve comme en local.
+# La racine du site sert la landing (site/) ; docs/ publie le manuel public
+# (index.html + assets, hors _internal/ et superpowers/) ; designer/ + schema/
+# restent publiés (pas le firmware). Le schema reste un cran au-dessus de
+# designer/ pour que le fetch('../schema/layout.schema.json') de app.js
+# résolve comme en local.
 #
 # Limite connue : les boutons « Device » (Charger/Pousser/Capture…) NE marchent
 # PAS depuis Pages — page HTTPS vs device HTTP sur le LAN = mixed content bloqué
 # par le navigateur. Pages sert l'éditeur ; workflow device = Exporter/Importer.
-name: Deploy designer to Pages
+name: Deploy site to Pages
 
 on:
   push:
     branches: [main]
     paths:
+      - 'site/**'
+      - 'docs/index.html'
+      - 'docs/assets/**'
       - 'designer/**'
       - 'schema/**'
       - '.github/workflows/pages.yml'
@@ -36,20 +41,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Assemble _site (designer + schema + redirect)
+      - name: Assemble _site (landing + docs + designer + schema)
         run: |
           mkdir -p _site
+          # Landing en racine du site (remplace l'ancienne redirection).
+          cp -r site/* _site/
+          rm -rf _site/tests _site/package.json      # infra de test node, pas de prod
+          # Manuel public (exclut _internal gitignoré et superpowers = notes de dev).
+          mkdir -p _site/docs
+          cp docs/index.html _site/docs/index.html
+          cp -r docs/assets   _site/docs/assets
+          # Designer + schema (inchangé).
           cp -r designer _site/designer
           cp -r schema   _site/schema
-          # Inutile en prod : tests node + manifeste npm du designer.
           rm -rf _site/designer/tests _site/designer/package.json
-          cat > _site/index.html <<'HTML'
-          <!doctype html>
-          <meta charset="utf-8" />
-          <title>Dialboard — Designer</title>
-          <meta http-equiv="refresh" content="0; url=./designer/" />
-          <a href="./designer/">Dialboard Designer →</a>
-          HTML
 
       - name: Fetch latest firmware release into _site/firmware
         env:
