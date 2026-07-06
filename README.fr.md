@@ -5,7 +5,7 @@
 <h1 align="center">Dialboard</h1>
 
 <p align="center">
-  <strong>Conçois des dashboards dans ton navigateur et pousse-les sur un écran tactile <em>rond</em> à ~15 €.</strong>
+  <strong>Conçois des dashboards dans ton navigateur et pousse-les sur un écran tactile <em>rond</em> à quelques dizaines d'euros.</strong>
 </p>
 
 <p align="center">
@@ -91,7 +91,7 @@ Cible principale : **Guition JC3636K718**.
 | Entrée | encodeur rotatif avec appui |
 | Extras | anneau RGB adressable (WS2812), audio, lecteur microSD |
 | Flash | 16 Mo (table de partitions dédiée : double slot app OTA + LittleFS) |
-| Coût | ~15 € |
+| Coût | quelques dizaines d'euros |
 
 La couche carte (pins, séquences d'init, drivers) est isolée dans `lib/board_k718/` avec les
 symboles `k718_*`. L'identité applicative est **Dialboard** ; la couche carte garde une identité

@@ -1,6 +1,6 @@
 # Dialboard
 
-Conçois des dashboards dans ton navigateur et pousse-les sur un écran tactile **rond** à ~15 € (Guition JC3636K718, ESP32-S3, 360×360). Dashboard **config-driven** : un layout JSON décrit pages + composants ; un **designer WYSIWYG** (web, embarqué dans le device en LittleFS) édite ce layout sans recompiler ; les valeurs sont **poussées depuis n'importe quelle source HTTP** (`POST /update`).
+Conçois des dashboards dans ton navigateur et pousse-les sur un écran tactile **rond** à quelques dizaines d'euros (Guition JC3636K718, ESP32-S3, 360×360). Dashboard **config-driven** : un layout JSON décrit pages + composants ; un **designer WYSIWYG** (web, embarqué dans le device en LittleFS) édite ce layout sans recompiler ; les valeurs sont **poussées depuis n'importe quelle source HTTP** (`POST /update`).
 
 > **Reprise de travail** : lire d'abord `docs/_internal/HANDOFF.md` (état courant, prochaines étapes, accès device). Dossier `docs/_internal/` gitignoré.
 

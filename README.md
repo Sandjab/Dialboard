@@ -5,7 +5,7 @@
 <h1 align="center">Dialboard</h1>
 
 <p align="center">
-  <strong>Design dashboards in your browser and push them to a ~€15 <em>round</em> touchscreen.</strong>
+  <strong>Design dashboards in your browser and push them to a <em>round</em> touchscreen that costs a few tens of euros.</strong>
 </p>
 
 <p align="center">
@@ -88,7 +88,7 @@ Primary target: **Guition JC3636K718**.
 | Input | rotary encoder with push |
 | Extras | addressable RGB ring (WS2812), audio, microSD slot |
 | Flash | 16 MB (custom partition table with dual OTA app slots + LittleFS) |
-| Cost | ~€15 |
+| Cost | a few tens of euros |
 
 The board layer (pins, init sequences, drivers) is isolated under `lib/board_k718/` with
 `k718_*` symbols. The application identity is **Dialboard**; the board layer keeps a
