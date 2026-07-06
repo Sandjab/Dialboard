@@ -7,7 +7,7 @@ Conçois des dashboards dans ton navigateur et pousse-les sur un écran tactile 
 ## Structure
 
 ```
-src/                firmware (C++/Arduino, LVGL 8.4) : dashboard, view, api, net_pull, persist, nav…
+src/                firmware (C++/Arduino, LVGL 9.5) : dashboard, view, api, net_pull, persist, nav…
 lib/
   board_k718/       HAL de la carte (pins, display ST77916, init LVGL, encodeur, anneau RGB) — headers/symboles k718_*
   qspi_panel/       driver panneau QSPI (esp_lcd_sh8601)

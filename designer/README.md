@@ -46,9 +46,11 @@ Le firmware renvoie `Access-Control-Allow-Origin: *` (preflight `OPTIONS` → 20
 un autre origin (localhost → IP device) fonctionne. Et **servi depuis le device** (`/designer/`), tout est
 en même origin → la question ne se pose plus.
 
-## ASCII uniquement
+## Texte : Latin-1 (pas seulement ASCII)
 
-`text`/`label`/`unit` doivent rester ASCII (polices Montserrat embarquées). Le designer devra le signaler (le schéma le contraint déjà via `$defs/ascii`).
+Le **texte d'affichage** (`text`/`label`/`unit`, titre, options…) accepte le **Latin-1** : il est rendu par Tiny TTF (Montserrat, JetBrains Mono, Lora, Inter, subset Latin — cf. `tools/gen_fonts.py`). Le schéma le contraint via `$defs/display` (`^[\x20-\x7E\xA0-\xFF]*$`). Les **glyphes de symbole** (icônes) viennent des Montserrat *bitmap* embarquées.
+
+En revanche, les **clés d'asset** (hash d'images de fond / images placées / animations) restent **ASCII pur** (`$defs/ascii`). À ne pas confondre avec le texte d'affichage, qui a migré vers `$defs/display`.
 
 ## Aperçu : indicatif, pas pixel-exact
 
