@@ -109,10 +109,14 @@ def append_fonts_data_h():
 def emit_icons_tables(icons):
     names = [e["name"] for e in icons]
     def cstr(s): return '"' + "".join(f"\\x{b:02x}" for b in s.encode("utf-8")) + '"'
-    h = ["// Généré par tools/gen_icons.py — ne pas éditer.", "#pragma once", "#include <stdint.h>", "",
-         f"static constexpr int ICON_SYMBOL_COUNT = {len(icons)};",
+    # Header C-safe (icons_gen.c est compilé comme C) : #define + garde extern "C",
+    # sur le modèle de fonts_data.h. Inclus côté firmware/tests en C++ (link C).
+    h = ["// Généré par tools/gen_icons.py — ne pas éditer.", "#pragma once", "",
+         f"#define ICON_SYMBOL_COUNT {len(icons)}", "",
+         "#ifdef __cplusplus", 'extern "C" {', "#endif", "",
          "extern const char* const ICON_SYMBOL_NAMES[ICON_SYMBOL_COUNT];",
-         "extern const char* const ICON_GLYPHS[ICON_SYMBOL_COUNT];", ""]
+         "extern const char* const ICON_GLYPHS[ICON_SYMBOL_COUNT];", "",
+         "#ifdef __cplusplus", "}", "#endif", ""]
     (C_OUT / "icons_gen.h").write_text("\n".join(h) + "\n")
     c = ['// Généré par tools/gen_icons.py — ne pas éditer.', '#include "icons_gen.h"', "",
          "const char* const ICON_SYMBOL_NAMES[ICON_SYMBOL_COUNT] = {"]
