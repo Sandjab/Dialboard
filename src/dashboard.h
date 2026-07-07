@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include "config.h"
 #include "context.h"
+#include "fonts/icons_gen.h"   // ICON_SYMBOL_COUNT / ICON_SYMBOL_NAMES / ICON_GLYPHS (gen_icons.py)
 
 enum CompType { COMP_NONE, COMP_LABEL, COMP_READOUT, COMP_BAR, COMP_RING, COMP_LED_RING, COMP_SOUND, COMP_CHART, COMP_METER, COMP_IMAGE, COMP_IMAGE_ANIM, COMP_LED, COMP_RECT, COMP_CIRCLE, COMP_LINE, COMP_ICON, COMP_SWITCH, COMP_BUTTON, COMP_SLIDER, COMP_ARC, COMP_ROLLER, COMP_CLOCK, COMP_RINGS, COMP_QR, COMP_STEPPER, COMP_SEGMENTED, COMP_COUNT };
 enum LedMode  { LED_OFF, LED_SOLID, LED_PROGRESS, LED_SPINNER, LED_BLINK, LED_BREATHE };
@@ -16,9 +17,10 @@ enum FontFamily : uint8_t { FAMILY_MONTSERRAT = 0, FAMILY_JETBRAINS_MONO, FAMILY
 
 struct Threshold { float limit; uint32_t color; };
 
-struct IconState { float at; uint8_t symbol; uint32_t color; bool has_symbol; bool has_color; };
-// Nombre de symboles du set curaté (ICON_SYMBOL_NAMES dans dashboard.cpp == ICON_GLYPHS dans view.cpp).
-static constexpr int ICON_SYMBOL_COUNT = 23;
+struct IconState { float at; uint16_t symbol; uint32_t color; bool has_symbol; bool has_color; };
+// icon_symbol_index : nom de symbole MDI -> index (0 si inconnu). ICON_SYMBOL_NAMES == ICON_GLYPHS
+// (icons_gen.h/.c) s'indexent par cette valeur. Exposé pour les tests natifs.
+uint16_t icon_symbol_index(const char* s);
 
 struct RingTrack { char bind[ID_LEN]; int vmin, vmax; uint32_t color; int32_t value; };
 
@@ -83,7 +85,7 @@ struct Component {
     bool     line_rounded;    // line : bouts arrondis. NB: l'orientation reutilise bar_vertical (parse generique)
 
     // icon : glyphe/couleur pilotes par la valeur via une table d'etats
-    uint8_t   icon_symbol;                       // index du glyphe de base (-> ICON_GLYPHS dans view.cpp)
+    uint16_t  icon_symbol;                       // index du glyphe de base (-> ICON_GLYPHS dans view.cpp)
     IconState icon_states[MAX_ICON_STATES];
     int       icon_state_count;
 

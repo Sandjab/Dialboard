@@ -39,6 +39,9 @@ extern const unsigned int font_inter_italic_len;
 extern const unsigned char font_inter_bolditalic[];
 extern const unsigned int font_inter_bolditalic_len;
 
+extern const unsigned char font_icons[];
+extern const unsigned int font_icons_len;
+
 #ifdef __cplusplus
 }
 #endif

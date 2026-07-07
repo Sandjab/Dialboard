@@ -98,19 +98,10 @@ static LedMode parse_led_mode(const char* s, LedMode def) {
     return def;
 }
 
-// Set curaté de symboles. ORDRE == ICON_GLYPHS (view.cpp) ; les deux indexent par la meme valeur.
-static const char* const ICON_SYMBOL_NAMES[ICON_SYMBOL_COUNT] = {
-    "wifi", "bluetooth", "gps", "usb",
-    "battery_empty", "battery_1", "battery_2", "battery_3", "battery_full",
-    "charge", "power", "bell", "warning", "ok", "close",
-    "play", "pause", "stop", "volume_max", "mute",
-    "home", "settings", "refresh",
-};
-static_assert(sizeof(ICON_SYMBOL_NAMES) / sizeof(ICON_SYMBOL_NAMES[0]) == ICON_SYMBOL_COUNT,
-              "ICON_SYMBOL_NAMES desync avec ICON_SYMBOL_COUNT");
-static uint8_t icon_symbol_index(const char* s) {
+// ICON_SYMBOL_NAMES (== ICON_GLYPHS de view.cpp, meme ordre) est genere dans icons_gen.c.
+uint16_t icon_symbol_index(const char* s) {
     if (s) for (int i = 0; i < ICON_SYMBOL_COUNT; i++)
-        if (!strcmp(s, ICON_SYMBOL_NAMES[i])) return (uint8_t)i;
+        if (!strcmp(s, ICON_SYMBOL_NAMES[i])) return (uint16_t)i;
     return 0;   // miss (impossible apres validation schema) -> 1er glyphe
 }
 

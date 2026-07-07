@@ -14,6 +14,7 @@
 #include "config.h"
 #include "asset_fs.h"
 #include "fonts.h"
+#include "fonts/icons_gen.h"         // ICON_GLYPHS (glyphes MDI UTF-8) — index commun avec ICON_SYMBOL_NAMES
 #include <Arduino.h>                 // millis()
 #include "freertos/semphr.h"
 #include "dashboard.h"               // dash_ctx_write_ui_num/str (deja tire via view.h, explicite ici)
@@ -81,26 +82,6 @@ static const lv_align_t ALIGN_OUT_MAP[] = {
 };
 
 static const int16_t BAR_LABEL_GAP = 6;   // ecart fixe label<->barre (conserve le rendu actuel pour TOP_MID)
-
-static const lv_font_t* pick_font(uint16_t px) {
-    if (px >= 48) return &lv_font_montserrat_48;
-    if (px >= 36) return &lv_font_montserrat_36;
-    if (px >= 28) return &lv_font_montserrat_28;
-    if (px >= 20) return &lv_font_montserrat_20;
-    return &lv_font_montserrat_14;
-}
-
-// Glyphes du set icon. ORDRE == ICON_SYMBOL_NAMES (dashboard.cpp) : index commun. Symboles built-in
-// (deja dans les fontes Montserrat embarquees) -> aucun flag lv_conf.
-static const char* const ICON_GLYPHS[ICON_SYMBOL_COUNT] = {
-    LV_SYMBOL_WIFI, LV_SYMBOL_BLUETOOTH, LV_SYMBOL_GPS, LV_SYMBOL_USB,
-    LV_SYMBOL_BATTERY_EMPTY, LV_SYMBOL_BATTERY_1, LV_SYMBOL_BATTERY_2, LV_SYMBOL_BATTERY_3, LV_SYMBOL_BATTERY_FULL,
-    LV_SYMBOL_CHARGE, LV_SYMBOL_POWER, LV_SYMBOL_BELL, LV_SYMBOL_WARNING, LV_SYMBOL_OK, LV_SYMBOL_CLOSE,
-    LV_SYMBOL_PLAY, LV_SYMBOL_PAUSE, LV_SYMBOL_STOP, LV_SYMBOL_VOLUME_MAX, LV_SYMBOL_MUTE,
-    LV_SYMBOL_HOME, LV_SYMBOL_SETTINGS, LV_SYMBOL_REFRESH,
-};
-static_assert(sizeof(ICON_GLYPHS) / sizeof(ICON_GLYPHS[0]) == ICON_SYMBOL_COUNT,
-              "ICON_GLYPHS desync avec ICON_SYMBOL_NAMES (dashboard.cpp)");
 
 const char* view_default_layout() {
     return
@@ -578,8 +559,8 @@ static void build_line(lv_obj_t* parent, Component& c, Placement& q,
 static void build_icon(lv_obj_t* parent, Component& c, Placement& q,
                        lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
     lv_obj_t* l = lv_label_create(parent);
-    lv_obj_set_style_text_font(l, pick_font(c.font), 0);
-    uint8_t sym; uint32_t col;
+    lv_obj_set_style_text_font(l, get_icon_font(c.font), 0);
+    uint16_t sym; uint32_t col;
     icon_resolve(c.icon_states, c.icon_state_count, (float)c.value, c.icon_symbol, c.color, &sym, &col);
     lv_obj_set_style_text_color(l, lv_color_hex(col), 0);
     lv_label_set_text(l, ICON_GLYPHS[sym]);
@@ -587,7 +568,7 @@ static void build_icon(lv_obj_t* parent, Component& c, Placement& q,
     *main = l;
 }
 static void sync_icon(Component& c, Placement&, lv_obj_t* w, lv_obj_t*, lv_obj_t*) {
-    uint8_t sym; uint32_t col;
+    uint16_t sym; uint32_t col;
     icon_resolve(c.icon_states, c.icon_state_count, (float)c.value, c.icon_symbol, c.color, &sym, &col);
     lv_obj_set_style_text_color(w, lv_color_hex(col), 0);
     lv_label_set_text(w, ICON_GLYPHS[sym]);

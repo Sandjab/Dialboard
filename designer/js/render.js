@@ -5,6 +5,10 @@
 import { previewUrl } from './image-asset.js';
 import { previewUrl as aimgPreviewUrl } from './image-anim-asset.js';
 import { qrModules } from './qr.js';
+import { ICONS } from '../vendor/icons/icons-data.js';
+
+// Table nom d'icône -> glyphe MDI (rendu via @font-face 'mdi', parité firmware ICON_GLYPHS).
+export const ICON_CHAR = Object.fromEntries(ICONS.map(i => [i.name, i.ch]));
 
 // Valeurs d'aperçu mock par défaut. Plan C les rendra éditables via l'inspecteur ; ici elles sont fixes.
 export const MOCKS = {
@@ -571,39 +575,6 @@ export function buildLine(comp, placement) {
 
 // --- Icône / symbole : lv_label en police de symboles (firmware) ; SVG equivalent (designer). ---
 // Map nom -> fragment SVG (enfants d'un <svg> viewBox 0 0 24 24). stroke/fill = currentColor (couleur via
-// n.style.color). Les cles DOIVENT == enum symbolName du schema (test de conformite registry.test.js).
-// Style Feather ; parite "best-effort" (cf. spec). La batterie est parametrique (niveau de remplissage 0..4).
-function batterySvg(level) {
-  let bars = '';
-  for (let i = 0; i < level; i++) bars += `<rect x="${5 + i * 3.1}" y="10" width="2.2" height="4" fill="currentColor" stroke="none"/>`;
-  return `<rect x="3" y="9" width="15" height="6" rx="1"/><rect x="19" y="10.5" width="2" height="3" fill="currentColor" stroke="none"/>${bars}`;
-}
-export const ICON_SVG = {
-  wifi: '<path d="M5 12.5a10 10 0 0 1 14 0"/><path d="M8.5 15.5a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1" fill="currentColor" stroke="none"/>',
-  bluetooth: '<path d="M7 8l10 8-5 4V4l5 4-10 8"/>',
-  gps: '<circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5 8 12 8 12s8-7 8-12a8 8 0 0 0-8-8z"/>',
-  usb: '<path d="M10 20V5"/><path d="M7 8l3-3 3 3"/><circle cx="10" cy="20" r="1.5" fill="currentColor" stroke="none"/><path d="M14 12h3v3"/>',
-  battery_empty: batterySvg(0),
-  battery_1: batterySvg(1),
-  battery_2: batterySvg(2),
-  battery_3: batterySvg(3),
-  battery_full: batterySvg(4),
-  charge: '<rect x="3" y="9" width="15" height="6" rx="1"/><rect x="19" y="10.5" width="2" height="3" fill="currentColor" stroke="none"/><path d="M11 9l-2 3h2.5l-2 3"/>',
-  power: '<path d="M12 3v8"/><path d="M7.5 6.5a7 7 0 1 0 9 0"/>',
-  bell: '<path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
-  warning: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><circle cx="12" cy="17" r="1" fill="currentColor" stroke="none"/>',
-  ok: '<path d="M20 6 9 17l-5-5"/>',
-  close: '<path d="M18 6 6 18M6 6l12 12"/>',
-  play: '<path d="M7 4l13 8-13 8z" fill="currentColor" stroke="none"/>',
-  pause: '<rect x="6" y="5" width="4" height="14" fill="currentColor" stroke="none"/><rect x="14" y="5" width="4" height="14" fill="currentColor" stroke="none"/>',
-  stop: '<rect x="6" y="6" width="12" height="12" rx="1" fill="currentColor" stroke="none"/>',
-  volume_max: '<path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor" stroke="none"/><path d="M16 8.5a4 4 0 0 1 0 7"/><path d="M19 5.5a8 8 0 0 1 0 13"/>',
-  mute: '<path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor" stroke="none"/><path d="M17 9l5 6M22 9l-5 6"/>',
-  home: '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>',
-  settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 13a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V20a2 2 0 0 1-4 0v-.1A1.6 1.6 0 0 0 7 18.3a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H1a2 2 0 0 1 0-4h.1A1.6 1.6 0 0 0 2.7 7a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 7 2.7h.1A1.6 1.6 0 0 0 8 1V1a2 2 0 0 1 4 0v.1A1.6 1.6 0 0 0 17 2.7a1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7H23a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/>',
-  refresh: '<path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/>',
-};
-
 // Résolveur PUR (miroir firmware icon_resolve) : 1re bande où value < at ; champ omis -> base.
 export function resolveIcon(comp, value) {
   let symbol = comp.symbol || 'bell';
@@ -627,9 +598,11 @@ export function buildIcon(comp, mock = MOCKS.icon) {
   n.style.width = px + 'px';
   n.style.height = px + 'px';
   n.style.color = color;
-  const markup = `<svg xmlns="${SVGNS}" viewBox="0 0 24 24" width="${px}" height="${px}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON_SVG[symbol] || ICON_SVG.bell}</svg>`;
-  const doc = new DOMParser().parseFromString(markup, 'image/svg+xml');
-  n.appendChild(document.importNode(doc.documentElement, true));
+  const i = document.createElement('i');
+  i.className = 'mdi';
+  i.style.fontSize = px + 'px';
+  i.textContent = ICON_CHAR[symbol] || ICON_CHAR.bell || '';
+  n.appendChild(i);
   return n;
 }
 
