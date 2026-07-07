@@ -164,7 +164,7 @@ export const COMPONENTS = {
     defaults: () => ({ type: 'icon', symbol: 'bell', color: '#FFFFFF', font: 28 }),
     makePlacement: screenPlacement,
     centered: false, physical: false,
-    compFields: [['symbol', 'field.symbol', 'symbol'], ['color', 'field.color', 'color'],
+    compFields: [['symbol', 'field.symbol', 'iconpicker'], ['color', 'field.color', 'color'],
                  ['font', 'field.font_size', 'font'], ['bind', 'field.bind', 'idtext']],
     placeFields: [['anchor', 'field.anchor', 'anchor'], ['dx', 'field.dx', 'num'], ['dy', 'field.dy', 'num']],
     mockFields: [['value', 'field.mock_value']],

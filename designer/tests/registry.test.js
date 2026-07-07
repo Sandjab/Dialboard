@@ -146,11 +146,11 @@ test('registry : famille/gras/italique exposés sur les composants textuels, pas
   assert.ok(!keysOf('icon').includes('font_family'), 'icon ne doit pas exposer font_family');
 });
 
-test('conformité : enum symbolName du schéma == clés de ICON_SVG (render.js)', async () => {
-  const { ICON_SVG } = await import('../js/render.js');
+test('conformité : enum symbolName du schéma == noms de icons-data.js (set MDI généré)', async () => {
+  const { ICONS } = await import('../vendor/icons/icons-data.js');
   const schemaNames = schema.$defs.symbolName.enum.slice().sort();
-  const svgNames = Object.keys(ICON_SVG).sort();
-  assert.deepEqual(svgNames, schemaNames);
+  const dataNames = ICONS.map(i => i.name).sort();
+  assert.deepEqual(dataNames, schemaNames);
 });
 
 test('registre : led_ring expose mode/period_ms + value (mock), défaut mode off', () => {

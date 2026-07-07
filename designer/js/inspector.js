@@ -7,7 +7,8 @@ import { imageFileToBg, previewUrl } from './bg-image.js';
 import { imageFileToAsset, previewUrl as imagePreviewUrl } from './image-asset.js';
 import { decodeGif, decodeImages, framesToAsset, previewUrls as aimgPreviewUrls } from './image-anim-asset.js';
 import { COMPONENTS } from './registry.js';
-import { ICON_SVG } from './render.js';
+import { ICON_CHAR } from './render.js';
+import { openIconPicker } from './icon-picker.js';
 import { ANCHORS, ANCHORS_OUT } from './geometry.js';
 import { getMock, setMock } from './mocks.js';
 import { numDragValue } from './numdrag.js';
@@ -22,7 +23,6 @@ const SELECTS = {
   orient:     [['horizontal', 'select.orient.horizontal'], ['vertical', 'select.orient.vertical']],
   arcmode:    [['normal', 'select.arcmode.normal'], ['symmetrical', 'select.arcmode.symmetrical'], ['reverse', 'select.arcmode.reverse']],
   dash:       [['solid', 'select.dash.solid'], ['dashed', 'select.dash.dashed'], ['dotted', 'select.dash.dotted']],
-  symbol:     Object.keys(ICON_SVG).map(n => [n, n]),
   fontfamily: [['montserrat', 'Montserrat'], ['jetbrains_mono', 'JetBrains Mono'], ['lora', 'Lora'], ['inter', 'Inter']],
   clockmode:  [['analog', 'select.clockmode.analog'], ['digital', 'select.clockmode.digital']],
 };
@@ -242,7 +242,6 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
       const { sec: stSec, body: stBody } = section(t('inspector.sec.states'));
       note(stBody, t('inspector.note.icon_states'));
       const ref = sel.ref;                                   // figée au rendu (cf. invariant inspecteur)
-      const names = Object.keys(ICON_SVG);
       const st = (c.states || []).map(s => ({ ...s }));       // copie locale éditable
       const commit = (opts) => model.commit(s2 => setIconStates(s2, ref, st.map(e => ({
         at: e.at ?? 0,
@@ -252,11 +251,18 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
       st.forEach((e, idx) => {
         const row = document.createElement('div'); row.className = 'insp-row';
         const at = makeInput('num', e.at, v => { st[idx].at = v === '' ? 0 : v; commit({ coalesce: 'num' }); });   // F2 num
-        const symSel = document.createElement('select');
-        const base = document.createElement('option'); base.value = ''; base.textContent = t('inspector.opt.base');
-        symSel.appendChild(base);
-        for (const nm of names) { const o = document.createElement('option'); o.value = nm; o.textContent = nm; if (nm === e.symbol) o.selected = true; symSel.appendChild(o); }
-        symSel.addEventListener('change', () => { st[idx].symbol = symSel.value || undefined; commit(); });
+        // Bouton-picker (option « base » via allowClear = héritage du symbole de base).
+        const symBtn = document.createElement('button');
+        symBtn.type = 'button'; symBtn.className = 'insp-iconbtn';
+        const symGlyph = document.createElement('i'); symGlyph.className = 'mdi';
+        symGlyph.textContent = e.symbol ? (ICON_CHAR[e.symbol] || '') : '';
+        const symName = document.createElement('span'); symName.className = 'insp-iconbtn-name';
+        symName.textContent = e.symbol || t('inspector.opt.base');
+        symBtn.append(symGlyph, symName);
+        symBtn.addEventListener('click', () => openIconPicker({
+          current: e.symbol || null, allowClear: true,
+          onPick: name => { st[idx].symbol = name || undefined; commit(); },
+        }));
         const colOn = document.createElement('input'); colOn.type = 'checkbox'; colOn.checked = e.color != null; colOn.title = t('inspector.tip.force_color');
         const col = document.createElement('input'); col.type = 'color'; col.value = e.color || '#FF0000'; col.disabled = e.color == null;
         colOn.addEventListener('change', () => { col.disabled = !colOn.checked; st[idx].color = colOn.checked ? col.value.toUpperCase() : undefined; commit(); });
@@ -271,11 +277,11 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
         }); });
         const rm = document.createElement('button'); rm.className = 'insp-th-rm'; rm.textContent = '×';
         rm.addEventListener('click', () => { st.splice(idx, 1); commit(); });
-        row.append(at, symSel, colOn, col, rm);
+        row.append(at, symBtn, colOn, col, rm);
         stBody.appendChild(row);
       });
       const add = document.createElement('button'); add.className = 'insp-th-add'; add.textContent = t('inspector.btn.add_state');
-      add.addEventListener('click', () => { st.push({ at: 0, symbol: names[0] }); commit(); });
+      add.addEventListener('click', () => { st.push({ at: 0, symbol: 'bell' }); commit(); });
       stBody.appendChild(add);
       body.appendChild(stSec);
     }
@@ -437,6 +443,23 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
     });
     row.append(on, col);
     return row;
+  }
+
+  // icon (champ symbol de base) : bouton montrant l'icône courante, ouvre le picker MDI. Commit sur choix
+  // (ref figée comme les autres commits inspecteur : le picker peut se fermer après un changement de sélection).
+  function iconField(label, c) {
+    const ref = sel.ref;                                  // figée au rendu (cf. invariant inspecteur)
+    const cur = c.symbol || 'bell';
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'insp-iconbtn';
+    const g = document.createElement('i'); g.className = 'mdi'; g.textContent = ICON_CHAR[cur] || ICON_CHAR.bell || '';
+    const nm = document.createElement('span'); nm.className = 'insp-iconbtn-name'; nm.textContent = cur;
+    btn.append(g, nm);
+    btn.addEventListener('click', () => openIconPicker({
+      current: cur,
+      onPick: name => { if (name) model.commit(s => setComponentProp(s, ref, 'symbol', name)); },
+    }));
+    return fieldRow(t(label), btn);
   }
 
   // Champ « Valeur (set) » du button : texte + case « numérique ». Case cochée → value émise comme
@@ -716,6 +739,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
         if (kind === 'image_anim') { propBody.appendChild(imageAnimField(label, c)); continue; }   // editeur bespoke
         if (kind === 'fill') { propBody.appendChild(fillField(label, c)); continue; }   // forme : fond optionnel (bespoke : enableWhen non supporté, comme image/image_anim)
         if (kind === 'value') { propBody.appendChild(valueField(label, c)); continue; }  // button : valeur num|str (bespoke)
+        if (kind === 'iconpicker') { propBody.appendChild(iconField(label, c)); continue; }   // icon : bouton -> picker MDI (bespoke)
         if (kind === 'options') { propBody.appendChild(optionsField(label, c)); continue; }   // roller : liste bespoke
         if (kind === 'tracks') { propBody.appendChild(tracksField(label, c)); continue; }   // rings : liste bespoke
         // Color picker : aperçu live sur 'input' (canvas seul, hors modèle → pas de flood undo) ; commit
