@@ -49,3 +49,20 @@ const lv_font_t* get_font(uint8_t family, uint16_t px, bool bold, bool italic) {
   s_cache[s_cache_n++] = { family, style, px, f };
   return f;
 }
+
+// Police d'icônes MDI : même mécanique que get_font, mais sur font_icons (glyphes UTF-8 en PUA).
+// Réserve family==4 dans le cache partagé (get_font ne produit jamais 4, family étant clampé à 0-3).
+const lv_font_t* get_icon_font(uint16_t px) {
+  if (px < 8) px = 8;
+  if (px > 120) px = 120;
+  const uint8_t fam = 4, style = 0;
+  for (int i = 0; i < s_cache_n; i++)
+    if (s_cache[i].fam == fam && s_cache[i].style == style && s_cache[i].px == px)
+      return s_cache[i].font;
+  if (s_cache_n >= FONT_CACHE_MAX) return fallback(px);
+  lv_font_t *f = lv_tiny_ttf_create_data_ex((const void*)font_icons, font_icons_len, px,
+                                            LV_FONT_KERNING_NONE, 0);   // 0 = pas de cache de glyphes
+  if (!f) return fallback(px);
+  s_cache[s_cache_n++] = { fam, style, px, f };
+  return f;
+}
