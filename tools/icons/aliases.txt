@@ -1,0 +1,26 @@
+# Alias legacy : nom_dialboard=nom_mdi (nom exposé = nom Dialboard historique).
+# La cible MDI doit exister dans meta.json, sinon gen_icons.py échoue (fail-loud).
+# Table à corriger via https://pictogrammers.com/library/mdi/ si une cible bouge.
+wifi=wifi
+bluetooth=bluetooth
+gps=crosshairs-gps
+usb=usb
+battery_empty=battery-outline
+battery_1=battery-20
+battery_2=battery-50
+battery_3=battery-80
+battery_full=battery
+charge=battery-charging
+power=power
+bell=bell
+warning=alert
+ok=check
+close=close
+play=play
+pause=pause
+stop=stop
+volume_max=volume-high
+mute=volume-off
+home=home
+settings=cog
+refresh=refresh

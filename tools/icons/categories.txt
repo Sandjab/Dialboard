@@ -1,0 +1,8 @@
+# Tags MDI à inclure (un par ligne, libellé exact issu de `--list-tags`).
+# Set retenu : ~462 icônes (marge sous MAX_ICONS=500). Les tags MDI étant quasi
+# disjoints, l'union ≈ somme des tailles ; ajouter un tag de +80 rapproche du cap.
+# Contrôles média / connectivité déjà couverts par les alias legacy (aliases.txt).
+Weather
+Battery
+Alert / Error
+Notification
