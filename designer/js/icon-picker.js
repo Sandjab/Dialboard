@@ -77,7 +77,10 @@ export function openIconPicker({ current = null, onPick, allowClear = false } = 
   search.addEventListener('input', renderGrid);
   catSel.addEventListener('change', renderGrid);
   closeBtn.addEventListener('click', () => closeIconPicker());
-  overlay.addEventListener('pointerdown', e => { if (e.target === overlay) closeIconPicker(); });  // clic sur le fond ferme
+  overlay.addEventListener('pointerdown', e => {
+    e.stopPropagation();                              // n'atteint pas la désélection globale du canvas (app.js)
+    if (e.target === overlay) closeIconPicker();      // clic sur le fond ferme
+  });
   const onKey = e => { if (e.key === 'Escape') { e.stopPropagation(); closeIconPicker(); } };
   document.addEventListener('keydown', onKey);
 
