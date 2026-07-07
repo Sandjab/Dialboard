@@ -20,9 +20,9 @@ bool led_is_lit(int32_t value, int32_t off_below) {
     return value >= off_below;
 }
 
-void icon_resolve(const IconState* st, int n, float value, uint8_t base_sym, uint32_t base_col,
-                  uint8_t* out_sym, uint32_t* out_col) {
-    uint8_t sym = base_sym; uint32_t col = base_col;
+void icon_resolve(const IconState* st, int n, float value, uint16_t base_sym, uint32_t base_col,
+                  uint16_t* out_sym, uint32_t* out_col) {
+    uint16_t sym = base_sym; uint32_t col = base_col;
     for (int i = 0; i < n; i++) {
         if (value < st[i].at) {
             if (st[i].has_symbol) sym = st[i].symbol;

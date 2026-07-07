@@ -1382,17 +1382,17 @@ void test_icon_resolve(void) {
     IconState st[2];
     st[0].at = 15; st[0].symbol = 0; st[0].color = 0xFF0000; st[0].has_symbol = true;  st[0].has_color = true;
     st[1].at = 50; st[1].symbol = 0; st[1].color = 0xFFAA00; st[1].has_symbol = false; st[1].has_color = true;
-    uint8_t sym; uint32_t col;
+    uint16_t sym; uint32_t col;
     icon_resolve(st, 2, 10, 2, 0x00FF00, &sym, &col);   // <15
-    TEST_ASSERT_EQUAL_UINT8(0, sym); TEST_ASSERT_EQUAL_HEX32(0xFF0000, col);
+    TEST_ASSERT_EQUAL_UINT16(0, sym); TEST_ASSERT_EQUAL_HEX32(0xFF0000, col);
     icon_resolve(st, 2, 30, 2, 0x00FF00, &sym, &col);   // <50 : sym omis -> base 2
-    TEST_ASSERT_EQUAL_UINT8(2, sym); TEST_ASSERT_EQUAL_HEX32(0xFFAA00, col);
+    TEST_ASSERT_EQUAL_UINT16(2, sym); TEST_ASSERT_EQUAL_HEX32(0xFFAA00, col);
     icon_resolve(st, 2, 15, 2, 0x00FF00, &sym, &col);  // == st[0].at : pas de match band0, puis 15 < 50 -> band1 (couleur seule)
-    TEST_ASSERT_EQUAL_UINT8(2, sym); TEST_ASSERT_EQUAL_HEX32(0xFFAA00, col);
+    TEST_ASSERT_EQUAL_UINT16(2, sym); TEST_ASSERT_EQUAL_HEX32(0xFFAA00, col);
     icon_resolve(st, 2, 90, 2, 0x00FF00, &sym, &col);   // aucune -> base
-    TEST_ASSERT_EQUAL_UINT8(2, sym); TEST_ASSERT_EQUAL_HEX32(0x00FF00, col);
+    TEST_ASSERT_EQUAL_UINT16(2, sym); TEST_ASSERT_EQUAL_HEX32(0x00FF00, col);
     icon_resolve(st, 0, 90, 5, 0x123456, &sym, &col);   // table vide -> base
-    TEST_ASSERT_EQUAL_UINT8(5, sym); TEST_ASSERT_EQUAL_HEX32(0x123456, col);
+    TEST_ASSERT_EQUAL_UINT16(5, sym); TEST_ASSERT_EQUAL_HEX32(0x123456, col);
 }
 
 static const char* LAYOUT_ICON =
@@ -1411,7 +1411,7 @@ void test_icon_parsed(void) {
     TEST_ASSERT_EQUAL_INT(COMP_ICON, a.type);
     TEST_ASSERT_EQUAL_HEX32(0x00FF00, a.color);
     TEST_ASSERT_EQUAL_INT(36, a.font);
-    TEST_ASSERT_EQUAL_UINT8(0, a.icon_symbol);                       // "wifi" -> index 0
+    TEST_ASSERT_EQUAL_STRING("wifi", ICON_SYMBOL_NAMES[a.icon_symbol]);   // "wifi" résolu (round-trip, robuste au set)
     TEST_ASSERT_EQUAL_INT(2, a.icon_state_count);
     TEST_ASSERT_EQUAL_FLOAT(1.0f, a.icon_states[0].at);
     TEST_ASSERT_TRUE(a.icon_states[0].has_symbol);
@@ -1421,7 +1421,7 @@ void test_icon_parsed(void) {
     TEST_ASSERT_TRUE(a.icon_states[1].has_color);
     // i2 : défauts (font 28 specifique icon, base bell, pas d'états)
     TEST_ASSERT_EQUAL_INT(28, d.components[i2].font);
-    TEST_ASSERT_EQUAL_UINT8(11, d.components[i2].icon_symbol);       // défaut "bell" -> index 11
+    TEST_ASSERT_EQUAL_STRING("bell", ICON_SYMBOL_NAMES[d.components[i2].icon_symbol]);   // défaut "bell" (round-trip)
     TEST_ASSERT_EQUAL_INT(0, d.components[i2].icon_state_count);
 }
 
@@ -1642,6 +1642,23 @@ void test_segmented_clamp(void) {
     TEST_ASSERT_EQUAL_INT(0, segmented_clamp(0, 0));   // aucune option
 }
 
+// --- icônes : les noms legacy résolvent vers un vrai glyphe (compat MDI), miss -> fallback 0 ---
+void test_icon_symbol_index_legacy(void) {
+    // Le set MDI a grandi bien au-delà des 23 symboles bitmap d'origine.
+    TEST_ASSERT_TRUE(ICON_SYMBOL_COUNT > 23);
+    // Chaque nom legacy résout dans les bornes ET vers SA propre entrée : le round-trip
+    // nom -> index -> nom prouve qu'aucun n'est silencieusement capté par le fallback 0
+    // (le set est trié, index 0 = "account-alert", donc aucun nom legacy n'y est).
+    const char* legacy[] = {"wifi", "gps", "battery_1", "volume_max", "settings", "refresh"};
+    for (const char* n : legacy) {
+        uint16_t idx = icon_symbol_index(n);
+        TEST_ASSERT_TRUE(idx < ICON_SYMBOL_COUNT);
+        TEST_ASSERT_EQUAL_STRING(n, ICON_SYMBOL_NAMES[idx]);
+    }
+    // Miss (impossible après validation schéma) -> premier glyphe (index 0).
+    TEST_ASSERT_EQUAL_INT(0, (int)icon_symbol_index("zzz_inconnu"));
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_remaining_seconds);
@@ -1832,5 +1849,6 @@ int main(int, char**) {
     RUN_TEST(test_stepper_step);
     RUN_TEST(test_stepper_parsed);
     RUN_TEST(test_segmented_clamp);
+    RUN_TEST(test_icon_symbol_index_legacy);
     return UNITY_END();
 }
