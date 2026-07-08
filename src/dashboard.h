@@ -5,7 +5,7 @@
 #include "context.h"
 #include "fonts/icons_gen.h"   // ICON_SYMBOL_COUNT / ICON_SYMBOL_NAMES / ICON_GLYPHS (gen_icons.py)
 
-enum CompType { COMP_NONE, COMP_LABEL, COMP_READOUT, COMP_BAR, COMP_RING, COMP_LED_RING, COMP_SOUND, COMP_CHART, COMP_METER, COMP_IMAGE, COMP_IMAGE_ANIM, COMP_LED, COMP_RECT, COMP_CIRCLE, COMP_LINE, COMP_ICON, COMP_SWITCH, COMP_BUTTON, COMP_SLIDER, COMP_ARC, COMP_ROLLER, COMP_CLOCK, COMP_RINGS, COMP_QR, COMP_STEPPER, COMP_SEGMENTED, COMP_COUNT };
+enum CompType { COMP_NONE, COMP_LABEL, COMP_READOUT, COMP_BAR, COMP_RING, COMP_LED_RING, COMP_SOUND, COMP_CHART, COMP_METER, COMP_IMAGE, COMP_IMAGE_ANIM, COMP_LED, COMP_RECT, COMP_CIRCLE, COMP_LINE, COMP_ICON, COMP_SWITCH, COMP_BUTTON, COMP_SLIDER, COMP_ARC, COMP_ROLLER, COMP_CLOCK, COMP_RINGS, COMP_QR, COMP_STEPPER, COMP_SEGMENTED, COMP_STATE, COMP_COUNT };
 enum LedMode  { LED_OFF, LED_SOLID, LED_PROGRESS, LED_SPINNER, LED_BLINK, LED_BREATHE };
 enum BarMode  { BAR_NORMAL, BAR_SYMMETRICAL };               // bar : lv_bar_set_mode
 enum ArcMode  { ARC_NORMAL, ARC_SYMMETRICAL, ARC_REVERSE };  // ring : lv_arc_set_mode
@@ -103,6 +103,15 @@ struct Component {
     uint16_t  icon_symbol;                       // index du glyphe de base (-> ICON_GLYPHS dans view.cpp)
     IconState icon_states[MAX_ICON_STATES];
     int       icon_state_count;
+
+    // state : selecteur de visuel pilote par la valeur (cases + defaut) ; match exact|range.
+    uint8_t   state_match;                       // STATE_EXACT | STATE_RANGE
+    int16_t   state_cases_off;                   // offset dans Dashboard.state_pool (valide si state_case_count>0)
+    int       state_case_count;
+    StateCase state_default;                     // visuel si aucun cas ne matche (matcher ignore)
+    bool      state_has_num;                     // dernier type recu : true=num (c.value), false=str (c.vstr)
+    bool      state_shown_is_img;                // kind du visuel rendu (detecte glyphe<->image au sync)
+    char      state_shown_src[ID_LEN];           // src de l'image actuellement chargee (recharge au changement)
 
     // button (effecteur set) : valeur ecrite dans bind au tap
     char     set_value[TEXT_LEN];   // valeur a ecrire (cas string) ; forme canonique aussi peuplee si num
@@ -208,6 +217,8 @@ struct Dashboard {
     int       source_count;
     Sink      sinks[MAX_SINKS];
     int       sink_count;
+    StateCase state_pool[MAX_STATE_CASES_TOTAL];   // state : cas de tous les composants (offset+count par Component)
+    int       state_pool_used;
 };
 
 bool bg_key_valid(const char* key);   // clé d'asset image de fond : 1..16 hex minuscules (garde de chemin)

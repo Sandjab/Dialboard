@@ -903,6 +903,7 @@ static const ViewVTable VIEW[] = {
     /* COMP_QR       */ { build_qr,     sync_qr     },
     /* COMP_STEPPER  */ { build_stepper, sync_stepper },
     /* COMP_SEGMENTED */ { build_segmented, sync_segmented },
+    /* COMP_STATE    */ { nullptr,      nullptr      },   // rempli en Tache 3 (build_state/sync_state)
 };
 static_assert(sizeof(VIEW) / sizeof(VIEW[0]) == COMP_COUNT,
               "VIEW desync avec CompType : ajoute la ligne du nouveau type");
