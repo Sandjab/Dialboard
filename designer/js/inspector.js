@@ -1,7 +1,7 @@
 // Inspecteur : édite le composant + le placement sélectionnés. Pilote les champs par des tables de
 // descripteurs (DRY). Chaque édition committée = UN commit (sur 'change', pas par frappe → pas de
 // flood undo). Le signalement ASCII est live (sur 'input'). S'abonne au modèle pour se rafraîchir.
-import { setComponentProp, setPlacementProp, setBarOrientation, setThresholds, setIconStates, setTrackProp, addTrack, removeTrack, removePlacementAndOrphan, setPageBackground, setPageBackgroundImage, setNavWrap, renamePage, pageNameTaken, isValidId } from './mutations.js';
+import { setComponentProp, setPlacementProp, setBarOrientation, setThresholds, setIconStates, setStateCases, setStateDefault, setStateMatch, setTrackProp, addTrack, removeTrack, removePlacementAndOrphan, setPageBackground, setPageBackgroundImage, setNavWrap, renamePage, pageNameTaken, isValidId } from './mutations.js';
 import { showToast } from './toast.js';
 import { imageFileToBg, previewUrl } from './bg-image.js';
 import { imageFileToAsset, previewUrl as imagePreviewUrl } from './image-asset.js';
@@ -284,6 +284,132 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
       add.addEventListener('click', () => { st.push({ at: 0, symbol: 'bell' }); commit(); });
       stBody.appendChild(add);
       body.appendChild(stSec);
+    }
+
+    // --- State : match + cases (matcher + visuel) + visuel par defaut + mock. Invariants : ref figee,
+    //     commit sur change, coalescence num, clearPreview avant commit couleur. ---
+    if (c.type === 'state') {
+      const ref = sel.ref;                                   // figée au rendu (cf. invariant inspecteur)
+
+      // Editeur de visuel reutilisable (bascule glyphe|image). `visual` est mute puis `onCommit(visual)` appele.
+      const visualEditor = (visual, onCommit) => {
+        const wrap = document.createElement('div'); wrap.className = 'insp-row insp-state-visual';
+        const isImg = () => !!visual.src;
+        const toggle = document.createElement('select'); toggle.className = 'insp-state-kind';
+        for (const [val, key] of [['glyph', 'inspector.opt.glyph'], ['image', 'inspector.opt.image']]) {
+          const o = document.createElement('option'); o.value = val; o.textContent = t(key); toggle.appendChild(o);
+        }
+        toggle.value = isImg() ? 'image' : 'glyph';
+        const slot = document.createElement('span'); slot.className = 'insp-state-visualslot';
+        const renderSlot = () => {
+          slot.textContent = '';
+          if (isImg()) {
+            const file = document.createElement('input');
+            file.type = 'file'; file.accept = 'image/*'; file.className = 'insp-bg-file';
+            file.addEventListener('change', async () => {
+              const f = file.files?.[0]; if (!f) return;
+              try {
+                const { key } = await imageFileToAsset(f, ref, visual.w || 120, visual.h || 120);
+                visual.src = key; visual.w = visual.w || 120; visual.h = visual.h || 120;
+                delete visual.symbol; delete visual.color;
+                onCommit(visual);
+              } catch (e) { console.error('state image:', e); }
+              file.value = '';
+            });
+            const pick = document.createElement('button');
+            pick.type = 'button'; pick.className = 'insp-iconbtn';
+            pick.title = visual.src ? t('inspector.tip.change_image') : t('inspector.tip.pick_image');
+            pick.textContent = '🖼';
+            pick.addEventListener('click', () => file.click());
+            slot.append(file, pick);
+            if (visual.src) {
+              const thumb = document.createElement('img'); thumb.className = 'insp-bg-thumb';
+              const u = imagePreviewUrl(visual.src);
+              if (u) thumb.src = u; else thumb.alt = t('inspector.alt.reload_device');
+              slot.appendChild(thumb);
+            }
+          } else {
+            const symBtn = document.createElement('button');
+            symBtn.type = 'button'; symBtn.className = 'insp-iconbtn';
+            const g = document.createElement('i'); g.className = 'mdi';
+            g.textContent = visual.symbol ? (ICON_CHAR[visual.symbol] || '') : '';
+            const nm = document.createElement('span'); nm.className = 'insp-iconbtn-name';
+            nm.textContent = visual.symbol || 'bell';
+            symBtn.append(g, nm);
+            symBtn.addEventListener('click', () => openIconPicker({
+              current: visual.symbol || 'bell',
+              onPick: name => { if (name) { visual.symbol = name; delete visual.src; delete visual.w; delete visual.h; onCommit(visual); } },
+            }));
+            const col = document.createElement('input'); col.type = 'color';
+            col.value = visual.color || '#FFFFFF';
+            col.addEventListener('change', () => { clearPreview?.(); visual.color = col.value.toUpperCase(); onCommit(visual); });
+            slot.append(symBtn, col);
+          }
+        };
+        toggle.addEventListener('change', () => {
+          if (toggle.value === 'image') { delete visual.symbol; delete visual.color; visual.src = visual.src || ''; visual.w = visual.w || 120; visual.h = visual.h || 120; }
+          else { delete visual.src; delete visual.w; delete visual.h; visual.symbol = visual.symbol || 'bell'; }
+          renderSlot(); onCommit(visual);
+        });
+        renderSlot();
+        wrap.append(toggle, slot);
+        return wrap;
+      };
+
+      // 1) Select match (exact|range)
+      const { sec: mSec, body: mBody } = section(t('field.match'));
+      const matchSel = document.createElement('select'); matchSel.className = 'insp-state-match';
+      for (const [val, key] of [['exact', 'inspector.opt.exact'], ['range', 'inspector.opt.range']]) {
+        const o = document.createElement('option'); o.value = val; o.textContent = t(key); matchSel.appendChild(o);
+      }
+      matchSel.value = c.match || 'exact';
+      matchSel.addEventListener('change', () => model.commit(s => setStateMatch(s, ref, matchSel.value)));
+      mBody.appendChild(fieldRow(t('field.match'), matchSel));
+      body.appendChild(mSec);
+
+      // 2) Visuel par defaut
+      const { sec: dSec, body: dBody } = section(t('inspector.sec.state_default'));
+      const dVisual = { ...(c.default || { symbol: 'weather-cloudy', color: '#9AA0AA' }) };
+      dBody.appendChild(visualEditor(dVisual, v => model.commit(s => setStateDefault(s, ref, { ...v }))));
+      body.appendChild(dSec);
+
+      // 3) Table des cas
+      const { sec: cSec, body: cBody } = section(t('inspector.sec.cases'));
+      note(cBody, t('inspector.note.state_cases'));
+      const cases = (c.cases || []).map(x => ({ ...x }));
+      const commitCases = (opts) => model.commit(s => setStateCases(s, ref, cases.map(x => ({ ...x }))), opts);
+      cases.forEach((cas, idx) => {
+        const row = document.createElement('div'); row.className = 'insp-row insp-state-case';
+        let matcher;
+        if ((c.match || 'exact') === 'range') {
+          matcher = makeInput('num', cas.at, v => { cases[idx].at = v === '' ? 0 : v; delete cases[idx].key; commitCases({ coalesce: 'num' }); });
+        } else {
+          matcher = makeInput('text', cas.key ?? '', v => {
+            const num = v !== '' && !isNaN(Number(v)) ? Number(v) : null;
+            cases[idx].key = num != null ? num : v; delete cases[idx].at; commitCases();
+          });
+        }
+        const vis = visualEditor(cas, () => commitCases());   // `cas` EST cases[idx], muté en place par visualEditor ; ne PAS réassigner (sinon les clés supprimées ré-apparaissent au 2e édit → cas contradictoire symbol+src)
+        const rm = document.createElement('button'); rm.className = 'insp-th-rm'; rm.textContent = '×';
+        rm.addEventListener('click', () => { cases.splice(idx, 1); commitCases(); });
+        row.append(matcher, vis, rm);
+        cBody.appendChild(row);
+      });
+      const add = document.createElement('button'); add.className = 'insp-th-add'; add.textContent = t('inspector.btn.add_case');
+      add.addEventListener('click', () => { cases.push((c.match || 'exact') === 'range' ? { at: 0, symbol: 'bell' } : { key: '', symbol: 'bell' }); commitCases(); });
+      cBody.appendChild(add);
+      body.appendChild(cSec);
+
+      // 4) Mock (valeur d'apercu) : texte libre ; nombre pur -> branche num, sinon string (miroir firmware).
+      const { sec: mkSec, body: mkBody } = section(t('inspector.sec.mock'), true);
+      const m = getMock(ref, 'state');
+      const mockInput = makeInput('text', m.value ?? '', v => {
+        const num = v !== '' && !isNaN(Number(v)) ? Number(v) : v;
+        setMock(ref, { value: num });
+        rerenderCanvas && rerenderCanvas();
+      });
+      mkBody.appendChild(fieldRow(t('field.mock_value'), mockInput));
+      body.appendChild(mkSec);
     }
 
     // --- Valeur d'aperçu (mock) : hors layout, re-rend le canvas sans toucher au modèle/undo ---
