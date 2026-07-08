@@ -42,19 +42,19 @@ export function sceneLayerColor(layer, principal) { return layer.role === 'accen
 export function sceneFrameAt(name, tMs) {
   const s = SCENES[name];
   if (!s) return [];
-  return s.layers.map(L => {
-    const f = { cx: L.cx, cy: L.cy, angleDdeg: 0, scale: 1, opa: 255 };
-    const per = L.period || 1000;
-    const ph = ((tMs + L.phase) % per) / per;                 // 0..1
-    switch (L.anim) {
+  return s.layers.map(layer => {
+    const f = { cx: layer.cx, cy: layer.cy, angleDdeg: 0, scale: 1, opa: 255 };
+    const per = layer.period || 1000;
+    const ph = ((tMs + layer.phase) % per) / per;             // 0..1
+    switch (layer.anim) {
       case 'rotate': f.angleDdeg = Math.trunc(ph * 3600); break;
       case 'translate_loop':
-        f.cy = L.cy - L.amp + 2 * L.amp * ph;
+        f.cy = layer.cy - layer.amp + 2 * layer.amp * ph;
         f.opa = Math.trunc(255 * (ph < 0.15 ? ph / 0.15 : ph > 0.85 ? (1 - ph) / 0.15 : 1));
         break;
-      case 'drift': f.cx = L.cx + L.amp * Math.sin(TAU * ph); break;
-      case 'pulse': { const k = 0.5 * (1 - Math.cos(TAU * ph)); f.scale = 1 + L.amp * k; f.opa = Math.trunc(255 * (0.6 + 0.4 * k)); break; }
-      case 'swing': f.angleDdeg = Math.trunc(L.amp * 10 * Math.sin(TAU * ph)); break;
+      case 'drift': f.cx = layer.cx + layer.amp * Math.sin(TAU * ph); break;
+      case 'pulse': { const k = 0.5 * (1 - Math.cos(TAU * ph)); f.scale = 1 + layer.amp * k; f.opa = Math.trunc(255 * (0.6 + 0.4 * k)); break; }
+      case 'swing': f.angleDdeg = Math.trunc(layer.amp * 10 * Math.sin(TAU * ph)); break;
       case 'flash': f.opa = (ph < 0.10 || (ph > 0.16 && ph < 0.24)) ? 255 : 45; break;
       // static -> neutre
     }

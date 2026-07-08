@@ -37,6 +37,22 @@ test('sceneFrameAt : opa tronquée (parité cast uint8_t firmware, pas round)', 
   assert.equal(sceneFrameAt('rain', 100)[1].opa, 154);
 });
 
+test('sceneFrameAt : flash -> créneau d\'opacité (storm, couche lightning-bolt)', () => {
+  assert.equal(sceneFrameAt('storm', 0)[1].opa, 255);     // ph=0 < 0.10 -> allumé
+  assert.equal(sceneFrameAt('storm', 900)[1].opa, 45);    // ph=0.5, hors créneau -> éteint
+});
+
+test('sceneFrameAt : swing -> angle oscille de signe (bell)', () => {
+  assert.equal(sceneFrameAt('bell', 0)[0].angleDdeg, 0);      // sin(0)
+  assert.ok(sceneFrameAt('bell', 225)[0].angleDdeg > 0);      // quart de période, sin +1
+  assert.ok(sceneFrameAt('bell', 675)[0].angleDdeg < 0);      // trois quarts, sin -1
+});
+
+test('sceneFrameAt : drift -> cx oscille autour du centre (wind)', () => {
+  assert.equal(sceneFrameAt('wind', 0)[0].cx, 50);            // base, sin(0)
+  assert.ok(sceneFrameAt('wind', 950)[0].cx > 50);            // quart de période, sin +1
+});
+
 test('sceneLayerColor : principal suit, accent fixe', () => {
   const s = SCENES.storm;
   assert.equal(sceneLayerColor(s.layers[0], '#3399FF'), '#3399FF');
