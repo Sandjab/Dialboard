@@ -190,6 +190,21 @@ git commit -m "feat(state): resolveur pur state_resolve + struct StateCase + tes
 
 ## Task 2 : Firmware — type `COMP_STATE`, modèle, parsing, `apply_state` + test natif
 
+> **AMENDEMENT 2026-07-08 (pool partagé — supersède le stockage inline ci-dessous).** Le stockage
+> `StateCase state_cases[MAX_STATE_CASES]` **inline dans chaque `Component`** déborde la DRAM esp32
+> (`sizeof(StateCase)`=96 o × 16 × `MAX_COMPONENTS`=32 × 2 instances `Dashboard` ≈ +107 KB → `dram0_0_seg`
+> overflow de 38904 o). **Correctif retenu (validé) : pool partagé.**
+> - `src/config.h` : ajouter `#define MAX_STATE_CASES_TOTAL 64` (pool partagé par tous les composants state).
+> - `struct Dashboard` (dashboard.h ~l.208, après `sink_count`) : `StateCase state_pool[MAX_STATE_CASES_TOTAL]; int state_pool_used;`. Le pool est **dans** `Dashboard` → swappé atomiquement par `*d = t;` (dash_set_layout l.390), atomicité préservée.
+> - `struct Component` : **remplacer** `StateCase state_cases[MAX_STATE_CASES]` par `int16_t state_cases_off;` (offset dans `state_pool`, valide si `state_case_count>0`). Garder `int state_case_count`, `StateCase state_default` (inline, 1 seul), `state_match`, `state_has_num`, `state_shown_is_img`, `state_shown_src`.
+> - Parsing (`dash_set_layout`) : allouer la tranche depuis le scratch parsé (`t.state_pool`), cf. Step 6 amendé.
+> - `build_state`/`sync_state` (Task 3) : lire la tranche via `s_dash->state_pool[c.state_cases_off]` (garde `count>0`).
+> - Tests (`test_state_parsed`, `test_state_context`) : indexer via `d.state_pool[…off + i]` au lieu de `a.state_cases[i]`.
+> - `state_resolve` et `struct StateCase` (Task 1, committés) **inchangés** (le résolveur prend `const StateCase*, int n` → marche sur une tranche du pool).
+> - **Note Unity** : `TEST_ASSERT_EQUAL_DOUBLE` est indisponible ici (`UNITY_INCLUDE_DOUBLE` non défini) → utiliser `TEST_ASSERT_EQUAL_FLOAT`.
+>
+> Les blocs de code ci-dessous montrent la forme **inline d'origine** ; appliquer la variante **pool** décrite dans l'amendement.
+
 **Files:**
 - Modify: `src/dashboard.h` (enum `CompType` ~ligne 8 ; champs `Component` près de `icon_states` ~ligne 90)
 - Modify: `src/dashboard.cpp` (`COMP_NAMES` ~ligne 35 ; helper + parsing dans `dash_set_layout` près du bloc icon ~ligne 228 ; `apply_state` + `APPLY[]` ~ligne 510)
