@@ -319,7 +319,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
             const col = document.createElement('input'); col.type = 'color';
             col.value = visual.color || sceneDefaultColor(visual.scene);
             col.addEventListener('change', () => { clearPreview?.(); visual.color = col.value.toUpperCase(); onCommit(visual); });
-            const sizeIn = makeInput('num', visual.size ?? 120, v => { visual.size = v === '' ? 120 : v; onCommit(visual); });
+            const sizeIn = makeInput('num', visual.size ?? 120, v => { visual.size = v === '' ? 120 : v; onCommit(visual, { coalesce: 'num' }); });   // F2
             slot.append(btn, col, sizeIn);
             return;
           }
@@ -398,7 +398,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
       // 2) Visuel par defaut
       const { sec: dSec, body: dBody } = section(t('inspector.sec.state_default'));
       const dVisual = { ...(c.default || { symbol: 'weather-cloudy', color: '#9AA0AA' }) };
-      dBody.appendChild(visualEditor(dVisual, v => model.commit(s => setStateDefault(s, ref, { ...v }))));
+      dBody.appendChild(visualEditor(dVisual, (v, opts) => model.commit(s => setStateDefault(s, ref, { ...v }), opts)));
       body.appendChild(dSec);
 
       // 3) Table des cas
@@ -417,7 +417,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
             cases[idx].key = num != null ? num : v; delete cases[idx].at; commitCases();
           });
         }
-        const vis = visualEditor(cas, () => commitCases());   // `cas` EST cases[idx], muté en place par visualEditor ; ne PAS réassigner (sinon les clés supprimées ré-apparaissent au 2e édit → cas contradictoire symbol+src)
+        const vis = visualEditor(cas, (v, opts) => commitCases(opts));   // `cas` EST cases[idx], muté en place par visualEditor ; ne PAS réassigner (sinon les clés supprimées ré-apparaissent au 2e édit → cas contradictoire symbol+src)
         const rm = document.createElement('button'); rm.className = 'insp-th-rm'; rm.textContent = '×';
         rm.addEventListener('click', () => { cases.splice(idx, 1); commitCases(); });
         row.append(matcher, vis, rm);

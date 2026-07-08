@@ -35,7 +35,6 @@ export function openScenePicker({ current = null, onPick } = {}) {
     b.type = 'button'; b.className = 'iconpick-item' + (name === current ? ' sel' : '');
     b.title = t('scene.' + name);
     const wrap = document.createElement('div'); wrap.className = 'scenepick-thumb'; wrap.style.position = 'relative';
-    wrap._sceneSize = 44;
     SCENES[name].layers.forEach(L => {
       const el = document.createElement('i');
       el.className = 'mdi w-scene-layer';
