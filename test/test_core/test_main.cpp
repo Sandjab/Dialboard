@@ -1529,7 +1529,8 @@ static const char* LAYOUT_STATE =
       "\"cases\":["
         "{\"key\":\"Clear\",\"symbol\":\"weather-sunny\",\"color\":\"#FFC02E\"},"
         "{\"key\":\"Rain\",\"symbol\":\"weather-pouring\"},"
-        "{\"key\":3,\"src\":\"abc123\",\"w\":120,\"h\":120}"
+        "{\"key\":3,\"src\":\"abc123\",\"w\":120,\"h\":120},"
+        "{\"key\":\"Storm\",\"scene\":\"storm\",\"color\":\"#8892A0\",\"size\":140}"
       "]},"
     "\"s2\":{\"type\":\"state\",\"match\":\"range\","
       "\"default\":{\"symbol\":\"weather-cloudy\"},"
@@ -1549,7 +1550,7 @@ void test_state_parsed(void) {
     TEST_ASSERT_EQUAL_INT(STATE_GLYPH, a.state_default.kind);
     TEST_ASSERT_EQUAL_STRING("weather-cloudy", ICON_SYMBOL_NAMES[a.state_default.symbol]);
     TEST_ASSERT_EQUAL_HEX32(0x9AA0AA, a.state_default.color);
-    TEST_ASSERT_EQUAL_INT(3, a.state_case_count);
+    TEST_ASSERT_EQUAL_INT(4, a.state_case_count);
     const StateCase* ac = &d.state_pool[a.state_cases_off];       // tranche de s1 dans le pool
     TEST_ASSERT_FALSE(ac[0].has_num_key);
     TEST_ASSERT_EQUAL_STRING("Clear", ac[0].key_str);
@@ -1562,10 +1563,14 @@ void test_state_parsed(void) {
     TEST_ASSERT_EQUAL_INT(STATE_IMAGE, ac[2].kind);
     TEST_ASSERT_EQUAL_STRING("abc123", ac[2].src);
     TEST_ASSERT_EQUAL_INT(120, ac[2].w);
+    TEST_ASSERT_EQUAL_INT(STATE_SCENE, ac[3].kind);
+    TEST_ASSERT_EQUAL_INT(scene_name_index("storm"), ac[3].scene);
+    TEST_ASSERT_EQUAL_INT(140, ac[3].size);
+    TEST_ASSERT_EQUAL_HEX32(0x8892A0, ac[3].color);
     int s2 = dash_find(&d, "s2");
     const Component& b = d.components[s2];
     TEST_ASSERT_EQUAL_INT(STATE_RANGE, b.state_match);
-    TEST_ASSERT_EQUAL_INT(3, b.state_cases_off);                 // tranche de s2 packee apres les 3 cas de s1
+    TEST_ASSERT_EQUAL_INT(4, b.state_cases_off);                 // tranche de s2 packee apres les 4 cas de s1
     TEST_ASSERT_EQUAL_FLOAT(10.0f, d.state_pool[b.state_cases_off].at);
 }
 

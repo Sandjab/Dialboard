@@ -31,11 +31,13 @@ struct StateCase {
     double   key_num;
     char     key_str[TEXT_LEN];
     float    at;                     // range : borne haute exclusive (num < at)
-    uint8_t  kind;         // StateKind : glyphe | image | scene (infere par le champ present)
+    uint8_t  kind;                   // StateKind : glyphe | image | scene (infere par le champ present)
     uint16_t symbol;                 // glyphe : index dans ICON_GLYPHS (view.cpp)
     uint32_t color;                  // glyphe : couleur (defaut 0xFFFFFF)
     char     src[ID_LEN];            // image : cle d'asset (/img/<src>.565a)
     int      w, h;                   // image : dimensions RGB565A8
+    uint8_t  scene;                  // scene : index dans SCENE_CATALOG (valide si kind == STATE_SCENE)
+    int      size;                   // scene : cote de la boite carree en px (defaut 120)
 };
 
 struct RingTrack { char bind[ID_LEN]; int vmin, vmax; uint32_t color; int32_t value; };
@@ -112,6 +114,7 @@ struct Component {
     StateCase state_default;                     // visuel si aucun cas ne matche (matcher ignore)
     bool      state_has_num;                     // dernier type recu : true=num (c.value), false=str (c.vstr)
     uint8_t   state_shown_kind;                  // StateKind du visuel rendu (detecte un changement au sync)
+    int       state_shown_scene;                 // scene actuellement rendue (detecte un changement au sync)
     char      state_shown_src[ID_LEN];           // src de l'image actuellement chargee (recharge au changement)
 
     // button (effecteur set) : valeur ecrite dans bind au tap

@@ -18,6 +18,7 @@
 #include <Arduino.h>                 // millis()
 #include "freertos/semphr.h"
 #include "dashboard.h"               // dash_ctx_write_ui_num/str (deja tire via view.h, explicite ici)
+#include "scenes.h"
 #include "stepper_logic.h"
 #include "segmented_logic.h"
 
@@ -1048,7 +1049,18 @@ static const StateCase* state_cases_of(const Component& c, int* n) {
 // state : (re)cree l'enfant du conteneur selon le visuel resolu — lv_label glyphe (parite build_icon)
 // ou lv_image bitmap (parite build_image). Met a jour l'etat de kind/src rendu.
 static void state_make_child(lv_obj_t* cont, Component& c, int idx, const StateCase& v) {
-    if (v.kind == STATE_IMAGE) {
+    if (v.kind == STATE_SCENE) {
+        // Rendu minimal (Task 3) : 1re couche statique. Remplace par le rendu N couches en Task 4.
+        const Scene& s = SCENE_CATALOG[v.scene];
+        int px = (int)(s.layers[0].scale_rel * (v.size ? v.size : 120));
+        lv_obj_t* l = lv_label_create(cont);
+        lv_obj_set_style_text_font(l, get_icon_font(px), 0);
+        lv_obj_set_style_text_color(l, lv_color_hex(scene_layer_color(&s.layers[0], v.color)), 0);
+        lv_label_set_text(l, ICON_GLYPHS[icon_symbol_index(s.layers[0].symbol)]);
+        lv_obj_center(l);
+        c.state_shown_scene = v.scene;
+        c.state_shown_src[0] = '\0';
+    } else if (v.kind == STATE_IMAGE) {
         lv_obj_t* img = lv_image_create(cont);
         if (state_load_image(idx, v.src, v.w, v.h)) {
             lv_image_set_src(img, &s_img_dsc[idx]);

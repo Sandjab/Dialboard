@@ -2,6 +2,7 @@
 #include "color.h"
 #include "format.h"
 #include "sink.h"
+#include "scenes.h"
 #include <ArduinoJson.h>
 #include <string.h>
 #include <math.h>
@@ -106,8 +107,19 @@ uint16_t icon_symbol_index(const char* s) {
     return 0;   // miss (impossible apres validation schema) -> 1er glyphe
 }
 
-// state : parse le visuel d'un cas/defaut. src valide -> image (w/h) ; sinon glyphe (symbol + couleur, blanc par defaut).
+// state : parse le visuel d'un cas/defaut. scene valide -> scene (prioritaire) ; sinon src valide -> image (w/h) ;
+// sinon glyphe (symbol + couleur, blanc par defaut).
 static void parse_state_visual(JsonVariantConst o, StateCase& sc) {
+    const char* scn = o["scene"] | "";
+    int si = scn[0] ? scene_name_index(scn) : -1;
+    if (si >= 0) {                                   // visuel scene (prioritaire)
+        sc.kind = STATE_SCENE;
+        sc.scene = (uint8_t)si;
+        sc.size = o["size"].is<int>() ? (int)(o["size"] | 120) : 120;
+        sc.src[0] = '\0'; sc.w = sc.h = 0; sc.symbol = 0; sc.color = 0xFFFFFF;
+        if (o["color"].is<const char*>()) sc.color = parse_hex_color(o["color"], 0xFFFFFF);
+        return;
+    }
     const char* src = o["src"] | "";
     if (bg_key_valid(src)) {
         sc.kind = STATE_IMAGE;
