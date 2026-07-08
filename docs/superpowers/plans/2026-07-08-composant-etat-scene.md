@@ -659,6 +659,19 @@ Claude-Session: https://claude.ai/code/session_01512UvxMoYcTUA7TLJCq3zy"
 
 ---
 
+### ⚠ Amendement post-revue T4 — invalidation par index de cas (bug `color`/`size`)
+
+La revue de la Tâche 4 a identifié que `sync_state` ne reconstruit la scène que sur changement d'**index de scène** (`v.scene != c.state_shown_scene`), ignorant `color` **et** `size` par cas. Or `color` par cas est un usage central (ex. scène `alert` rouge en critique / ambre en warning, **même** `scene` à chaque cas) : la couleur resterait figée. Correction adoptée (index de cas rendu, plus simple que dupliquer `state_shown_color`/`state_shown_size`) :
+
+- **`src/dashboard.h`** (`Component`) : remplacer `int state_shown_scene;` par `int state_shown_case_idx;` (index du cas rendu ; `-1` = défaut).
+- **`src/view.cpp`** :
+  - `state_make_child`, branche SCENE : **retirer** `c.state_shown_scene = v.scene;` (l'index de cas est posé par l'appelant).
+  - `build_state` : après `state_make_child(...)`, poser `c.state_shown_case_idx = idx;` (l'`idx` résolu au build).
+  - `sync_state` : la condition scène devient `v.kind == STATE_SCENE && c.state_shown_kind == STATE_SCENE && idx != c.state_shown_case_idx` → rebuild ; **en fin de fonction**, `c.state_shown_case_idx = idx;`. Ainsi tout changement de **cas rendu** (scene/color/size) recrée le visuel. Les branches **glyphe** (maj couleur+texte en place) et **image** (rebuild si `src` change) restent **inchangées**.
+- Nettoyages Minor associés (même commit) : retirer `if (px < 8) px = 8;` (redondant — `get_icon_font` clampe déjà `[8,120]`) et le cast no-op `(uint32_t)lv_tick_get()`.
+
+Gate : `pio run -e esp32s3` SUCCESS + `pio test -e native` 196/196 (view.cpp/dashboard.h non testés en natif ; pas de régression attendue). Vérif visuelle du changement de couleur par cas : Tâche 10 (navigateur) / Tâche 11 (device).
+
 ## Task 5: Tick d'animation `dash_tick_scene` + boucle principale
 
 **Files:**
