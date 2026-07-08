@@ -6,6 +6,7 @@
 #include <string.h>
 #include "format.h"
 #include "color.h"
+#include "scenes.h"
 #include "nav_logic.h"
 #include "dashboard.h"
 #include "context.h"
@@ -1428,6 +1429,68 @@ void test_state_resolve(void) {
     TEST_ASSERT_EQUAL_INT(-1, state_resolve(STATE_EXACT, cs, 0, false, 0, "Clear"));
 }
 
+void test_scene_catalog_sane(void) {
+    TEST_ASSERT_EQUAL_INT(9, scene_count());
+    // noms uniques + resolubles ; chaque scene a 1..MAX couches ; chaque glyphe existe dans le jeu MDI.
+    for (int i = 0; i < scene_count(); i++) {
+        const Scene& s = SCENE_CATALOG[i];
+        TEST_ASSERT_EQUAL_INT_MESSAGE(i, scene_name_index(s.name), s.name);
+        TEST_ASSERT_TRUE(s.count >= 1 && s.count <= MAX_SCENE_LAYERS);
+        for (int j = 0; j < s.count; j++) {
+            // le glyphe doit exister : icon_symbol_index le resout a un index valide (< 469).
+            int gi = icon_symbol_index(s.layers[j].symbol);
+            TEST_ASSERT_TRUE_MESSAGE(gi >= 0 && gi < ICON_SYMBOL_COUNT, s.layers[j].symbol);
+        }
+    }
+    TEST_ASSERT_EQUAL_INT(-1, scene_name_index("nope"));
+    TEST_ASSERT_EQUAL_INT(-1, scene_name_index(nullptr));
+}
+
+void test_scene_frame_at(void) {
+    LayerFrame f[MAX_SCENE_LAYERS];
+    // scene invalide -> 0 couche
+    TEST_ASSERT_EQUAL_INT(0, scene_frame_at(-1, 0, f));
+    TEST_ASSERT_EQUAL_INT(0, scene_frame_at(999, 0, f));
+
+    int sunny = scene_name_index("sunny");
+    // ROTATE : angle 0 a t=0, ~180deg a demi-periode (7000ms -> 3500), periodicite.
+    int n = scene_frame_at(sunny, 0, f);
+    TEST_ASSERT_EQUAL_INT(1, n);
+    TEST_ASSERT_EQUAL_INT(0, f[0].angle_ddeg);
+    scene_frame_at(sunny, 3500, f);
+    TEST_ASSERT_TRUE(f[0].angle_ddeg > 1700 && f[0].angle_ddeg < 1900);   // ~1800 (180deg)
+    LayerFrame a[MAX_SCENE_LAYERS], b[MAX_SCENE_LAYERS];
+    scene_frame_at(sunny, 1234, a); scene_frame_at(sunny, 1234 + 7000, b);
+    TEST_ASSERT_EQUAL_INT(a[0].angle_ddeg, b[0].angle_ddeg);              // periodique
+
+    // TRANSLATE_LOOP (rain, couches 1..3) : cy varie, opa bornee, phases decalees.
+    int rain = scene_name_index("rain");
+    n = scene_frame_at(rain, 550, f);
+    TEST_ASSERT_EQUAL_INT(4, n);
+    TEST_ASSERT_EQUAL_FLOAT(38.0f, f[0].cy);                             // couche 0 STATIC (nuage) fixe
+    TEST_ASSERT_TRUE(f[1].opa <= 255);                                   // borne haute (type uint8 garantit >=0)
+    TEST_ASSERT_TRUE(f[1].cy != f[2].cy);                               // phases differentes -> positions differentes
+
+    // PULSE (alert) : scale >= 1, opa dans [0,255].
+    int alert = scene_name_index("alert");
+    scene_frame_at(alert, 700, f);
+    TEST_ASSERT_TRUE(f[0].scale >= 1.0f && f[0].scale <= 1.5f);
+
+    // STATIC (storm couche 0) : neutre.
+    int storm = scene_name_index("storm");
+    scene_frame_at(storm, 999, f);
+    TEST_ASSERT_EQUAL_INT(0, f[0].angle_ddeg);
+    TEST_ASSERT_EQUAL_FLOAT(1.0f, f[0].scale);
+    TEST_ASSERT_EQUAL_INT(255, f[0].opa);
+}
+
+void test_scene_layer_color(void) {
+    int storm = scene_name_index("storm");
+    const Scene& s = SCENE_CATALOG[storm];
+    TEST_ASSERT_EQUAL_HEX32(0x3399FF, scene_layer_color(&s.layers[0], 0x3399FF));   // principal -> suit
+    TEST_ASSERT_EQUAL_HEX32(0xF5C518, scene_layer_color(&s.layers[1], 0x3399FF));   // accent -> fixe
+}
+
 static const char* LAYOUT_ICON =
   "{\"components\":{"
     "\"i1\":{\"type\":\"icon\",\"symbol\":\"wifi\",\"color\":\"#00FF00\",\"font\":36,"
@@ -1887,6 +1950,9 @@ int main(int, char**) {
     RUN_TEST(test_schema_types_all_resolve);
     RUN_TEST(test_icon_resolve);
     RUN_TEST(test_state_resolve);
+    RUN_TEST(test_scene_catalog_sane);
+    RUN_TEST(test_scene_frame_at);
+    RUN_TEST(test_scene_layer_color);
     RUN_TEST(test_icon_parsed);
     RUN_TEST(test_state_parsed);
     RUN_TEST(test_state_pool_overflow);
