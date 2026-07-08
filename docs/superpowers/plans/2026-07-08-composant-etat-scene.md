@@ -256,9 +256,10 @@ void test_scene_catalog_sane(void) {
         TEST_ASSERT_EQUAL_INT_MESSAGE(i, scene_name_index(s.name), s.name);
         TEST_ASSERT_TRUE(s.count >= 1 && s.count <= MAX_SCENE_LAYERS);
         for (int j = 0; j < s.count; j++) {
-            // le glyphe doit exister : icon_symbol_index le resout a un index valide (< 469).
+            // le glyphe doit exister. icon_symbol_index renvoie 0 (pas -1) sur miss -> comparer le NOM
+            // résolu (round-trip) : le test échoue si un nom du catalogue est absent/fauté (Rule 9).
             int gi = icon_symbol_index(s.layers[j].symbol);
-            TEST_ASSERT_TRUE_MESSAGE(gi >= 0 && gi < ICON_SYMBOL_COUNT, s.layers[j].symbol);
+            TEST_ASSERT_EQUAL_STRING_MESSAGE(s.layers[j].symbol, ICON_SYMBOL_NAMES[gi], s.layers[j].symbol);
         }
     }
     TEST_ASSERT_EQUAL_INT(-1, scene_name_index("nope"));
