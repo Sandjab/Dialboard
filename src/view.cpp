@@ -1068,6 +1068,7 @@ static void apply_scene_frame(lv_obj_t* cont, const StateCase& v, uint32_t now_m
 // lv_image bitmap (parite build_image), ou N lv_label pour une scene animee. Met a jour l'etat de kind/src rendu.
 static void state_make_child(lv_obj_t* cont, Component& c, int idx, const StateCase& v) {
     if (v.kind == STATE_SCENE) {
+        if (s_img_buf[idx]) { heap_caps_free(s_img_buf[idx]); s_img_buf[idx] = nullptr; }   // libere l'image si on passe d'un cas image a une scene
         const Scene& s = SCENE_CATALOG[v.scene];
         int size = v.size ? v.size : 120;
         lv_obj_set_size(cont, size, size);            // boite carree fixe : couches positionnees en absolu via align
