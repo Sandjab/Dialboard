@@ -417,7 +417,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
             cases[idx].key = num != null ? num : v; delete cases[idx].at; commitCases();
           });
         }
-        const vis = visualEditor(cas, (v, opts) => commitCases(opts));   // `cas` EST cases[idx], muté en place par visualEditor ; ne PAS réassigner (sinon les clés supprimées ré-apparaissent au 2e édit → cas contradictoire symbol+src)
+        const vis = visualEditor(cas, (_v, opts) => commitCases(opts));   // `cas` EST cases[idx], muté en place par visualEditor ; ne PAS réassigner (sinon les clés supprimées ré-apparaissent au 2e édit → cas contradictoire symbol+src)
         const rm = document.createElement('button'); rm.className = 'insp-th-rm'; rm.textContent = '×';
         rm.addEventListener('click', () => { cases.splice(idx, 1); commitCases(); });
         row.append(matcher, vis, rm);
