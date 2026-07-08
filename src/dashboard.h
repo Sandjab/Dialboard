@@ -114,7 +114,7 @@ struct Component {
     StateCase state_default;                     // visuel si aucun cas ne matche (matcher ignore)
     bool      state_has_num;                     // dernier type recu : true=num (c.value), false=str (c.vstr)
     uint8_t   state_shown_kind;                  // StateKind du visuel rendu (detecte un changement au sync)
-    int       state_shown_scene;                 // scene actuellement rendue (detecte un changement au sync)
+    int       state_shown_case_idx;              // index du cas actuellement rendu ; -1 = defaut (detecte scene/color/size au sync)
     char      state_shown_src[ID_LEN];           // src de l'image actuellement chargee (recharge au changement)
 
     // button (effecteur set) : valeur ecrite dans bind au tap

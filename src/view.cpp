@@ -1074,7 +1074,7 @@ static void state_make_child(lv_obj_t* cont, Component& c, int idx, const StateC
         int n = s.count > MAX_SCENE_LAYERS ? MAX_SCENE_LAYERS : s.count;
         for (int i = 0; i < n; i++) {
             const SceneLayer& L = s.layers[i];
-            int px = (int)(L.scale_rel * size); if (px < 8) px = 8;
+            int px = (int)(L.scale_rel * size);
             lv_obj_t* l = lv_label_create(cont);
             lv_obj_set_style_text_font(l, get_icon_font(px), 0);
             lv_obj_set_style_text_color(l, lv_color_hex(scene_layer_color(&L, v.color)), 0);
@@ -1088,7 +1088,6 @@ static void state_make_child(lv_obj_t* cont, Component& c, int idx, const StateC
             }
         }
         apply_scene_frame(cont, v, 0);                    // etat initial (t=0)
-        c.state_shown_scene = v.scene;
         c.state_shown_src[0] = '\0';
     } else if (v.kind == STATE_IMAGE) {
         lv_obj_set_size(cont, LV_SIZE_CONTENT, LV_SIZE_CONTENT);   // reinitialise la boite si swap depuis une scene
@@ -1130,6 +1129,7 @@ static void build_state(lv_obj_t* parent, Component& c, Placement& q,
     int idx = state_resolve(c.state_match, cases, n, c.state_has_num, (double)c.value, c.vstr);
     const StateCase& v = (idx < 0) ? c.state_default : cases[idx];
     state_make_child(cont, c, q.comp_index, v);
+    c.state_shown_case_idx = idx;
     lv_obj_align(cont, ALIGN_MAP[q.anchor], q.dx, q.dy);
     *main = cont;
 }
@@ -1140,12 +1140,12 @@ static void sync_state(Component& c, Placement& q, lv_obj_t* main, lv_obj_t*, lv
     int idx = state_resolve(c.state_match, cases, n, c.state_has_num, (double)c.value, c.vstr);
     const StateCase& v = (idx < 0) ? c.state_default : cases[idx];
     lv_obj_t* child = lv_obj_get_child(main, 0);
-    bool scene_changed = v.kind == STATE_SCENE && c.state_shown_kind == STATE_SCENE && v.scene != c.state_shown_scene;
-    if (!child || v.kind != c.state_shown_kind || scene_changed) {   // kind/scene change (ou 1er) -> recree l'enfant
+    bool scene_case_changed = v.kind == STATE_SCENE && c.state_shown_kind == STATE_SCENE && idx != c.state_shown_case_idx;
+    if (!child || v.kind != c.state_shown_kind || scene_case_changed) {   // kind/cas change (ou 1er) -> recree l'enfant
         lv_obj_clean(main);
         state_make_child(main, c, q.comp_index, v);
-    } else if (v.kind == STATE_SCENE) {                       // meme scene : applique la frame courante
-        apply_scene_frame(main, v, (uint32_t)lv_tick_get());
+    } else if (v.kind == STATE_SCENE) {                       // meme cas : applique la frame courante
+        apply_scene_frame(main, v, lv_tick_get());
     } else if (v.kind == STATE_IMAGE) {                       // meme kind image : recree l'enfant SI src change
         if (strcmp(c.state_shown_src, v.src) != 0) {          // state_make_child gere load OK (image) / echec (placeholder)
             lv_obj_clean(main);
@@ -1155,6 +1155,7 @@ static void sync_state(Component& c, Placement& q, lv_obj_t* main, lv_obj_t*, lv
         lv_obj_set_style_text_color(child, lv_color_hex(v.color), 0);
         lv_label_set_text(child, ICON_GLYPHS[v.symbol]);
     }
+    c.state_shown_case_idx = idx;
 }
 
 // Met à jour la coloration des points indicateurs sans toucher aux flags hidden des pages
