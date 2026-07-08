@@ -50,10 +50,10 @@ export function sceneFrameAt(name, tMs) {
       case 'rotate': f.angleDdeg = Math.trunc(ph * 3600); break;
       case 'translate_loop':
         f.cy = L.cy - L.amp + 2 * L.amp * ph;
-        f.opa = Math.round(255 * (ph < 0.15 ? ph / 0.15 : ph > 0.85 ? (1 - ph) / 0.15 : 1));
+        f.opa = Math.trunc(255 * (ph < 0.15 ? ph / 0.15 : ph > 0.85 ? (1 - ph) / 0.15 : 1));
         break;
       case 'drift': f.cx = L.cx + L.amp * Math.sin(TAU * ph); break;
-      case 'pulse': { const k = 0.5 * (1 - Math.cos(TAU * ph)); f.scale = 1 + L.amp * k; f.opa = Math.round(255 * (0.6 + 0.4 * k)); break; }
+      case 'pulse': { const k = 0.5 * (1 - Math.cos(TAU * ph)); f.scale = 1 + L.amp * k; f.opa = Math.trunc(255 * (0.6 + 0.4 * k)); break; }
       case 'swing': f.angleDdeg = Math.trunc(L.amp * 10 * Math.sin(TAU * ph)); break;
       case 'flash': f.opa = (ph < 0.10 || (ph > 0.16 && ph < 0.24)) ? 255 : 45; break;
       // static -> neutre

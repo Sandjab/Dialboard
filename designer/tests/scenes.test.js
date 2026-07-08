@@ -31,6 +31,12 @@ test('sceneFrameAt : pulse -> scale >= 1, opa dans [0,255]', () => {
 
 test('sceneFrameAt : name inconnu -> []', () => { assert.deepEqual(sceneFrameAt('nope', 0), []); });
 
+test('sceneFrameAt : opa tronquée (parité cast uint8_t firmware, pas round)', () => {
+  // rain, couche 1 (water, phase 0, period 1100), t=100 : ph=0.0909, inner=ph/0.15=0.606, 255*inner=154.5
+  // trunc -> 154 (firmware) ; round donnerait 155. Ce test échoue si le JS repasse à Math.round.
+  assert.equal(sceneFrameAt('rain', 100)[1].opa, 154);
+});
+
 test('sceneLayerColor : principal suit, accent fixe', () => {
   const s = SCENES.storm;
   assert.equal(sceneLayerColor(s.layers[0], '#3399FF'), '#3399FF');
