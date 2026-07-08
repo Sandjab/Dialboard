@@ -9,6 +9,8 @@ import { decodeGif, decodeImages, framesToAsset, previewUrls as aimgPreviewUrls 
 import { COMPONENTS } from './registry.js';
 import { ICON_CHAR } from './render.js';
 import { openIconPicker } from './icon-picker.js';
+import { openScenePicker } from './scene-picker.js';
+import { sceneDefaultColor } from './scenes.js';
 import { ANCHORS, ANCHORS_OUT } from './geometry.js';
 import { getMock, setMock } from './mocks.js';
 import { numDragValue } from './numdrag.js';
@@ -295,14 +297,32 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
       const visualEditor = (visual, onCommit) => {
         const wrap = document.createElement('div'); wrap.className = 'insp-row insp-state-visual';
         const isImg = () => !!visual.src;
+        const kindOf = () => visual.scene ? 'scene' : (visual.src ? 'image' : 'glyph');
         const toggle = document.createElement('select'); toggle.className = 'insp-state-kind';
-        for (const [val, key] of [['glyph', 'inspector.opt.glyph'], ['image', 'inspector.opt.image']]) {
+        for (const [val, key] of [['glyph', 'inspector.opt.glyph'], ['image', 'inspector.opt.image'], ['scene', 'inspector.opt.scene']]) {
           const o = document.createElement('option'); o.value = val; o.textContent = t(key); toggle.appendChild(o);
         }
-        toggle.value = isImg() ? 'image' : 'glyph';
+        toggle.value = kindOf();
         const slot = document.createElement('span'); slot.className = 'insp-state-visualslot';
         const renderSlot = () => {
           slot.textContent = '';
+          if (visual.scene) {                             // --- mode scène ---
+            const btn = document.createElement('button');
+            btn.type = 'button'; btn.className = 'insp-iconbtn';
+            const nm = document.createElement('span'); nm.className = 'insp-iconbtn-name';
+            nm.textContent = t('scene.' + visual.scene);
+            btn.appendChild(nm);
+            btn.addEventListener('click', () => openScenePicker({
+              current: visual.scene,
+              onPick: name => { if (name) { visual.scene = name; visual.color = visual.color || sceneDefaultColor(name); onCommit(visual); } },
+            }));
+            const col = document.createElement('input'); col.type = 'color';
+            col.value = visual.color || sceneDefaultColor(visual.scene);
+            col.addEventListener('change', () => { clearPreview?.(); visual.color = col.value.toUpperCase(); onCommit(visual); });
+            const sizeIn = makeInput('num', visual.size ?? 120, v => { visual.size = v === '' ? 120 : v; onCommit(visual); });
+            slot.append(btn, col, sizeIn);
+            return;
+          }
           if (isImg()) {
             const file = document.createElement('input');
             file.type = 'file'; file.accept = 'image/*'; file.className = 'insp-bg-file';
@@ -347,8 +367,16 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
           }
         };
         toggle.addEventListener('change', () => {
-          if (toggle.value === 'image') { delete visual.symbol; delete visual.color; visual.src = visual.src || ''; visual.w = visual.w || 120; visual.h = visual.h || 120; }
-          else { delete visual.src; delete visual.w; delete visual.h; visual.symbol = visual.symbol || 'bell'; }
+          if (toggle.value === 'scene') {
+            delete visual.symbol; delete visual.color; delete visual.src; delete visual.w; delete visual.h;
+            visual.scene = visual.scene || 'spinner'; visual.color = sceneDefaultColor(visual.scene); visual.size = visual.size || 120;
+          } else if (toggle.value === 'image') {
+            delete visual.symbol; delete visual.color; delete visual.scene; delete visual.size;
+            visual.src = visual.src || ''; visual.w = visual.w || 120; visual.h = visual.h || 120;
+          } else {
+            delete visual.src; delete visual.w; delete visual.h; delete visual.scene; delete visual.size;
+            visual.symbol = visual.symbol || 'bell';
+          }
           renderSlot(); onCommit(visual);
         });
         renderSlot();
