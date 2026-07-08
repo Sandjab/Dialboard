@@ -603,7 +603,7 @@ export function resolveState(comp, value) {
     return -1;
   }
   for (let i = 0; i < cases.length; i++) {            // exact : 1er match selon le type de la valeur
-    const k = cases[i].key;
+    const k = cases[i].key ?? '';                   // clé absente -> '' (parité firmware : has_num_key=false, key_str="")
     if (isNum) { if (typeof k === 'number' && k === value) return i; }
     else       { if (typeof k !== 'number' && String(k) === String(value)) return i; }
   }

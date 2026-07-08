@@ -226,6 +226,13 @@ test('resolveState : range borne stricte (value === at ne matche pas)', () => {
   assert.equal(resolveState(comp, 20), -1);   // 20 < 20 faux, aucune -> defaut
 });
 
+test('resolveState : cle absente traitee comme "" (parite firmware key_str="")', () => {
+  const comp = { match: 'exact', cases: [{ symbol: 'bell' }, { key: 'x', symbol: 'y' }] };
+  assert.equal(resolveState(comp, ''), 0);            // valeur "" -> cas sans cle (index 0), comme le firmware
+  assert.equal(resolveState(comp, 'undefined'), -1);  // ne matche PLUS le litteral "undefined" (bug parite corrige)
+  assert.equal(resolveState(comp, 'x'), 1);
+});
+
 test('render : buildSlider/buildArc/buildRoller/buildClock exportés', () => {
   assert.equal(typeof render.buildSlider, 'function');
   assert.equal(typeof render.buildArc, 'function');

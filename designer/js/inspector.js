@@ -385,7 +385,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
           matcher = makeInput('num', cas.at, v => { cases[idx].at = v === '' ? 0 : v; delete cases[idx].key; commitCases({ coalesce: 'num' }); });
         } else {
           matcher = makeInput('text', cas.key ?? '', v => {
-            const num = v !== '' && !isNaN(Number(v)) ? Number(v) : null;
+            const num = v !== '' && !isNaN(Number(v)) && String(Number(v)) === v ? Number(v) : null;   // "01"/"+12"/" 3" restent des clés string (format préservé)
             cases[idx].key = num != null ? num : v; delete cases[idx].at; commitCases();
           });
         }
@@ -404,7 +404,7 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
       const { sec: mkSec, body: mkBody } = section(t('inspector.sec.mock'), true);
       const m = getMock(ref, 'state');
       const mockInput = makeInput('text', m.value ?? '', v => {
-        const num = v !== '' && !isNaN(Number(v)) ? Number(v) : v;
+        const num = v !== '' && !isNaN(Number(v)) && String(Number(v)) === v ? Number(v) : v;   // "01"/"+12" restent des strings (miroir de la coercion des clés)
         setMock(ref, { value: num });
         rerenderCanvas && rerenderCanvas();
       });
