@@ -1523,6 +1523,56 @@ void test_state_pool_overflow(void) {
     TEST_ASSERT_FALSE(dash_set_layout(&d, json, err, sizeof(err)));   // pool plein -> rejet dur
 }
 
+void test_state_context(void) {
+    Dashboard d{}; char err[80];
+    TEST_ASSERT_TRUE_MESSAGE(dash_set_layout(&d, LAYOUT_STATE, err, sizeof(err)), err);
+    int s1 = dash_find(&d, "s1");
+    TEST_ASSERT_TRUE(s1 >= 0);
+    const StateCase* cs = &d.state_pool[d.components[s1].state_cases_off];   // tranche de s1 (offset 0)
+    int n = d.components[s1].state_case_count;
+
+    // string "Rain" via le contexte (bind "weather") -> vstr, type string, dirty ; resout le cas "Rain" (index 1)
+    dash_set_context(&d, "{\"weather\":\"Rain\"}", 1000);
+    context_apply(&d);
+    TEST_ASSERT_EQUAL_STRING("Rain", d.components[s1].vstr);
+    TEST_ASSERT_FALSE(d.components[s1].state_has_num);
+    TEST_ASSERT_TRUE(d.components[s1].dirty);
+    TEST_ASSERT_EQUAL_INT(1, state_resolve(d.components[s1].state_match, cs, n,
+        d.components[s1].state_has_num, (double)d.components[s1].value, d.components[s1].vstr));
+
+    // nombre 3 via le contexte -> value=3, type num ; resout le cas image (key 3, index 2)
+    dash_set_context(&d, "{\"weather\":3}", 2000);
+    context_apply(&d);
+    TEST_ASSERT_EQUAL_INT(3, d.components[s1].value);
+    TEST_ASSERT_TRUE(d.components[s1].state_has_num);
+    TEST_ASSERT_EQUAL_INT(2, state_resolve(d.components[s1].state_match, cs, n,
+        d.components[s1].state_has_num, (double)d.components[s1].value, d.components[s1].vstr));
+
+    // --- Bascule de type avec valeur coincidente : seul le garde de type-flip marque dirty. ---
+    // A ce stade : value==3, vstr=="Rain". On repasse en string (value reste 3 dans le champ)...
+    dash_set_context(&d, "{\"weather\":\"Rain\"}", 3000);
+    context_apply(&d);
+    d.components[s1].dirty = false;                          // isole l'effet du push suivant
+    // ... puis num 3 : la valeur numerique (3) coincide avec value, mais le type passe str->num.
+    // Sans le garde `|| !c.state_has_num`, changed resterait faux et le composant ne re-resoudrait pas.
+    dash_set_context(&d, "{\"weather\":3}", 4000);
+    context_apply(&d);
+    TEST_ASSERT_TRUE(d.components[s1].dirty);                // le flip de type DOIT marquer dirty
+    TEST_ASSERT_TRUE(d.components[s1].state_has_num);
+    TEST_ASSERT_EQUAL_INT(2, state_resolve(d.components[s1].state_match, cs, n,
+        d.components[s1].state_has_num, (double)d.components[s1].value, d.components[s1].vstr));   // cas image (num 3)
+
+    // Symetrique : re-push de la MEME string apres un num -> re-passe en mode string.
+    // Sans le garde `|| c.state_has_num`, changed resterait faux (strncmp identique).
+    d.components[s1].dirty = false;
+    dash_set_context(&d, "{\"weather\":\"Rain\"}", 5000);   // vstr deja "Rain", mais type flip num->str
+    context_apply(&d);
+    TEST_ASSERT_TRUE(d.components[s1].dirty);
+    TEST_ASSERT_FALSE(d.components[s1].state_has_num);
+    TEST_ASSERT_EQUAL_INT(1, state_resolve(d.components[s1].state_match, cs, n,
+        d.components[s1].state_has_num, (double)d.components[s1].value, d.components[s1].vstr));   // cas "Rain"
+}
+
 #define LAYOUT_FONTS "{\"components\":{\"l\":{\"type\":\"label\",\"text\":\"x\",\"font\":24,\"font_family\":\"lora\",\"bold\":true,\"italic\":true}},\"pages\":[{\"name\":\"P\",\"place\":[{\"ref\":\"l\",\"anchor\":\"CENTER\"}]}]}"
 
 void test_font_family_parse(void) {
@@ -1840,6 +1890,7 @@ int main(int, char**) {
     RUN_TEST(test_icon_parsed);
     RUN_TEST(test_state_parsed);
     RUN_TEST(test_state_pool_overflow);
+    RUN_TEST(test_state_context);
     RUN_TEST(test_shapes_parsed);
     RUN_TEST(test_label_box_parsed);
     RUN_TEST(test_ctx_set_find_num);

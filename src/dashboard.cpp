@@ -721,6 +721,16 @@ void context_apply(Dashboard* d) {
                     changed = true;
                 }
                 break;
+            case COMP_STATE:                            // num -> value ; str -> vstr ; retient le type pour le match
+                if (v.type == CTX_NUM) {
+                    int32_t nv = (int32_t)v.num;
+                    if (c.value != nv || !c.state_has_num) { c.value = nv; c.state_has_num = true; changed = true; }
+                } else if (v.type == CTX_STR) {
+                    if (strncmp(c.vstr, v.str, sizeof(c.vstr)) != 0 || c.state_has_num) {
+                        strlcpy(c.vstr, v.str, sizeof(c.vstr)); c.state_has_num = false; changed = true;
+                    }
+                }
+                break;
             default: break;                            // led_ring/sound : pas de bind
         }
         if (changed) { c.dirty = true; d->values_dirty = true; }
