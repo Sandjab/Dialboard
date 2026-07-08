@@ -1,5 +1,4 @@
 #include "scenes.h"
-#include "fonts/icons_gen.h"   // ICON_SYMBOL_NAMES / ICON_SYMBOL_COUNT (pour un eventuel check ; pas requis ici)
 #include <math.h>
 #include <string.h>
 
