@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   pickFontPx, font, barFill, barGeometry, pickThresholdColor, formatValue, formatRemaining,
   ringSweepDeg, arcIndicatorAngles, pointOnArc, arcPath, ringPaths, sparklinePoints, meterAngle, capArcPath, ledLit,
-  resolveIcon
+  resolveIcon, resolveState
 } from '../js/render.js';
 import * as render from '../js/render.js';
 
@@ -177,6 +177,53 @@ test('resolveIcon : champ omis dans une bande retombe sur la base', () => {
   assert.deepEqual(resolveIcon(comp, 0), { symbol: 'wifi', color: '#888888' });
   const comp2 = { symbol: 'wifi', color: '#FFFFFF', states: [{ at: 1, symbol: 'close' }] };
   assert.deepEqual(resolveIcon(comp2, 0), { symbol: 'close', color: '#FFFFFF' });
+});
+
+test('resolveState : exact string -> index du cas a cle string egale, sinon -1', () => {
+  const comp = { match: 'exact', cases: [
+    { key: 'Clear', symbol: 'weather-sunny' },
+    { key: 'Rain', symbol: 'weather-pouring' },
+    { key: 3, src: 'abc' }] };
+  assert.equal(resolveState(comp, 'Clear'), 0);
+  assert.equal(resolveState(comp, 'Rain'), 1);
+  assert.equal(resolveState(comp, 'Snow'), -1);
+});
+
+test('resolveState : exact number -> index du cas a cle numerique egale', () => {
+  const comp = { match: 'exact', cases: [
+    { key: 'Clear', symbol: 'weather-sunny' },
+    { key: 3, src: 'abc' }] };
+  assert.equal(resolveState(comp, 3), 1);
+  assert.equal(resolveState(comp, 9), -1);
+});
+
+test('resolveState : range -> 1er cas ou value < at (numerique seul)', () => {
+  const comp = { match: 'range', cases: [{ at: 10 }, { at: 20 }] };
+  assert.equal(resolveState(comp, 5), 0);
+  assert.equal(resolveState(comp, 15), 1);
+  assert.equal(resolveState(comp, 25), -1);
+  assert.equal(resolveState(comp, 'x'), -1);
+});
+
+test('resolveState : doublon -> l ordre departage (1er gagne)', () => {
+  const comp = { match: 'exact', cases: [{ key: 'A', symbol: 'x' }, { key: 'A', symbol: 'y' }] };
+  assert.equal(resolveState(comp, 'A'), 0);
+});
+
+test('resolveState : match par defaut = exact ; cases absent -> -1', () => {
+  assert.equal(resolveState({}, 'anything'), -1);
+});
+
+test('resolveState : le type de la valeur decide (cle string "3" != valeur nombre 3)', () => {
+  const comp = { match: 'exact', cases: [{ key: '3', symbol: 'a' }, { key: 3, symbol: 'b' }] };
+  assert.equal(resolveState(comp, 3), 1);     // nombre 3 -> cle numerique 3 (index 1), PAS la cle string "3"
+  assert.equal(resolveState(comp, '3'), 0);   // string "3" -> cle string "3" (index 0), PAS la cle numerique
+});
+
+test('resolveState : range borne stricte (value === at ne matche pas)', () => {
+  const comp = { match: 'range', cases: [{ at: 10 }, { at: 20 }] };
+  assert.equal(resolveState(comp, 10), 1);    // 10 < 10 faux -> bande suivante (10 < 20) -> index 1
+  assert.equal(resolveState(comp, 20), -1);   // 20 < 20 faux, aucune -> defaut
 });
 
 test('render : buildSlider/buildArc/buildRoller/buildClock exportés', () => {
