@@ -177,6 +177,7 @@ export default {
   'comp.image_anim': 'Animated image',
   'comp.led': 'LED',
   'comp.icon': 'Icon',
+  'comp.state': 'State',
   'comp.switch': 'Switch',
   'comp.button': 'Button',
   'comp.slider': 'Slider',

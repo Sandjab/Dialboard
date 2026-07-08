@@ -116,6 +116,7 @@
   "comp.image_anim": "Image animée",
   "comp.led": "LED",
   "comp.icon": "Icône",
+  "comp.state": "État",
   "comp.switch": "Interrupteur",
   "comp.button": "Bouton",
   "comp.slider": "Slider",

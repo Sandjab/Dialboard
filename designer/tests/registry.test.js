@@ -134,6 +134,22 @@ test('registre : icon déclaré, value-driven (mockFields value), non physique',
   assert.equal(d.color, '#FFFFFF');
 });
 
+test('registre : state déclaré, non physique, defaults exact/font 64/défaut cloudy', () => {
+  assert.ok(COMPONENTS.state, 'state absent du registre');
+  assert.equal(COMPONENTS.state.physical, false);
+  assert.equal(COMPONENTS.state.centered, false);
+  const cf = COMPONENTS.state.compFields.map(f => f[0]);
+  for (const k of ['font', 'bind']) assert.ok(cf.includes(k), `state : ${k} manquant`);
+  assert.deepEqual(COMPONENTS.state.mockFields, []);   // choix delibere (mock bespoke en T7, pas le kind num generique)
+  const d = COMPONENTS.state.defaults();
+  assert.equal(d.type, 'state');
+  assert.equal(d.match, 'exact');
+  assert.equal(d.font, 64);
+  assert.equal(d.default.symbol, 'weather-cloudy');
+  assert.equal(d.default.color, '#9AA0AA');
+  assert.deepEqual(d.cases, []);
+});
+
 test('registry : famille/gras/italique exposés sur les composants textuels, pas sur icon', () => {
   const keysOf = t => COMPONENTS[t].compFields.map(f => f[0]);
   for (const t of ['label', 'readout', 'ring']) {
