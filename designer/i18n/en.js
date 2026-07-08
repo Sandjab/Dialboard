@@ -425,6 +425,8 @@ export default {
   'validate.too_many_frames': 'component « {id} »: too many frames ({n}, max 32)',
   'validate.pack_too_large': 'component « {id} »: pack too large ({bytes} B, max 1572864)',
   'validate.unbound_bind': 'component « {id} »: bind « {bind} » without a source variable (ok if pushed via POST /context)',
+  'validate.too_many_state_cases': 'too many state cases: {n} (max {max})',
+  'validate.state_cases_truncated': 'component « {id} »: {n} state cases, only the first {max} kept on device',
   // --- Panneau Sources (pull) ---
   'sources.default_name': 'source {n}',
   'sources.delete': 'Delete',

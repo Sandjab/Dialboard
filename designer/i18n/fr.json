@@ -352,6 +352,8 @@
   "validate.too_many_frames": "composant « {id} » : trop de frames ({n}, max 32)",
   "validate.pack_too_large": "composant « {id} » : pack trop gros ({bytes} o, max 1572864)",
   "validate.unbound_bind": "composant « {id} » : bind « {bind} » sans variable de source (ok si poussé via POST /context)",
+  "validate.too_many_state_cases": "trop de cas d'état : {n} (max {max})",
+  "validate.state_cases_truncated": "composant « {id} » : {n} cas d'état, seuls les {max} premiers gardés sur le device",
   "sources.default_name": "source {n}",
   "sources.delete": "Supprimer",
   "sources.name": "Nom",

@@ -29,7 +29,7 @@ export function createValidator(schema) {
     // ajv ci-dessus ; ici on ne doit pas throw (sinon le panneau d'erreurs ne s'affiche jamais).
     const pages = Array.isArray(layout?.pages) ? layout.pages : [];
     // Limites firmware (config.h) : un layout au-delà serait tronqué/rejeté au push.
-    const LIM = { components: 32, pages: 8, placements: 12 };  // MAX_COMPONENTS / MAX_PAGES / MAX_PLACEMENTS_PER_PAGE
+    const LIM = { components: 32, pages: 8, placements: 12, state_cases: 16, state_cases_total: 64 };  // MAX_COMPONENTS / MAX_PAGES / MAX_PLACEMENTS_PER_PAGE / MAX_STATE_CASES / MAX_STATE_CASES_TOTAL
     if (ids.size > LIM.components) errors.push(t('validate.too_many_components', { n: ids.size, max: LIM.components }));
     if (pages.length > LIM.pages)  errors.push(t('validate.too_many_pages', { n: pages.length, max: LIM.pages }));
     pages.forEach((p, pi) => {
@@ -67,6 +67,16 @@ export function createValidator(schema) {
       if (c && typeof c.bind === 'string' && c.bind && !knownVars.has(c.bind))
         warnings.push(t('validate.unbound_bind', { id, bind: c.bind }));
     }
+    // Limites state (config.h) : chaque composant est tronqué à MAX_STATE_CASES=16 au push (silencieux ->
+    // avertissement) ; la somme des cas remplit le pool partagé MAX_STATE_CASES_TOTAL=64, au-delà duquel le
+    // firmware REJETTE le layout (return false dans dash_set_layout) -> erreur bloquante, comme les autres budgets.
+    let stateCasesTotal = 0;
+    for (const [id, c] of Object.entries(layout?.components || {})) {
+      if (!c || c.type !== 'state' || !Array.isArray(c.cases)) continue;
+      if (c.cases.length > LIM.state_cases) warnings.push(t('validate.state_cases_truncated', { id, n: c.cases.length, max: LIM.state_cases }));
+      stateCasesTotal += Math.min(c.cases.length, LIM.state_cases);   // miroir firmware : chaque composant plafonne à 16 avant d'alimenter le pool
+    }
+    if (stateCasesTotal > LIM.state_cases_total) errors.push(t('validate.too_many_state_cases', { n: stateCasesTotal, max: LIM.state_cases_total }));
     // valid ne dépend QUE des errors ; les warnings ne bloquent pas le push.
     return { valid: errors.length === 0, errors: [...new Set(errors)], warnings: [...new Set(warnings)] };
   };
