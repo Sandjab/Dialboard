@@ -232,6 +232,7 @@ int  dash_apply_update(Dashboard* d, const char* json, char* unknown_csv, size_t
 void dash_tick_countdown(Dashboard* d, uint32_t elapsed_s);
 void dash_tick_clock(Dashboard* d);   // marque les composants clock dirty (à appeler chaque seconde)
 void dash_tick_aimg(Dashboard* d, uint32_t now_ms);   // image_anim : avance la frame des composants en lecture
+void dash_tick_scene(Dashboard* d, uint32_t now_ms);   // state/scene : marque dirty les state dont le visuel actif est une scene
 void dash_set_context(Dashboard* d, const char* json, uint32_t now);
 // Écriture du contexte d'ORIGINE UI (effecteur) : écrit la var ET arme les sinks qui l'observent.
 void dash_ctx_write_ui_num(Dashboard* d, const char* var, double v, uint32_t now);

@@ -780,6 +780,24 @@ void dash_tick_aimg(Dashboard* d, uint32_t now_ms) {
     }
 }
 
+// Anime les composants state dont le visuel ACTIF (cas resolu) est une scene : marque dirty a chaque
+// appel (gate ~30 fps dans main). sync_state re-applique la frame au temps courant. Modele led_ring/aimg.
+void dash_tick_scene(Dashboard* d, uint32_t now_ms) {
+    (void)now_ms;
+    for (int i = 0; i < d->comp_count; i++) {
+        Component& c = d->components[i];
+        if (c.type != COMP_STATE) continue;
+        int n; const StateCase* cases;
+        if (c.state_cases_off >= 0 && c.state_case_count > 0 &&
+            c.state_cases_off + c.state_case_count <= d->state_pool_used) {
+            cases = &d->state_pool[c.state_cases_off]; n = c.state_case_count;
+        } else { cases = nullptr; n = 0; }
+        int idx = state_resolve(c.state_match, cases, n, c.state_has_num, (double)c.value, c.vstr);
+        const StateCase& v = (idx < 0) ? c.state_default : (cases ? cases[idx] : c.state_default);
+        if (v.kind == STATE_SCENE) { c.dirty = true; d->values_dirty = true; }
+    }
+}
+
 void dash_tick_countdown(Dashboard* d, uint32_t elapsed_s) {
     for (int i = 0; i < d->comp_count; i++) {
         Component& c = d->components[i];
