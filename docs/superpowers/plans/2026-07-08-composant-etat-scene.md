@@ -130,7 +130,6 @@ int scene_frame_at(int scene_id, uint32_t t_ms, LayerFrame* out);
 
 ```cpp
 #include "scenes.h"
-#include "fonts/icons_gen.h"   // ICON_SYMBOL_NAMES / ICON_SYMBOL_COUNT (pour un eventuel check ; pas requis ici)
 #include <math.h>
 #include <string.h>
 
