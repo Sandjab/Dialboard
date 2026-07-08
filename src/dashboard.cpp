@@ -115,7 +115,7 @@ static void parse_state_visual(JsonVariantConst o, StateCase& sc) {
     if (si >= 0) {                                   // visuel scene (prioritaire)
         sc.kind = STATE_SCENE;
         sc.scene = (uint8_t)si;
-        sc.size = o["size"].is<int>() ? (int)(o["size"] | 120) : 120;
+        sc.size = o["size"] | 120;
         sc.src[0] = '\0'; sc.w = sc.h = 0; sc.symbol = 0; sc.color = 0xFFFFFF;
         if (o["color"].is<const char*>()) sc.color = parse_hex_color(o["color"], 0xFFFFFF);
         return;

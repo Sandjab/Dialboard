@@ -24,8 +24,8 @@ uint16_t icon_symbol_index(const char* s);
 
 enum StateMatch { STATE_EXACT = 0, STATE_RANGE = 1 };
 enum StateKind : uint8_t { STATE_GLYPH = 0, STATE_IMAGE = 1, STATE_SCENE = 2 };
-// state : un cas = un matcher (exact: key_str|key_num ; range: at) + un visuel (glyphe symbol/color XOR image src/w/h).
-// kind infere par le champ present (comme icon/image).
+// state : un cas = un matcher (exact: key_str|key_num ; range: at) + un visuel (glyphe symbol/color XOR
+// image src/w/h XOR scene scene/size). kind infere par le champ present (priorite scene>src>symbol).
 struct StateCase {
     bool     has_num_key;            // exact : la cle est numerique (key_num) ; sinon string (key_str)
     double   key_num;

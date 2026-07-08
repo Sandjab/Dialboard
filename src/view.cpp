@@ -1046,8 +1046,8 @@ static const StateCase* state_cases_of(const Component& c, int* n) {
     return nullptr;
 }
 
-// state : (re)cree l'enfant du conteneur selon le visuel resolu — lv_label glyphe (parite build_icon)
-// ou lv_image bitmap (parite build_image). Met a jour l'etat de kind/src rendu.
+// state : (re)cree l'enfant du conteneur selon le visuel resolu — lv_label glyphe (parite build_icon),
+// lv_image bitmap (parite build_image), ou N lv_label pour une scene animee. Met a jour l'etat de kind/src rendu.
 static void state_make_child(lv_obj_t* cont, Component& c, int idx, const StateCase& v) {
     if (v.kind == STATE_SCENE) {
         // Rendu minimal (Task 3) : 1re couche statique. Remplace par le rendu N couches en Task 4.
