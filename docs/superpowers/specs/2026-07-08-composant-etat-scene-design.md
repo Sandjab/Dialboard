@@ -212,13 +212,17 @@ tant qu'elle est le visuel actif.
 ## 12. Risques & mitigations
 
 - **Risque nº 1 — transformations (rotation/échelle) d'un `lv_label` en LVGL 9.5.** `translate` et `opa` sur
-  un label sont sûrs ; `transform_rotation` / `transform_scale` sur du **texte** le sont **moins** (à
-  confirmer sur device). Impacte `ROTATE` (sunny, spinner), `SWING` (bell), `PULSE` (alert, beat).
-  **Mitigation** : la **tâche 1 du plan sera un spike** validant rotation+échelle d'un glyphe sur le device.
-  **Repli si KO** : rejouer ces effets en **translation + opacité** uniquement (ex. rayons du soleil et
-  points du spinner en **cascade d'opacité** plutôt qu'en rotation ; `PULSE` en fondu) — rendu un peu
-  dégradé mais scènes toujours convaincantes, et le vocabulaire `AnimKind` absorbe le repli sans changer le
-  modèle de données ni l'API.
+  un label sont sûrs. Pour la rotation/échelle : les **docs LVGL 9.5 confirment** que
+  `transform_rotation` / `transform_scale` s'appliquent à **tout widget** (pas seulement les images), via
+  une **layer rendue** intermédiaire (`lv_obj_set_style_transform_rotation`/`_scale`/`_pivot_*`). **L'API
+  est donc supportée** pour un glyphe. Le risque résiduel n'est plus l'existence mais la **qualité de rendu
+  et le coût de la layer transformée à ~30 fps sur ESP32-S3** (mémoire de la layer + interpolation).
+  Impacte `ROTATE` (sunny, spinner), `SWING` (bell), `PULSE` (alert, beat).
+  **Mitigation** : un **spike on-device** (dernière tâche du plan, device requis) valide qualité + fps ;
+  **non bloquant** pour le développement (les scènes se codent avec `transform_*`, le repli ne change ni le
+  modèle ni l'API). **Repli si la qualité/perf déçoit** : rejouer ces effets en **translation + opacité**
+  seules (ex. rayons du soleil / points du spinner en **cascade d'opacité** plutôt qu'en rotation ; `PULSE`
+  en fondu) — le vocabulaire `AnimKind` absorbe le repli scène par scène.
 - **Risque nº 2 — coût CPU du tick à 30 fps.** Borné : une seule scène active par composant `state`, peu de
   composants ; `led_ring_tick` fait déjà tourner du calcul à 30 fps. À surveiller au spike.
 - **Risque nº 3 — dérive de parité C↔JS de la table.** Mitigé par le **test de parité** dédié (§8) qui
