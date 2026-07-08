@@ -36,7 +36,7 @@ struct Scene { const char* name; const SceneLayer* layers; int count; };
 // STATIQUES (resolus au build depuis la table + couleur principale), pas dans la frame.
 struct LayerFrame {
     float   cx, cy;        // centre anime en 0..100
-    int16_t angle_ddeg;    // rotation en 1/10 degre (0..3600), pour transform_rotation
+    int16_t angle_ddeg;    // rotation en 1/10 degre (ROTATE : 0..3600 ; SWING : signe autour de 0), pour transform_rotation
     float   scale;         // facteur d'echelle (1.0 = nominal), pour transform_scale
     uint8_t opa;           // opacite 0..255
 };
