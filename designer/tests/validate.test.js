@@ -218,3 +218,27 @@ test('state : cle inconnue dans default -> invalide', () => {
   l.pages[0].place.push({ ref: 's1', anchor: 'CENTER' });
   assert.equal(validate(l).valid, false);
 });
+
+test('state : total de cas > 64 -> invalide ; == 64 -> valide (borne MAX_STATE_CASES_TOTAL du pool)', () => {
+  const mk = (nComp) => {
+    const l = structuredClone(DEFAULT_LAYOUT);
+    for (let s = 0; s < nComp; s++) {                       // composants non placés : seul le total compte
+      const cases = [];
+      for (let k = 0; k < 16; k++) cases.push({ key: `k${s}_${k}`, symbol: 'bell' });
+      l.components[`st${s}`] = { type: 'state', cases };
+    }
+    return validate(l);
+  };
+  assert.equal(mk(4).valid, true);    // 4×16 = 64, pas > 64 -> accepté (comme le firmware)
+  assert.equal(mk(5).valid, false);   // 5×16 = 80 > 64 -> rejet (miroir du hard-reject firmware)
+});
+
+test('state : composant > 16 cas -> avertissement de troncature, reste valide', () => {
+  const l = structuredClone(DEFAULT_LAYOUT);
+  const cases = [];
+  for (let k = 0; k < 20; k++) cases.push({ key: `k${k}`, symbol: 'bell' });
+  l.components.st1 = { type: 'state', cases };
+  const r = validate(l);
+  assert.equal(r.valid, true);                                        // 20 tronqué à 16 <= 64 : ne bloque pas
+  assert.ok(r.warnings.some(w => /st1/.test(w)), 'avertissement de troncature attendu');
+});
