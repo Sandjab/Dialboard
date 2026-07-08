@@ -109,15 +109,15 @@ uint16_t icon_symbol_index(const char* s) {
 // state : parse le visuel d'un cas/defaut. src valide -> image (w/h) ; sinon glyphe (symbol + couleur, blanc par defaut).
 static void parse_state_visual(JsonVariantConst o, StateCase& sc) {
     const char* src = o["src"] | "";
-    sc.has_src = bg_key_valid(src);
-    if (sc.has_src) {
-        strlcpy(sc.src, src, sizeof(sc.src));
-        sc.w = o["w"] | 0; sc.h = o["h"] | 0;
+    if (bg_key_valid(src)) {
+        sc.kind = STATE_IMAGE;
+        strlcpy(sc.src, src, sizeof(sc.src)); sc.w = o["w"] | 0; sc.h = o["h"] | 0;
         sc.symbol = 0; sc.color = 0xFFFFFF;
     } else {
+        sc.kind = STATE_GLYPH;
         sc.src[0] = '\0'; sc.w = sc.h = 0;
         sc.symbol = icon_symbol_index(o["symbol"] | "bell");
-        sc.color  = o["color"].is<const char*>() ? parse_hex_color(o["color"], 0xFFFFFF) : 0xFFFFFF;
+        sc.color = o["color"].is<const char*>() ? parse_hex_color(o["color"], 0xFFFFFF) : 0xFFFFFF;
     }
 }
 

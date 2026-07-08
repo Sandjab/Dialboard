@@ -1546,20 +1546,20 @@ void test_state_parsed(void) {
     TEST_ASSERT_EQUAL_INT(STATE_EXACT, a.state_match);
     TEST_ASSERT_EQUAL_INT(64, a.font);
     TEST_ASSERT_EQUAL_STRING("weather", a.bind);
-    TEST_ASSERT_FALSE(a.state_default.has_src);
+    TEST_ASSERT_EQUAL_INT(STATE_GLYPH, a.state_default.kind);
     TEST_ASSERT_EQUAL_STRING("weather-cloudy", ICON_SYMBOL_NAMES[a.state_default.symbol]);
     TEST_ASSERT_EQUAL_HEX32(0x9AA0AA, a.state_default.color);
     TEST_ASSERT_EQUAL_INT(3, a.state_case_count);
     const StateCase* ac = &d.state_pool[a.state_cases_off];       // tranche de s1 dans le pool
     TEST_ASSERT_FALSE(ac[0].has_num_key);
     TEST_ASSERT_EQUAL_STRING("Clear", ac[0].key_str);
-    TEST_ASSERT_FALSE(ac[0].has_src);
+    TEST_ASSERT_EQUAL_INT(STATE_GLYPH, ac[0].kind);
     TEST_ASSERT_EQUAL_STRING("weather-sunny", ICON_SYMBOL_NAMES[ac[0].symbol]);
     TEST_ASSERT_EQUAL_HEX32(0xFFC02E, ac[0].color);
     TEST_ASSERT_EQUAL_HEX32(0xFFFFFF, ac[1].color);              // couleur omise -> blanc
     TEST_ASSERT_TRUE(ac[2].has_num_key);
     TEST_ASSERT_EQUAL_FLOAT(3.0f, ac[2].key_num);                // EQUAL_DOUBLE indispo (UNITY_INCLUDE_DOUBLE off)
-    TEST_ASSERT_TRUE(ac[2].has_src);
+    TEST_ASSERT_EQUAL_INT(STATE_IMAGE, ac[2].kind);
     TEST_ASSERT_EQUAL_STRING("abc123", ac[2].src);
     TEST_ASSERT_EQUAL_INT(120, ac[2].w);
     int s2 = dash_find(&d, "s2");

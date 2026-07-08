@@ -1048,7 +1048,7 @@ static const StateCase* state_cases_of(const Component& c, int* n) {
 // state : (re)cree l'enfant du conteneur selon le visuel resolu — lv_label glyphe (parite build_icon)
 // ou lv_image bitmap (parite build_image). Met a jour l'etat de kind/src rendu.
 static void state_make_child(lv_obj_t* cont, Component& c, int idx, const StateCase& v) {
-    if (v.has_src) {
+    if (v.kind == STATE_IMAGE) {
         lv_obj_t* img = lv_image_create(cont);
         if (state_load_image(idx, v.src, v.w, v.h)) {
             lv_image_set_src(img, &s_img_dsc[idx]);
@@ -1070,7 +1070,7 @@ static void state_make_child(lv_obj_t* cont, Component& c, int idx, const StateC
         lv_obj_center(l);
         c.state_shown_src[0] = '\0';
     }
-    c.state_shown_is_img = v.has_src;
+    c.state_shown_kind = v.kind;
 }
 
 // state : conteneur transparent hebergeant UN visuel choisi par la valeur (state_resolve). L'enfant est
@@ -1096,10 +1096,10 @@ static void sync_state(Component& c, Placement& q, lv_obj_t* main, lv_obj_t*, lv
     int idx = state_resolve(c.state_match, cases, n, c.state_has_num, (double)c.value, c.vstr);
     const StateCase& v = (idx < 0) ? c.state_default : cases[idx];
     lv_obj_t* child = lv_obj_get_child(main, 0);
-    if (!child || v.has_src != c.state_shown_is_img) {        // kind change (ou 1er) -> recree l'enfant
+    if (!child || v.kind != c.state_shown_kind) {             // kind change (ou 1er) -> recree l'enfant
         lv_obj_clean(main);
         state_make_child(main, c, q.comp_index, v);
-    } else if (v.has_src) {                                   // meme kind image : recree l'enfant SI src change
+    } else if (v.kind == STATE_IMAGE) {                       // meme kind image : recree l'enfant SI src change
         if (strcmp(c.state_shown_src, v.src) != 0) {          // state_make_child gere load OK (image) / echec (placeholder)
             lv_obj_clean(main);
             state_make_child(main, c, q.comp_index, v);
