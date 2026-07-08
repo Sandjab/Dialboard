@@ -22,6 +22,21 @@ struct IconState { float at; uint16_t symbol; uint32_t color; bool has_symbol; b
 // (icons_gen.h/.c) s'indexent par cette valeur. Exposé pour les tests natifs.
 uint16_t icon_symbol_index(const char* s);
 
+enum StateMatch { STATE_EXACT = 0, STATE_RANGE = 1 };
+// state : un cas = un matcher (exact: key_str|key_num ; range: at) + un visuel (glyphe symbol/color XOR image src/w/h).
+// has_src == true -> visuel image ; sinon glyphe. Kind infere par le champ present (comme icon/image).
+struct StateCase {
+    bool     has_num_key;            // exact : la cle est numerique (key_num) ; sinon string (key_str)
+    double   key_num;
+    char     key_str[TEXT_LEN];
+    float    at;                     // range : borne haute exclusive (num < at)
+    bool     has_src;                // true = visuel image ; false = visuel glyphe
+    uint16_t symbol;                 // glyphe : index dans ICON_GLYPHS (view.cpp)
+    uint32_t color;                  // glyphe : couleur (defaut 0xFFFFFF)
+    char     src[ID_LEN];            // image : cle d'asset (/img/<src>.565a)
+    int      w, h;                   // image : dimensions RGB565A8
+};
+
 struct RingTrack { char bind[ID_LEN]; int vmin, vmax; uint32_t color; int32_t value; };
 
 struct Component {

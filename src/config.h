@@ -4,6 +4,7 @@
 #define MAX_PLACEMENTS_PER_PAGE 12
 #define MAX_THRESHOLDS          4
 #define MAX_ICON_STATES         4
+#define MAX_STATE_CASES         16      // state : nb max de cas (garde cote designer, cf. MAX_ICON_STATES)
 #define CHART_MAX_POINTS        60
 #define MAX_CTX_VARS            32
 #define MAX_SOURCES             6

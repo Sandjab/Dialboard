@@ -1395,6 +1395,39 @@ void test_icon_resolve(void) {
     TEST_ASSERT_EQUAL_UINT16(5, sym); TEST_ASSERT_EQUAL_HEX32(0x123456, col);
 }
 
+void test_state_resolve(void) {
+    // 3 cas glyphe/image ; matcher selon le mode. -1 = defaut.
+    StateCase cs[3] = {};
+    // exact : cle string "Clear", cle string "Rain", cle numerique 3
+    strcpy(cs[0].key_str, "Clear"); cs[0].has_num_key = false;
+    strcpy(cs[1].key_str, "Rain");  cs[1].has_num_key = false;
+    cs[2].has_num_key = true;       cs[2].key_num = 3;
+
+    // exact + string -> matche la cle string egale
+    TEST_ASSERT_EQUAL_INT(0, state_resolve(STATE_EXACT, cs, 3, false, 0, "Clear"));
+    TEST_ASSERT_EQUAL_INT(1, state_resolve(STATE_EXACT, cs, 3, false, 0, "Rain"));
+    TEST_ASSERT_EQUAL_INT(-1, state_resolve(STATE_EXACT, cs, 3, false, 0, "Snow"));   // aucune -> defaut
+    // exact + nombre -> matche la cle numerique egale ; ignore les cles string
+    TEST_ASSERT_EQUAL_INT(2, state_resolve(STATE_EXACT, cs, 3, true, 3, ""));
+    TEST_ASSERT_EQUAL_INT(-1, state_resolve(STATE_EXACT, cs, 3, true, 9, ""));
+
+    // range : bandes ordonnees, 1er ou num < at ; string -> defaut
+    StateCase rg[2] = {};
+    rg[0].at = 10; rg[1].at = 20;
+    TEST_ASSERT_EQUAL_INT(0, state_resolve(STATE_RANGE, rg, 2, true, 5,  ""));   // 5 < 10
+    TEST_ASSERT_EQUAL_INT(1, state_resolve(STATE_RANGE, rg, 2, true, 15, ""));   // 15 < 20
+    TEST_ASSERT_EQUAL_INT(-1, state_resolve(STATE_RANGE, rg, 2, true, 25, ""));  // aucune -> defaut
+    TEST_ASSERT_EQUAL_INT(-1, state_resolve(STATE_RANGE, rg, 2, false, 0, "x")); // string en range -> defaut
+
+    // doublon : l'ordre departage (1er gagne)
+    StateCase dup[2] = {};
+    strcpy(dup[0].key_str, "A"); strcpy(dup[1].key_str, "A");
+    TEST_ASSERT_EQUAL_INT(0, state_resolve(STATE_EXACT, dup, 2, false, 0, "A"));
+
+    // table vide -> defaut
+    TEST_ASSERT_EQUAL_INT(-1, state_resolve(STATE_EXACT, cs, 0, false, 0, "Clear"));
+}
+
 static const char* LAYOUT_ICON =
   "{\"components\":{"
     "\"i1\":{\"type\":\"icon\",\"symbol\":\"wifi\",\"color\":\"#00FF00\",\"font\":36,"
@@ -1738,6 +1771,7 @@ int main(int, char**) {
     RUN_TEST(test_layout_unknown_type_rejected);
     RUN_TEST(test_schema_types_all_resolve);
     RUN_TEST(test_icon_resolve);
+    RUN_TEST(test_state_resolve);
     RUN_TEST(test_icon_parsed);
     RUN_TEST(test_shapes_parsed);
     RUN_TEST(test_label_box_parsed);
