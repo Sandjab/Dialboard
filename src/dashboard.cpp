@@ -43,6 +43,7 @@ static const struct { const char* name; CompType type; } COMP_NAMES[] = {
     { "qr",     COMP_QR     },
     { "stepper", COMP_STEPPER },
     { "segmented", COMP_SEGMENTED },
+    { "state", COMP_STATE },
 };
 
 static uint8_t parse_font_family(const char *s) {
@@ -105,12 +106,27 @@ uint16_t icon_symbol_index(const char* s) {
     return 0;   // miss (impossible apres validation schema) -> 1er glyphe
 }
 
+// state : parse le visuel d'un cas/defaut. src valide -> image (w/h) ; sinon glyphe (symbol + couleur, blanc par defaut).
+static void parse_state_visual(JsonVariantConst o, StateCase& sc) {
+    const char* src = o["src"] | "";
+    sc.has_src = bg_key_valid(src);
+    if (sc.has_src) {
+        strlcpy(sc.src, src, sizeof(sc.src));
+        sc.w = o["w"] | 0; sc.h = o["h"] | 0;
+        sc.symbol = 0; sc.color = 0xFFFFFF;
+    } else {
+        sc.src[0] = '\0'; sc.w = sc.h = 0;
+        sc.symbol = icon_symbol_index(o["symbol"] | "bell");
+        sc.color  = o["color"].is<const char*>() ? parse_hex_color(o["color"], 0xFFFFFF) : 0xFFFFFF;
+    }
+}
+
 bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
     JsonDocument doc;
     DeserializationError e = deserializeJson(doc, json);
     if (e) { snprintf(err, errn, "JSON: %s", e.c_str()); return false; }
 
-    static Dashboard t;          // ~10.4 KB — keep off the 8 KB loop-task stack
+    static Dashboard t;          // ~59 KB (dont le state_pool) — keep off the ~8 KB loop-task stack
     memset(&t, 0, sizeof(t));
     strlcpy(t.title, doc["title"] | "", sizeof(t.title));
     t.background = parse_hex_color(doc["background"] | "#000000", 0x000000);
@@ -224,6 +240,26 @@ bool dash_set_layout(Dashboard* d, const char* json, char* err, size_t errn) {
                 is.has_color  = s["color"].is<const char*>();
                 is.color      = is.has_color ? parse_hex_color(s["color"], 0xFFFFFF) : 0;
                 c.icon_state_count++;
+            }
+        }
+        if (c.type == COMP_STATE) {
+            if (!o["font"].is<int>()) c.font = 64;             // state : defaut 64 (glyphes)
+            c.state_match = strcmp(o["match"] | "exact", "range") == 0 ? STATE_RANGE : STATE_EXACT;
+            parse_state_visual(o["default"], c.state_default);
+            c.state_cases_off = (int16_t)t.state_pool_used;    // debut de la tranche dans le pool partage
+            JsonArrayConst cs = o["cases"].as<JsonArrayConst>();
+            for (JsonObjectConst s : cs) {
+                if (c.state_case_count >= MAX_STATE_CASES) break;         // cap par composant
+                if (t.state_pool_used >= MAX_STATE_CASES_TOTAL) { snprintf(err, errn, "trop de cas d'etat"); return false; }
+                StateCase& sc = t.state_pool[t.state_pool_used];
+                JsonVariantConst k = s["key"];
+                sc.has_num_key = k.is<double>();     // ArduinoJson : is<double>() couvre int+float, exclut les strings
+                sc.key_num     = sc.has_num_key ? (k | 0.0) : 0.0;
+                strlcpy(sc.key_str, sc.has_num_key ? "" : (const char*)(s["key"] | ""), sizeof(sc.key_str));
+                sc.at          = s["at"] | 0.0f;
+                parse_state_visual(s, sc);
+                t.state_pool_used++;
+                c.state_case_count++;
             }
         }
         if (c.type == COMP_CLOCK) {
@@ -481,6 +517,14 @@ static void apply_qr(Component& c, JsonVariantConst v) {
     if (value_present(v, out) && out.is<const char*>()) strlcpy(c.vstr, out.as<const char*>(), sizeof(c.vstr));
 }
 
+// state : num -> value (+ marque type num) ; string -> vstr (+ marque type str). Selection re-resolue au sync.
+static void apply_state(Component& c, JsonVariantConst v) {
+    JsonVariantConst n;
+    if (!value_present(v, n)) return;
+    if (n.is<const char*>()) { strlcpy(c.vstr, n.as<const char*>(), sizeof(c.vstr)); c.state_has_num = false; }
+    else                     { c.value = n.as<int>(); c.state_has_num = true; }
+}
+
 static const comp_apply_fn APPLY[] = {
     /* COMP_NONE     */ nullptr,
     /* COMP_LABEL    */ apply_label,
@@ -508,6 +552,7 @@ static const comp_apply_fn APPLY[] = {
     /* COMP_QR       */ apply_qr,
     /* COMP_STEPPER  */ nullptr,             // effecteur : reflet via context_apply
     /* COMP_SEGMENTED */ nullptr,            // effecteur : reflet via context_apply
+    /* COMP_STATE    */ apply_state,
 };
 static_assert(sizeof(APPLY) / sizeof(APPLY[0]) == COMP_COUNT,
               "APPLY desync avec CompType : ajoute la ligne du nouveau type");
@@ -674,6 +719,16 @@ void context_apply(Dashboard* d) {
                 if (v.type == CTX_STR && strncmp(c.vstr, v.str, sizeof(c.vstr)) != 0) {
                     strlcpy(c.vstr, v.str, sizeof(c.vstr));
                     changed = true;
+                }
+                break;
+            case COMP_STATE:                            // num -> value ; str -> vstr ; retient le type pour le match
+                if (v.type == CTX_NUM) {
+                    int32_t nv = (int32_t)v.num;
+                    if (c.value != nv || !c.state_has_num) { c.value = nv; c.state_has_num = true; changed = true; }
+                } else if (v.type == CTX_STR) {
+                    if (strncmp(c.vstr, v.str, sizeof(c.vstr)) != 0 || c.state_has_num) {
+                        strlcpy(c.vstr, v.str, sizeof(c.vstr)); c.state_has_num = false; changed = true;
+                    }
                 }
                 break;
             default: break;                            // led_ring/sound : pas de bind

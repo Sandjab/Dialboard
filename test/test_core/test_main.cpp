@@ -1395,6 +1395,39 @@ void test_icon_resolve(void) {
     TEST_ASSERT_EQUAL_UINT16(5, sym); TEST_ASSERT_EQUAL_HEX32(0x123456, col);
 }
 
+void test_state_resolve(void) {
+    // 3 cas glyphe/image ; matcher selon le mode. -1 = defaut.
+    StateCase cs[3] = {};
+    // exact : cle string "Clear", cle string "Rain", cle numerique 3
+    strcpy(cs[0].key_str, "Clear"); cs[0].has_num_key = false;
+    strcpy(cs[1].key_str, "Rain");  cs[1].has_num_key = false;
+    cs[2].has_num_key = true;       cs[2].key_num = 3;
+
+    // exact + string -> matche la cle string egale
+    TEST_ASSERT_EQUAL_INT(0, state_resolve(STATE_EXACT, cs, 3, false, 0, "Clear"));
+    TEST_ASSERT_EQUAL_INT(1, state_resolve(STATE_EXACT, cs, 3, false, 0, "Rain"));
+    TEST_ASSERT_EQUAL_INT(-1, state_resolve(STATE_EXACT, cs, 3, false, 0, "Snow"));   // aucune -> defaut
+    // exact + nombre -> matche la cle numerique egale ; ignore les cles string
+    TEST_ASSERT_EQUAL_INT(2, state_resolve(STATE_EXACT, cs, 3, true, 3, ""));
+    TEST_ASSERT_EQUAL_INT(-1, state_resolve(STATE_EXACT, cs, 3, true, 9, ""));
+
+    // range : bandes ordonnees, 1er ou num < at ; string -> defaut
+    StateCase rg[2] = {};
+    rg[0].at = 10; rg[1].at = 20;
+    TEST_ASSERT_EQUAL_INT(0, state_resolve(STATE_RANGE, rg, 2, true, 5,  ""));   // 5 < 10
+    TEST_ASSERT_EQUAL_INT(1, state_resolve(STATE_RANGE, rg, 2, true, 15, ""));   // 15 < 20
+    TEST_ASSERT_EQUAL_INT(-1, state_resolve(STATE_RANGE, rg, 2, true, 25, ""));  // aucune -> defaut
+    TEST_ASSERT_EQUAL_INT(-1, state_resolve(STATE_RANGE, rg, 2, false, 0, "x")); // string en range -> defaut
+
+    // doublon : l'ordre departage (1er gagne)
+    StateCase dup[2] = {};
+    strcpy(dup[0].key_str, "A"); strcpy(dup[1].key_str, "A");
+    TEST_ASSERT_EQUAL_INT(0, state_resolve(STATE_EXACT, dup, 2, false, 0, "A"));
+
+    // table vide -> defaut
+    TEST_ASSERT_EQUAL_INT(-1, state_resolve(STATE_EXACT, cs, 0, false, 0, "Clear"));
+}
+
 static const char* LAYOUT_ICON =
   "{\"components\":{"
     "\"i1\":{\"type\":\"icon\",\"symbol\":\"wifi\",\"color\":\"#00FF00\",\"font\":36,"
@@ -1423,6 +1456,121 @@ void test_icon_parsed(void) {
     TEST_ASSERT_EQUAL_INT(28, d.components[i2].font);
     TEST_ASSERT_EQUAL_STRING("bell", ICON_SYMBOL_NAMES[d.components[i2].icon_symbol]);   // défaut "bell" (round-trip)
     TEST_ASSERT_EQUAL_INT(0, d.components[i2].icon_state_count);
+}
+
+static const char* LAYOUT_STATE =
+  "{\"components\":{"
+    "\"s1\":{\"type\":\"state\",\"bind\":\"weather\",\"match\":\"exact\",\"font\":64,"
+      "\"default\":{\"symbol\":\"weather-cloudy\",\"color\":\"#9AA0AA\"},"
+      "\"cases\":["
+        "{\"key\":\"Clear\",\"symbol\":\"weather-sunny\",\"color\":\"#FFC02E\"},"
+        "{\"key\":\"Rain\",\"symbol\":\"weather-pouring\"},"
+        "{\"key\":3,\"src\":\"abc123\",\"w\":120,\"h\":120}"
+      "]},"
+    "\"s2\":{\"type\":\"state\",\"match\":\"range\","
+      "\"default\":{\"symbol\":\"weather-cloudy\"},"
+      "\"cases\":[{\"at\":10,\"symbol\":\"weather-snowy\"}]}},"
+  "\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"s1\"},{\"ref\":\"s2\"}]}]}";
+
+void test_state_parsed(void) {
+    Dashboard d{}; char err[80];
+    TEST_ASSERT_TRUE_MESSAGE(dash_set_layout(&d, LAYOUT_STATE, err, sizeof(err)), err);
+    int s1 = dash_find(&d, "s1");
+    TEST_ASSERT_TRUE(s1 >= 0);
+    const Component& a = d.components[s1];
+    TEST_ASSERT_EQUAL_INT(COMP_STATE, a.type);
+    TEST_ASSERT_EQUAL_INT(STATE_EXACT, a.state_match);
+    TEST_ASSERT_EQUAL_INT(64, a.font);
+    TEST_ASSERT_EQUAL_STRING("weather", a.bind);
+    TEST_ASSERT_FALSE(a.state_default.has_src);
+    TEST_ASSERT_EQUAL_STRING("weather-cloudy", ICON_SYMBOL_NAMES[a.state_default.symbol]);
+    TEST_ASSERT_EQUAL_HEX32(0x9AA0AA, a.state_default.color);
+    TEST_ASSERT_EQUAL_INT(3, a.state_case_count);
+    const StateCase* ac = &d.state_pool[a.state_cases_off];       // tranche de s1 dans le pool
+    TEST_ASSERT_FALSE(ac[0].has_num_key);
+    TEST_ASSERT_EQUAL_STRING("Clear", ac[0].key_str);
+    TEST_ASSERT_FALSE(ac[0].has_src);
+    TEST_ASSERT_EQUAL_STRING("weather-sunny", ICON_SYMBOL_NAMES[ac[0].symbol]);
+    TEST_ASSERT_EQUAL_HEX32(0xFFC02E, ac[0].color);
+    TEST_ASSERT_EQUAL_HEX32(0xFFFFFF, ac[1].color);              // couleur omise -> blanc
+    TEST_ASSERT_TRUE(ac[2].has_num_key);
+    TEST_ASSERT_EQUAL_FLOAT(3.0f, ac[2].key_num);                // EQUAL_DOUBLE indispo (UNITY_INCLUDE_DOUBLE off)
+    TEST_ASSERT_TRUE(ac[2].has_src);
+    TEST_ASSERT_EQUAL_STRING("abc123", ac[2].src);
+    TEST_ASSERT_EQUAL_INT(120, ac[2].w);
+    int s2 = dash_find(&d, "s2");
+    const Component& b = d.components[s2];
+    TEST_ASSERT_EQUAL_INT(STATE_RANGE, b.state_match);
+    TEST_ASSERT_EQUAL_INT(3, b.state_cases_off);                 // tranche de s2 packee apres les 3 cas de s1
+    TEST_ASSERT_EQUAL_FLOAT(10.0f, d.state_pool[b.state_cases_off].at);
+}
+
+void test_state_pool_overflow(void) {
+    // Budget partage : MAX_STATE_CASES_TOTAL cas au total. Depassement -> layout rejete (comme MAX_COMPONENTS),
+    // pas de troncature silencieuse. 5 composants state x 16 cas (cap/comp) = 80 > 64.
+    char json[6000];
+    int n = snprintf(json, sizeof(json), "{\"components\":{");
+    for (int comp = 0; comp < 5; comp++) {
+        n += snprintf(json + n, sizeof(json) - n,
+                      "%s\"s%d\":{\"type\":\"state\",\"default\":{\"symbol\":\"bell\"},\"cases\":[",
+                      comp ? "," : "", comp);
+        for (int k = 0; k < 16; k++)
+            n += snprintf(json + n, sizeof(json) - n, "%s{\"key\":\"k%d_%d\",\"symbol\":\"bell\"}", k ? "," : "", comp, k);
+        n += snprintf(json + n, sizeof(json) - n, "]}");
+    }
+    n += snprintf(json + n, sizeof(json) - n, "},\"pages\":[{\"name\":\"p\",\"place\":[{\"ref\":\"s0\"}]}]}");
+    Dashboard d{}; char err[80];
+    TEST_ASSERT_FALSE(dash_set_layout(&d, json, err, sizeof(err)));   // pool plein -> rejet dur
+}
+
+void test_state_context(void) {
+    Dashboard d{}; char err[80];
+    TEST_ASSERT_TRUE_MESSAGE(dash_set_layout(&d, LAYOUT_STATE, err, sizeof(err)), err);
+    int s1 = dash_find(&d, "s1");
+    TEST_ASSERT_TRUE(s1 >= 0);
+    const StateCase* cs = &d.state_pool[d.components[s1].state_cases_off];   // tranche de s1 (offset 0)
+    int n = d.components[s1].state_case_count;
+
+    // string "Rain" via le contexte (bind "weather") -> vstr, type string, dirty ; resout le cas "Rain" (index 1)
+    dash_set_context(&d, "{\"weather\":\"Rain\"}", 1000);
+    context_apply(&d);
+    TEST_ASSERT_EQUAL_STRING("Rain", d.components[s1].vstr);
+    TEST_ASSERT_FALSE(d.components[s1].state_has_num);
+    TEST_ASSERT_TRUE(d.components[s1].dirty);
+    TEST_ASSERT_EQUAL_INT(1, state_resolve(d.components[s1].state_match, cs, n,
+        d.components[s1].state_has_num, (double)d.components[s1].value, d.components[s1].vstr));
+
+    // nombre 3 via le contexte -> value=3, type num ; resout le cas image (key 3, index 2)
+    dash_set_context(&d, "{\"weather\":3}", 2000);
+    context_apply(&d);
+    TEST_ASSERT_EQUAL_INT(3, d.components[s1].value);
+    TEST_ASSERT_TRUE(d.components[s1].state_has_num);
+    TEST_ASSERT_EQUAL_INT(2, state_resolve(d.components[s1].state_match, cs, n,
+        d.components[s1].state_has_num, (double)d.components[s1].value, d.components[s1].vstr));
+
+    // --- Bascule de type avec valeur coincidente : seul le garde de type-flip marque dirty. ---
+    // A ce stade : value==3, vstr=="Rain". On repasse en string (value reste 3 dans le champ)...
+    dash_set_context(&d, "{\"weather\":\"Rain\"}", 3000);
+    context_apply(&d);
+    d.components[s1].dirty = false;                          // isole l'effet du push suivant
+    // ... puis num 3 : la valeur numerique (3) coincide avec value, mais le type passe str->num.
+    // Sans le garde `|| !c.state_has_num`, changed resterait faux et le composant ne re-resoudrait pas.
+    dash_set_context(&d, "{\"weather\":3}", 4000);
+    context_apply(&d);
+    TEST_ASSERT_TRUE(d.components[s1].dirty);                // le flip de type DOIT marquer dirty
+    TEST_ASSERT_TRUE(d.components[s1].state_has_num);
+    TEST_ASSERT_EQUAL_INT(2, state_resolve(d.components[s1].state_match, cs, n,
+        d.components[s1].state_has_num, (double)d.components[s1].value, d.components[s1].vstr));   // cas image (num 3)
+
+    // Symetrique : re-push de la MEME string apres un num -> re-passe en mode string.
+    // Sans le garde `|| c.state_has_num`, changed resterait faux (strncmp identique).
+    d.components[s1].dirty = false;
+    dash_set_context(&d, "{\"weather\":\"Rain\"}", 5000);   // vstr deja "Rain", mais type flip num->str
+    context_apply(&d);
+    TEST_ASSERT_TRUE(d.components[s1].dirty);
+    TEST_ASSERT_FALSE(d.components[s1].state_has_num);
+    TEST_ASSERT_EQUAL_INT(1, state_resolve(d.components[s1].state_match, cs, n,
+        d.components[s1].state_has_num, (double)d.components[s1].value, d.components[s1].vstr));   // cas "Rain"
 }
 
 #define LAYOUT_FONTS "{\"components\":{\"l\":{\"type\":\"label\",\"text\":\"x\",\"font\":24,\"font_family\":\"lora\",\"bold\":true,\"italic\":true}},\"pages\":[{\"name\":\"P\",\"place\":[{\"ref\":\"l\",\"anchor\":\"CENTER\"}]}]}"
@@ -1738,7 +1886,11 @@ int main(int, char**) {
     RUN_TEST(test_layout_unknown_type_rejected);
     RUN_TEST(test_schema_types_all_resolve);
     RUN_TEST(test_icon_resolve);
+    RUN_TEST(test_state_resolve);
     RUN_TEST(test_icon_parsed);
+    RUN_TEST(test_state_parsed);
+    RUN_TEST(test_state_pool_overflow);
+    RUN_TEST(test_state_context);
     RUN_TEST(test_shapes_parsed);
     RUN_TEST(test_label_box_parsed);
     RUN_TEST(test_ctx_set_find_num);

@@ -585,6 +585,9 @@ static void roller_event_cb(lv_event_t* e);
 static void stepper_minus_cb(lv_event_t* e);
 static void stepper_plus_cb(lv_event_t* e);
 static void segmented_event_cb(lv_event_t* e);
+// state : build/sync definis plus bas (zone s_dash) car ils lisent le pool via s_dash -> declares ici pour VIEW[].
+static void build_state(lv_obj_t* parent, Component& c, Placement& q, lv_obj_t** main, lv_obj_t** sub1, lv_obj_t** sub2);
+static void sync_state(Component& c, Placement& q, lv_obj_t* main, lv_obj_t* sub1, lv_obj_t* sub2);
 
 // Reflets d'effecteurs différés pendant l'appui : un sync_* sous LV_STATE_PRESSED n'arrache pas le doigt
 // mais NE DOIT PAS perdre la valeur du contexte. On enregistre le composant ici ; view_sync le re-marque
@@ -903,6 +906,7 @@ static const ViewVTable VIEW[] = {
     /* COMP_QR       */ { build_qr,     sync_qr     },
     /* COMP_STEPPER  */ { build_stepper, sync_stepper },
     /* COMP_SEGMENTED */ { build_segmented, sync_segmented },
+    /* COMP_STATE    */ { build_state,  sync_state   },
 };
 static_assert(sizeof(VIEW) / sizeof(VIEW[0]) == COMP_COUNT,
               "VIEW desync avec CompType : ajoute la ligne du nouveau type");
@@ -1000,6 +1004,111 @@ static void stepper_apply(Component* c, int dir) {
 }
 static void stepper_minus_cb(lv_event_t* e) { stepper_apply((Component*)lv_obj_get_user_data(lv_event_get_target_obj(e)), -1); }
 static void stepper_plus_cb(lv_event_t* e)  { stepper_apply((Component*)lv_obj_get_user_data(lv_event_get_target_obj(e)), +1); }
+
+// state : charge /img/<src>.565a en PSRAM pour le composant idx (RGB565A8, w×h). Libere l'ancien buffer d'abord.
+// Variante de img_load_component parametree par src/w/h (image du cas actif, chargee a la demande). false si invalide.
+static bool state_load_image(int idx, const char* src, int w, int h) {
+    if (idx < 0 || idx >= MAX_COMPONENTS) return false;
+    if (s_img_buf[idx]) { heap_caps_free(s_img_buf[idx]); s_img_buf[idx] = nullptr; }
+    if (!src || !src[0] || w <= 0 || h <= 0) return false;
+    size_t need = (size_t)w * h * IMG_PX_BYTES;
+    if (need == 0 || need > (size_t)IMG_MAX_BYTES) return false;
+    char path[40];
+    snprintf(path, sizeof(path), "%s/%s.565a", IMG_DIR, src);
+    File f = asset_open_read(path);
+    if (!f) return false;
+    if ((size_t)f.size() != need) { f.close(); return false; }
+    uint8_t* buf = (uint8_t*)heap_caps_malloc(need, MALLOC_CAP_SPIRAM);
+    if (!buf) { f.close(); return false; }
+    size_t rd = f.read(buf, need);
+    f.close();
+    if (rd != need) { heap_caps_free(buf); return false; }
+    s_img_buf[idx] = buf;
+    lv_image_dsc_t& dsc = s_img_dsc[idx];
+    memset(&dsc, 0, sizeof(dsc));
+    dsc.header.magic  = LV_IMAGE_HEADER_MAGIC;
+    dsc.header.cf     = LV_COLOR_FORMAT_RGB565A8;
+    dsc.header.stride = w * 2;
+    dsc.header.w = w; dsc.header.h = h;
+    dsc.data = buf; dsc.data_size = need;
+    return true;
+}
+
+// state : tranche de cas du composant dans le pool partage (via s_dash). *n = 0 si aucun cas (-> defaut).
+static const StateCase* state_cases_of(const Component& c, int* n) {
+    if (s_dash && c.state_case_count > 0 && c.state_cases_off >= 0
+        && c.state_cases_off + c.state_case_count <= MAX_STATE_CASES_TOTAL) {
+        *n = c.state_case_count;
+        return &s_dash->state_pool[c.state_cases_off];
+    }
+    *n = 0;
+    return nullptr;
+}
+
+// state : (re)cree l'enfant du conteneur selon le visuel resolu — lv_label glyphe (parite build_icon)
+// ou lv_image bitmap (parite build_image). Met a jour l'etat de kind/src rendu.
+static void state_make_child(lv_obj_t* cont, Component& c, int idx, const StateCase& v) {
+    if (v.has_src) {
+        lv_obj_t* img = lv_image_create(cont);
+        if (state_load_image(idx, v.src, v.w, v.h)) {
+            lv_image_set_src(img, &s_img_dsc[idx]);
+            strlcpy(c.state_shown_src, v.src, sizeof(c.state_shown_src));
+        } else {                                              // asset absent : placeholder borde a w×h
+            lv_obj_set_size(img, v.w > 0 ? v.w : 120, v.h > 0 ? v.h : 120);
+            lv_obj_set_style_border_width(img, 1, 0);
+            lv_obj_set_style_border_color(img, lv_color_hex(0x4B5563), 0);
+            lv_obj_set_style_border_opa(img, LV_OPA_COVER, 0);
+            c.state_shown_src[0] = '\0';
+        }
+        lv_obj_center(img);
+    } else {
+        if (s_img_buf[idx]) { heap_caps_free(s_img_buf[idx]); s_img_buf[idx] = nullptr; }   // libere l'image si on passe a un glyphe
+        lv_obj_t* l = lv_label_create(cont);
+        lv_obj_set_style_text_font(l, get_icon_font(c.font), 0);
+        lv_obj_set_style_text_color(l, lv_color_hex(v.color), 0);
+        lv_label_set_text(l, ICON_GLYPHS[v.symbol]);
+        lv_obj_center(l);
+        c.state_shown_src[0] = '\0';
+    }
+    c.state_shown_is_img = v.has_src;
+}
+
+// state : conteneur transparent hebergeant UN visuel choisi par la valeur (state_resolve). L'enfant est
+// swappe au sync si le kind change (glyphe<->image).
+static void build_state(lv_obj_t* parent, Component& c, Placement& q,
+                        lv_obj_t** main, lv_obj_t**, lv_obj_t**) {
+    lv_obj_t* cont = lv_obj_create(parent);
+    lv_obj_remove_style_all(cont);                            // conteneur transparent (ni fond, ni bord, ni padding)
+    lv_obj_clear_flag(cont, LV_OBJ_FLAG_SCROLLABLE);          // pas de scroll (comme le wrapper grp) : le swipe navigue
+    lv_obj_clear_flag(cont, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_size(cont, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    int n; const StateCase* cases = state_cases_of(c, &n);
+    int idx = state_resolve(c.state_match, cases, n, c.state_has_num, (double)c.value, c.vstr);
+    const StateCase& v = (idx < 0) ? c.state_default : cases[idx];
+    state_make_child(cont, c, q.comp_index, v);
+    lv_obj_align(cont, ALIGN_MAP[q.anchor], q.dx, q.dy);
+    *main = cont;
+}
+
+// state : re-resout a chaque changement de valeur. Kind change -> detruit/recree l'enfant ; sinon maj en place.
+static void sync_state(Component& c, Placement& q, lv_obj_t* main, lv_obj_t*, lv_obj_t*) {
+    int n; const StateCase* cases = state_cases_of(c, &n);
+    int idx = state_resolve(c.state_match, cases, n, c.state_has_num, (double)c.value, c.vstr);
+    const StateCase& v = (idx < 0) ? c.state_default : cases[idx];
+    lv_obj_t* child = lv_obj_get_child(main, 0);
+    if (!child || v.has_src != c.state_shown_is_img) {        // kind change (ou 1er) -> recree l'enfant
+        lv_obj_clean(main);
+        state_make_child(main, c, q.comp_index, v);
+    } else if (v.has_src) {                                   // meme kind image : recree l'enfant SI src change
+        if (strcmp(c.state_shown_src, v.src) != 0) {          // state_make_child gere load OK (image) / echec (placeholder)
+            lv_obj_clean(main);
+            state_make_child(main, c, q.comp_index, v);
+        }
+    } else {                                                  // meme kind glyphe : maj texte + couleur en place
+        lv_obj_set_style_text_color(child, lv_color_hex(v.color), 0);
+        lv_label_set_text(child, ICON_GLYPHS[v.symbol]);
+    }
+}
 
 // Met à jour la coloration des points indicateurs sans toucher aux flags hidden des pages
 // (partagé par la bascule instantanée et la transition animée).

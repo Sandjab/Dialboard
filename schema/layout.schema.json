@@ -129,7 +129,8 @@
         { "$ref": "#/$defs/comp_segmented" },
         { "$ref": "#/$defs/comp_clock" },
         { "$ref": "#/$defs/comp_rings" },
-        { "$ref": "#/$defs/comp_qr" }
+        { "$ref": "#/$defs/comp_qr" },
+        { "$ref": "#/$defs/comp_state" }
       ]
     },
     "comp_label": {
@@ -819,6 +820,20 @@
         "color": { "$ref": "#/$defs/hexColor", "description": "Couleur de la bande. Omis = color de base." }
       }
     },
+    "state_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Un cas de state : matcher (key exact string|nombre ; ou at pour le mode range) + visuel (glyphe symbol/color XOR image src/w/h ; kind infere par le champ present). Sert aussi de forme au visuel 'default' (matcher ignore).",
+      "properties": {
+        "key": { "type": ["string", "number"], "description": "Cle exacte (mode exact). String -> compare aux valeurs string ; nombre -> aux valeurs numeriques." },
+        "at": { "type": "number", "description": "Borne haute exclusive (mode range) : cas choisi si value < at. Cas ordonnes." },
+        "symbol": { "$ref": "#/$defs/symbolName", "description": "Glyphe MDI (visuel glyphe). Defaut bell." },
+        "color": { "$ref": "#/$defs/hexColor", "description": "Couleur du glyphe. Defaut #FFFFFF." },
+        "src": { "$ref": "#/$defs/ascii", "description": "Cle d'asset image (visuel image ; present => image au lieu de glyphe)." },
+        "w": { "type": "integer", "minimum": 1, "maximum": 360, "description": "Largeur de l'image (px). Defaut 120." },
+        "h": { "type": "integer", "minimum": 1, "maximum": 360, "description": "Hauteur de l'image (px). Defaut 120." }
+      }
+    },
     "comp_icon": {
       "type": "object",
       "additionalProperties": false,
@@ -832,6 +847,21 @@
         "color": { "$ref": "#/$defs/hexColor", "description": "Couleur de base (text_color). Defaut #FFFFFF." },
         "font": { "$ref": "#/$defs/font", "description": "Taille du glyphe. Defaut 28." },
         "states": { "type": "array", "items": { "$ref": "#/$defs/icon_state" }, "description": "Table d'etats (glyphe/couleur selon la valeur). Vide = icone statique." }
+      }
+    },
+    "comp_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "description": "Selecteur de visuel pilote par la valeur : affiche UN visuel (glyphe MDI ou image bitmap) choisi parmi des cas selon la valeur (bind ou push par id). Matching exact (cle string/nombre) ou range (seuils). default = visuel affiche si aucun cas ne matche.",
+      "properties": {
+        "type": { "const": "state" },
+        "visible": { "type": "boolean", "description": "Affiche le composant (defaut true). false = cache (LV_OBJ_FLAG_HIDDEN). Pilotable via /update {\"<id>\":{\"visible\":true}}." },
+        "bind": { "$ref": "#/$defs/id", "description": "Nom d'une variable du contexte (pull). Present = lit la variable ; absent = push par id (defaut)." },
+        "match": { "enum": ["exact", "range"], "description": "Mode de selection. exact = egalite de cle (string ou nombre selon le type de la valeur) ; range = 1er cas ou value < at (numerique seul). Defaut exact." },
+        "font": { "$ref": "#/$defs/font", "description": "Taille des glyphes (cas glyphe). Defaut 64." },
+        "default": { "$ref": "#/$defs/state_case", "description": "Visuel affiche si aucun cas ne matche (matcher ignore)." },
+        "cases": { "type": "array", "items": { "$ref": "#/$defs/state_case" }, "description": "Cas (matcher + visuel), evalues dans l'ordre. Limite firmware MAX_STATE_CASES=16 par composant, MAX_STATE_CASES_TOTAL=64 au total." }
       }
     },
     "comp_rect": {

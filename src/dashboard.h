@@ -5,7 +5,7 @@
 #include "context.h"
 #include "fonts/icons_gen.h"   // ICON_SYMBOL_COUNT / ICON_SYMBOL_NAMES / ICON_GLYPHS (gen_icons.py)
 
-enum CompType { COMP_NONE, COMP_LABEL, COMP_READOUT, COMP_BAR, COMP_RING, COMP_LED_RING, COMP_SOUND, COMP_CHART, COMP_METER, COMP_IMAGE, COMP_IMAGE_ANIM, COMP_LED, COMP_RECT, COMP_CIRCLE, COMP_LINE, COMP_ICON, COMP_SWITCH, COMP_BUTTON, COMP_SLIDER, COMP_ARC, COMP_ROLLER, COMP_CLOCK, COMP_RINGS, COMP_QR, COMP_STEPPER, COMP_SEGMENTED, COMP_COUNT };
+enum CompType { COMP_NONE, COMP_LABEL, COMP_READOUT, COMP_BAR, COMP_RING, COMP_LED_RING, COMP_SOUND, COMP_CHART, COMP_METER, COMP_IMAGE, COMP_IMAGE_ANIM, COMP_LED, COMP_RECT, COMP_CIRCLE, COMP_LINE, COMP_ICON, COMP_SWITCH, COMP_BUTTON, COMP_SLIDER, COMP_ARC, COMP_ROLLER, COMP_CLOCK, COMP_RINGS, COMP_QR, COMP_STEPPER, COMP_SEGMENTED, COMP_STATE, COMP_COUNT };
 enum LedMode  { LED_OFF, LED_SOLID, LED_PROGRESS, LED_SPINNER, LED_BLINK, LED_BREATHE };
 enum BarMode  { BAR_NORMAL, BAR_SYMMETRICAL };               // bar : lv_bar_set_mode
 enum ArcMode  { ARC_NORMAL, ARC_SYMMETRICAL, ARC_REVERSE };  // ring : lv_arc_set_mode
@@ -21,6 +21,21 @@ struct IconState { float at; uint16_t symbol; uint32_t color; bool has_symbol; b
 // icon_symbol_index : nom de symbole MDI -> index (0 si inconnu). ICON_SYMBOL_NAMES == ICON_GLYPHS
 // (icons_gen.h/.c) s'indexent par cette valeur. Exposé pour les tests natifs.
 uint16_t icon_symbol_index(const char* s);
+
+enum StateMatch { STATE_EXACT = 0, STATE_RANGE = 1 };
+// state : un cas = un matcher (exact: key_str|key_num ; range: at) + un visuel (glyphe symbol/color XOR image src/w/h).
+// has_src == true -> visuel image ; sinon glyphe. Kind infere par le champ present (comme icon/image).
+struct StateCase {
+    bool     has_num_key;            // exact : la cle est numerique (key_num) ; sinon string (key_str)
+    double   key_num;
+    char     key_str[TEXT_LEN];
+    float    at;                     // range : borne haute exclusive (num < at)
+    bool     has_src;                // true = visuel image ; false = visuel glyphe
+    uint16_t symbol;                 // glyphe : index dans ICON_GLYPHS (view.cpp)
+    uint32_t color;                  // glyphe : couleur (defaut 0xFFFFFF)
+    char     src[ID_LEN];            // image : cle d'asset (/img/<src>.565a)
+    int      w, h;                   // image : dimensions RGB565A8
+};
 
 struct RingTrack { char bind[ID_LEN]; int vmin, vmax; uint32_t color; int32_t value; };
 
@@ -88,6 +103,15 @@ struct Component {
     uint16_t  icon_symbol;                       // index du glyphe de base (-> ICON_GLYPHS dans view.cpp)
     IconState icon_states[MAX_ICON_STATES];
     int       icon_state_count;
+
+    // state : selecteur de visuel pilote par la valeur (cases + defaut) ; match exact|range.
+    uint8_t   state_match;                       // STATE_EXACT | STATE_RANGE
+    int16_t   state_cases_off;                   // offset dans Dashboard.state_pool (valide si state_case_count>0)
+    int       state_case_count;
+    StateCase state_default;                     // visuel si aucun cas ne matche (matcher ignore)
+    bool      state_has_num;                     // dernier type recu : true=num (c.value), false=str (c.vstr)
+    bool      state_shown_is_img;                // kind du visuel rendu (detecte glyphe<->image au sync)
+    char      state_shown_src[ID_LEN];           // src de l'image actuellement chargee (recharge au changement)
 
     // button (effecteur set) : valeur ecrite dans bind au tap
     char     set_value[TEXT_LEN];   // valeur a ecrire (cas string) ; forme canonique aussi peuplee si num
@@ -193,6 +217,8 @@ struct Dashboard {
     int       source_count;
     Sink      sinks[MAX_SINKS];
     int       sink_count;
+    StateCase state_pool[MAX_STATE_CASES_TOTAL];   // state : cas de tous les composants (offset+count par Component)
+    int       state_pool_used;
 };
 
 bool bg_key_valid(const char* key);   // clé d'asset image de fond : 1..16 hex minuscules (garde de chemin)

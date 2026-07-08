@@ -24,7 +24,8 @@ export const MOCKS = {
   arc:     { value: 50 },
   roller:  { value: 0 },
   stepper: { value: 21 },
-  segmented: { value: 0 }
+  segmented: { value: 0 },
+  state:   { value: 0 }
 };
 
 // Réglages PRIMAIRES du rendu LED réaliste (réglés au playground ; cf. spec led-look-realiste),
@@ -590,6 +591,25 @@ export function resolveIcon(comp, value) {
   return { symbol, color };
 }
 
+// Résolveur PUR (miroir firmware state_resolve) : rend l'index du cas actif ou -1 (défaut).
+// exact : selon le type de la valeur (number ↔ clé number ; string ↔ clé string). range : numérique seul, 1er value < at.
+export function resolveState(comp, value) {
+  const cases = comp.cases || [];
+  const match = comp.match || 'exact';
+  const isNum = typeof value === 'number';
+  if (match === 'range') {
+    if (!isNum) return -1;                            // range = numérique seul ; string -> défaut
+    for (let i = 0; i < cases.length; i++) if (value < cases[i].at) return i;
+    return -1;
+  }
+  for (let i = 0; i < cases.length; i++) {            // exact : 1er match selon le type de la valeur
+    const k = cases[i].key ?? '';                   // clé absente -> '' (parité firmware : has_num_key=false, key_str="")
+    if (isNum) { if (typeof k === 'number' && k === value) return i; }
+    else       { if (typeof k !== 'number' && String(k) === String(value)) return i; }
+  }
+  return -1;
+}
+
 export function buildIcon(comp, mock = MOCKS.icon) {
   const { symbol, color } = resolveIcon(comp, mock.value);
   const px = pickFontPx(comp.font ?? 28);
@@ -602,6 +622,44 @@ export function buildIcon(comp, mock = MOCKS.icon) {
   i.className = 'mdi';
   i.style.fontSize = px + 'px';
   i.textContent = ICON_CHAR[symbol] || ICON_CHAR.bell || '';
+  n.appendChild(i);
+  return n;
+}
+
+// State : affiche UN visuel (glyphe ou image) choisi par la valeur mock (resolveState). Parité firmware
+// build/sync_state : glyphe = <i class="mdi"> (comme buildIcon) ; image = <img> previewUrl (comme buildImage).
+export function buildState(comp, mock = MOCKS.state) {
+  const idx = resolveState(comp, mock.value);
+  const cases = comp.cases || [];
+  const vis = idx < 0 ? (comp.default || {}) : cases[idx];
+  if (vis.src) {                                       // visuel image (miroir buildImage)
+    const wrap = document.createElement('div');
+    wrap.className = 'w w-image';
+    wrap.style.width  = (vis.w || 120) + 'px';
+    wrap.style.height = (vis.h || 120) + 'px';
+    const url = previewUrl(vis.src);
+    if (url) {
+      const img = document.createElement('img');
+      img.className = 'w-image-img';
+      img.src = url;
+      img.style.width = '100%'; img.style.height = '100%';
+      img.style.display = 'block'; img.style.objectFit = 'fill';
+      wrap.appendChild(img);
+    } else {
+      wrap.classList.add('w-image--empty');
+    }
+    return wrap;
+  }
+  const px = pickFontPx(comp.font ?? 64);              // visuel glyphe (miroir buildIcon)
+  const n = document.createElement('div');
+  n.className = 'w w-icon';
+  n.style.width = px + 'px';
+  n.style.height = px + 'px';
+  n.style.color = vis.color || '#FFFFFF';
+  const i = document.createElement('i');
+  i.className = 'mdi';
+  i.style.fontSize = px + 'px';
+  i.textContent = ICON_CHAR[vis.symbol] || ICON_CHAR.bell || '';
   n.appendChild(i);
   return n;
 }

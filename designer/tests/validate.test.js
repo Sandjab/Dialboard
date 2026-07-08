@@ -177,3 +177,44 @@ test('icon : clé inconnue dans un state -> invalide (additionalProperties:false
   l.pages[0].place.push({ ref: 'i1', anchor: 'CENTER' });
   assert.equal(validate(l).valid, false);
 });
+
+test('layout avec state (cases glyphe+image + default) est valide', () => {
+  const l = structuredClone(DEFAULT_LAYOUT);
+  l.components.s1 = { type: 'state', bind: 'weather', match: 'exact', font: 64,
+    default: { symbol: 'weather-cloudy', color: '#9AA0AA' },
+    cases: [
+      { key: 'Clear', symbol: 'weather-sunny', color: '#FFC02E' },
+      { key: 'Rain', symbol: 'weather-pouring' },
+      { key: 3, src: 'abc123', w: 120, h: 120 }] };
+  l.pages[0].place.push({ ref: 's1', anchor: 'CENTER', dx: 0, dy: 0 });
+  const r = validate(l);
+  assert.equal(r.valid, true, JSON.stringify(r.errors));
+});
+
+test('state : match hors enum -> invalide', () => {
+  const l = structuredClone(DEFAULT_LAYOUT);
+  l.components.s1 = { type: 'state', match: 'fuzzy', default: { symbol: 'bell' } };
+  l.pages[0].place.push({ ref: 's1', anchor: 'CENTER' });
+  assert.equal(validate(l).valid, false);
+});
+
+test('state : symbole hors enum dans un cas -> invalide', () => {
+  const l = structuredClone(DEFAULT_LAYOUT);
+  l.components.s1 = { type: 'state', cases: [{ key: 'X', symbol: 'rocket' }] };
+  l.pages[0].place.push({ ref: 's1', anchor: 'CENTER' });
+  assert.equal(validate(l).valid, false);
+});
+
+test('state : cle inconnue dans un cas -> invalide (additionalProperties:false)', () => {
+  const l = structuredClone(DEFAULT_LAYOUT);
+  l.components.s1 = { type: 'state', cases: [{ key: 'X', symbol: 'bell', wat: 2 }] };
+  l.pages[0].place.push({ ref: 's1', anchor: 'CENTER' });
+  assert.equal(validate(l).valid, false);
+});
+
+test('state : cle inconnue dans default -> invalide', () => {
+  const l = structuredClone(DEFAULT_LAYOUT);
+  l.components.s1 = { type: 'state', default: { symbol: 'bell', wat: 2 } };
+  l.pages[0].place.push({ ref: 's1', anchor: 'CENTER' });
+  assert.equal(validate(l).valid, false);
+});

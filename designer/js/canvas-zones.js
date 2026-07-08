@@ -81,7 +81,7 @@ const TYPES = Object.entries(COMPONENTS).filter(([, d]) => !d.physical).map(([t,
 // Un type absent de la carte retombe dans « shapes » (jamais perdu) ; l'ajouter ici pour le classer.
 export const FAMILY = {
   label: 'data', readout: 'data', bar: 'data', chart: 'data', meter: 'data', ring: 'data', clock: 'data', rings: 'data',
-  image: 'rich', image_anim: 'rich', led: 'rich', icon: 'rich', qr: 'rich',
+  image: 'rich', image_anim: 'rich', led: 'rich', icon: 'rich', state: 'rich', qr: 'rich',
   switch: 'effectors', button: 'effectors', slider: 'effectors', arc: 'effectors', roller: 'effectors', stepper: 'effectors', segmented: 'effectors',
   rect: 'shapes', circle: 'shapes', line: 'shapes',
 };

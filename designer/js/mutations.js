@@ -115,6 +115,26 @@ export function setIconStates(state, id, states) {
   else delete c.states;
 }
 
+// state : tableau de cas {key|at, symbol?/color? | src/w/h}. Vide => supprime la clé.
+export function setStateCases(state, id, cases) {
+  const c = state.components[id];
+  if (!c) return;
+  if (cases && cases.length) c.cases = cases;
+  else delete c.cases;
+}
+// state : visuel par défaut (glyphe {symbol,color} | image {src,w,h}).
+export function setStateDefault(state, id, visual) {
+  const c = state.components[id];
+  if (!c) return;
+  c.default = visual;
+}
+// state : mode de correspondance ('exact' | 'range').
+export function setStateMatch(state, id, match) {
+  const c = state.components[id];
+  if (!c) return;
+  c.match = match;
+}
+
 // thresholds : tableau de [limite, "#hex"]. Vide => suppression de la clé.
 export function setThresholds(state, id, thresholds) {
   const c = state.components[id];
