@@ -18,6 +18,7 @@
 #include <Arduino.h>                 // millis()
 #include "freertos/semphr.h"
 #include "dashboard.h"               // dash_ctx_write_ui_num/str (deja tire via view.h, explicite ici)
+#include "scenes.h"
 #include "stepper_logic.h"
 #include "segmented_logic.h"
 
@@ -1045,10 +1046,57 @@ static const StateCase* state_cases_of(const Component& c, int* n) {
     return nullptr;
 }
 
-// state : (re)cree l'enfant du conteneur selon le visuel resolu — lv_label glyphe (parite build_icon)
-// ou lv_image bitmap (parite build_image). Met a jour l'etat de kind/src rendu.
+// state : applique l'etat anime d'une scene a l'instant now_ms aux N enfants (labels) deja crees.
+// Chaque enfant i <-> couche i (ordre de creation dans state_make_child). Position via align (cx,cy
+// en 0..100 -> offset du centre), rotation/echelle via transform_* (LVGL 9), opacite via opa.
+static void apply_scene_frame(lv_obj_t* cont, const StateCase& v, uint32_t now_ms) {
+    LayerFrame fr[MAX_SCENE_LAYERS];
+    int n = scene_frame_at(v.scene, now_ms, fr);
+    int size = v.size ? v.size : 120;
+    const Scene& s = SCENE_CATALOG[v.scene];
+    for (int i = 0; i < n; i++) {
+        lv_obj_t* l = lv_obj_get_child(cont, i);
+        if (!l) break;
+        // get_icon_font plafonne la police a 120px ; au-dela on compense via transform_scale pour
+        // garder la parite de taille avec le designer (qui rend a la taille native).
+        float px = s.layers[i].scale_rel * size;
+        float ssc = px > 120.0f ? px / 120.0f : 1.0f;
+        lv_obj_align(l, LV_ALIGN_CENTER, (int)((fr[i].cx - 50.0f) / 100.0f * size),
+                                         (int)((fr[i].cy - 50.0f) / 100.0f * size));
+        lv_obj_set_style_transform_rotation(l, fr[i].angle_ddeg, 0);
+        lv_obj_set_style_transform_scale(l, (int)(fr[i].scale * ssc * 256.0f), 0);
+        lv_obj_set_style_opa(l, fr[i].opa, 0);
+    }
+}
+
+// state : (re)cree l'enfant du conteneur selon le visuel resolu — lv_label glyphe (parite build_icon),
+// lv_image bitmap (parite build_image), ou N lv_label pour une scene animee. Met a jour l'etat de kind/src rendu.
 static void state_make_child(lv_obj_t* cont, Component& c, int idx, const StateCase& v) {
-    if (v.has_src) {
+    if (v.kind == STATE_SCENE) {
+        if (s_img_buf[idx]) { heap_caps_free(s_img_buf[idx]); s_img_buf[idx] = nullptr; }   // libere l'image si on passe d'un cas image a une scene
+        const Scene& s = SCENE_CATALOG[v.scene];
+        int size = v.size ? v.size : 120;
+        lv_obj_set_size(cont, size, size);            // boite carree fixe : couches positionnees en absolu via align
+        int n = s.count > MAX_SCENE_LAYERS ? MAX_SCENE_LAYERS : s.count;
+        for (int i = 0; i < n; i++) {
+            const SceneLayer& L = s.layers[i];
+            int px = (int)(L.scale_rel * size);
+            lv_obj_t* l = lv_label_create(cont);
+            lv_obj_set_style_text_font(l, get_icon_font(px), 0);
+            lv_obj_set_style_text_color(l, lv_color_hex(scene_layer_color(&L, v.color)), 0);
+            lv_label_set_text(l, ICON_GLYPHS[icon_symbol_index(L.symbol)]);
+            if (L.anim == SC_SWING) {                     // pivot haut-centre pour l'oscillation
+                lv_obj_set_style_transform_pivot_x(l, px / 2, 0);
+                lv_obj_set_style_transform_pivot_y(l, 0, 0);
+            } else {
+                lv_obj_set_style_transform_pivot_x(l, px / 2, 0);
+                lv_obj_set_style_transform_pivot_y(l, px / 2, 0);
+            }
+        }
+        apply_scene_frame(cont, v, 0);                    // etat initial (t=0)
+        c.state_shown_src[0] = '\0';
+    } else if (v.kind == STATE_IMAGE) {
+        lv_obj_set_size(cont, LV_SIZE_CONTENT, LV_SIZE_CONTENT);   // reinitialise la boite si swap depuis une scene
         lv_obj_t* img = lv_image_create(cont);
         if (state_load_image(idx, v.src, v.w, v.h)) {
             lv_image_set_src(img, &s_img_dsc[idx]);
@@ -1062,6 +1110,7 @@ static void state_make_child(lv_obj_t* cont, Component& c, int idx, const StateC
         }
         lv_obj_center(img);
     } else {
+        lv_obj_set_size(cont, LV_SIZE_CONTENT, LV_SIZE_CONTENT);   // reinitialise la boite si swap depuis une scene
         if (s_img_buf[idx]) { heap_caps_free(s_img_buf[idx]); s_img_buf[idx] = nullptr; }   // libere l'image si on passe a un glyphe
         lv_obj_t* l = lv_label_create(cont);
         lv_obj_set_style_text_font(l, get_icon_font(c.font), 0);
@@ -1070,7 +1119,7 @@ static void state_make_child(lv_obj_t* cont, Component& c, int idx, const StateC
         lv_obj_center(l);
         c.state_shown_src[0] = '\0';
     }
-    c.state_shown_is_img = v.has_src;
+    c.state_shown_kind = v.kind;
 }
 
 // state : conteneur transparent hebergeant UN visuel choisi par la valeur (state_resolve). L'enfant est
@@ -1086,6 +1135,7 @@ static void build_state(lv_obj_t* parent, Component& c, Placement& q,
     int idx = state_resolve(c.state_match, cases, n, c.state_has_num, (double)c.value, c.vstr);
     const StateCase& v = (idx < 0) ? c.state_default : cases[idx];
     state_make_child(cont, c, q.comp_index, v);
+    c.state_shown_case_idx = idx;
     lv_obj_align(cont, ALIGN_MAP[q.anchor], q.dx, q.dy);
     *main = cont;
 }
@@ -1096,10 +1146,13 @@ static void sync_state(Component& c, Placement& q, lv_obj_t* main, lv_obj_t*, lv
     int idx = state_resolve(c.state_match, cases, n, c.state_has_num, (double)c.value, c.vstr);
     const StateCase& v = (idx < 0) ? c.state_default : cases[idx];
     lv_obj_t* child = lv_obj_get_child(main, 0);
-    if (!child || v.has_src != c.state_shown_is_img) {        // kind change (ou 1er) -> recree l'enfant
+    bool scene_case_changed = v.kind == STATE_SCENE && c.state_shown_kind == STATE_SCENE && idx != c.state_shown_case_idx;
+    if (!child || v.kind != c.state_shown_kind || scene_case_changed) {   // kind/cas change (ou 1er) -> recree l'enfant
         lv_obj_clean(main);
         state_make_child(main, c, q.comp_index, v);
-    } else if (v.has_src) {                                   // meme kind image : recree l'enfant SI src change
+    } else if (v.kind == STATE_SCENE) {                       // meme cas : applique la frame courante
+        apply_scene_frame(main, v, lv_tick_get());
+    } else if (v.kind == STATE_IMAGE) {                       // meme kind image : recree l'enfant SI src change
         if (strcmp(c.state_shown_src, v.src) != 0) {          // state_make_child gere load OK (image) / echec (placeholder)
             lv_obj_clean(main);
             state_make_child(main, c, q.comp_index, v);
@@ -1108,6 +1161,7 @@ static void sync_state(Component& c, Placement& q, lv_obj_t* main, lv_obj_t*, lv
         lv_obj_set_style_text_color(child, lv_color_hex(v.color), 0);
         lv_label_set_text(child, ICON_GLYPHS[v.symbol]);
     }
+    c.state_shown_case_idx = idx;
 }
 
 // Met à jour la coloration des points indicateurs sans toucher aux flags hidden des pages

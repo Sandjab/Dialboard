@@ -1,0 +1,61 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { SCENES, SCENE_NAMES, sceneFrameAt, sceneLayerColor, sceneDefaultColor } from '../js/scenes.js';
+
+test('catalogue : 9 scènes, SCENE_NAMES == clés de SCENES, chaque scène a des couches', () => {
+  assert.equal(SCENE_NAMES.length, 9);
+  assert.deepEqual([...SCENE_NAMES].sort(), Object.keys(SCENES).sort());
+  for (const n of SCENE_NAMES) assert.ok(SCENES[n].layers.length >= 1);
+});
+
+test('sceneFrameAt : rotate -> angle 0 à t=0, ~1800 à demi-période, périodique', () => {
+  assert.equal(sceneFrameAt('sunny', 0)[0].angleDdeg, 0);
+  const half = sceneFrameAt('sunny', 3500)[0].angleDdeg;
+  assert.ok(half > 1700 && half < 1900);
+  assert.equal(sceneFrameAt('sunny', 1234)[0].angleDdeg, sceneFrameAt('sunny', 1234 + 7000)[0].angleDdeg);
+});
+
+test('sceneFrameAt : translate_loop -> cy varie, opa bornée, phases décalées', () => {
+  const fr = sceneFrameAt('rain', 550);
+  assert.equal(fr.length, 4);
+  assert.equal(fr[0].cy, 38);                       // couche statique fixe
+  assert.ok(fr[1].opa >= 0 && fr[1].opa <= 255);
+  assert.notEqual(fr[1].cy, fr[2].cy);              // phases différentes
+});
+
+test('sceneFrameAt : pulse -> scale >= 1, opa dans [0,255]', () => {
+  const f = sceneFrameAt('alert', 700)[0];
+  assert.ok(f.scale >= 1 && f.scale <= 1.5);
+  assert.ok(f.opa >= 0 && f.opa <= 255);
+});
+
+test('sceneFrameAt : name inconnu -> []', () => { assert.deepEqual(sceneFrameAt('nope', 0), []); });
+
+test('sceneFrameAt : opa tronquée (parité cast uint8_t firmware, pas round)', () => {
+  // rain, couche 1 (water, phase 0, period 1100), t=100 : ph=0.0909, inner=ph/0.15=0.606, 255*inner=154.5
+  // trunc -> 154 (firmware) ; round donnerait 155. Ce test échoue si le JS repasse à Math.round.
+  assert.equal(sceneFrameAt('rain', 100)[1].opa, 154);
+});
+
+test('sceneFrameAt : flash -> créneau d\'opacité (storm, couche lightning-bolt)', () => {
+  assert.equal(sceneFrameAt('storm', 0)[1].opa, 255);     // ph=0 < 0.10 -> allumé
+  assert.equal(sceneFrameAt('storm', 900)[1].opa, 45);    // ph=0.5, hors créneau -> éteint
+});
+
+test('sceneFrameAt : swing -> angle oscille de signe (bell)', () => {
+  assert.equal(sceneFrameAt('bell', 0)[0].angleDdeg, 0);      // sin(0)
+  assert.ok(sceneFrameAt('bell', 225)[0].angleDdeg > 0);      // quart de période, sin +1
+  assert.ok(sceneFrameAt('bell', 675)[0].angleDdeg < 0);      // trois quarts, sin -1
+});
+
+test('sceneFrameAt : drift -> cx oscille autour du centre (wind)', () => {
+  assert.equal(sceneFrameAt('wind', 0)[0].cx, 50);            // base, sin(0)
+  assert.ok(sceneFrameAt('wind', 950)[0].cx > 50);            // quart de période, sin +1
+});
+
+test('sceneLayerColor : principal suit, accent fixe', () => {
+  const s = SCENES.storm;
+  assert.equal(sceneLayerColor(s.layers[0], '#3399FF'), '#3399FF');
+  assert.equal(sceneLayerColor(s.layers[1], '#3399FF'), '#F5C518');
+  assert.equal(sceneDefaultColor('rain'), '#3B82F6');
+});

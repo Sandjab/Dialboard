@@ -565,6 +565,10 @@ main > .col:last-child { border-right: 0; }
 .w-image { overflow: hidden; }
 .w-image--empty { border: 1px dashed #4B5563; box-sizing: border-box; }
 
+/* Composant state, visuel scène : couches de glyphes MDI superposées, animées en direct (rAF). */
+.w-scene { display: block; }
+.w-scene-layer { line-height: 1; will-change: transform, opacity; }
+
 /* --- Carousel de vignettes de pages (sous le hero disque) --- */
 .carousel { width: 100%; margin-top: 14px; display: flex; align-items: center; gap: 12px; }
 .caro-track { display: flex; align-items: center; justify-content: center; gap: 18px;
@@ -697,6 +701,8 @@ main > .col:last-child { border-right: 0; }
 .iconpick-name { font-size: 10px; color: var(--text-dim, #9fb0c3); max-width: 100%; overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap; }
 .iconpick-empty { grid-column: 1 / -1; text-align: center; color: var(--text-dim, #9fb0c3); font-size: 13px; padding: 20px; }
+.scenepick-grid { grid-template-columns: repeat(3, 1fr); }
+.scenepick-thumb { width: 44px; height: 44px; margin: 0 auto 4px; }
 
 /* Bouton-picker dans l'inspecteur (champ symbol + états) : montre l'icône courante, ouvre l'overlay. */
 .insp-iconbtn { display: flex; align-items: center; gap: 8px; background: var(--input, #12161c);

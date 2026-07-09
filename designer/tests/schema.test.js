@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createValidator } from '../js/validate.js';
+import { SCENE_NAMES } from '../js/scenes.js';
 
 const schema = JSON.parse(
   readFileSync(new URL('../../schema/layout.schema.json', import.meta.url))
@@ -508,4 +509,8 @@ test('schema : enums invalides rejetés', () => {
 test('schema : additionalProperties inconnu rejeté (slider)', () => {
   const bad = { components: { s: { type: 'slider', bogus: 1 } }, pages: [{ name: 'p', place: [] }] };
   assert.equal(validate(bad).valid, false);
+});
+
+test('parité : $defs.sceneName == SCENE_NAMES (scenes.js)', () => {
+  assert.deepEqual(schema.$defs.sceneName.enum, SCENE_NAMES);   // même liste, même ordre
 });

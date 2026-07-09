@@ -335,6 +335,10 @@
         "off_glass": { "type": "boolean", "description": "Garder un faible reflet de verre quand eteint (sous-option de specular). Defaut true." }
       }
     },
+    "sceneName": {
+      "enum": ["sunny", "rain", "snow", "storm", "wind", "spinner", "alert", "bell", "pulse"],
+      "description": "Nom d'une scène animée du catalogue figé (brique 2 du composant state). Firmware: SCENE_CATALOG (scenes.cpp) ; designer: SCENES (scenes.js). Rendu = glyphes MDI animés."
+    },
     "symbolName": {
       "enum": [
         "account-alert",
@@ -823,7 +827,7 @@
     "state_case": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Un cas de state : matcher (key exact string|nombre ; ou at pour le mode range) + visuel (glyphe symbol/color XOR image src/w/h ; kind infere par le champ present). Sert aussi de forme au visuel 'default' (matcher ignore).",
+      "description": "Un cas de state : matcher (key exact string|nombre ; ou at pour le mode range) + visuel (glyphe symbol/color XOR image src/w/h XOR scene scene/size ; kind infere par le champ present, priorite scene>src>symbol). Sert aussi de forme au visuel 'default' (matcher ignore).",
       "properties": {
         "key": { "type": ["string", "number"], "description": "Cle exacte (mode exact). String -> compare aux valeurs string ; nombre -> aux valeurs numeriques." },
         "at": { "type": "number", "description": "Borne haute exclusive (mode range) : cas choisi si value < at. Cas ordonnes." },
@@ -831,7 +835,9 @@
         "color": { "$ref": "#/$defs/hexColor", "description": "Couleur du glyphe. Defaut #FFFFFF." },
         "src": { "$ref": "#/$defs/ascii", "description": "Cle d'asset image (visuel image ; present => image au lieu de glyphe)." },
         "w": { "type": "integer", "minimum": 1, "maximum": 360, "description": "Largeur de l'image (px). Defaut 120." },
-        "h": { "type": "integer", "minimum": 1, "maximum": 360, "description": "Hauteur de l'image (px). Defaut 120." }
+        "h": { "type": "integer", "minimum": 1, "maximum": 360, "description": "Hauteur de l'image (px). Defaut 120." },
+        "scene": { "$ref": "#/$defs/sceneName", "description": "Scène animée (visuel scene ; prioritaire sur src/symbol). Present => scene." },
+        "size": { "type": "integer", "minimum": 8, "maximum": 360, "description": "Côté de la boîte carrée de la scène (px). Défaut 120." }
       }
     },
     "comp_icon": {

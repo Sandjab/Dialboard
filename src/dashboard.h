@@ -23,18 +23,21 @@ struct IconState { float at; uint16_t symbol; uint32_t color; bool has_symbol; b
 uint16_t icon_symbol_index(const char* s);
 
 enum StateMatch { STATE_EXACT = 0, STATE_RANGE = 1 };
-// state : un cas = un matcher (exact: key_str|key_num ; range: at) + un visuel (glyphe symbol/color XOR image src/w/h).
-// has_src == true -> visuel image ; sinon glyphe. Kind infere par le champ present (comme icon/image).
+enum StateKind : uint8_t { STATE_GLYPH = 0, STATE_IMAGE = 1, STATE_SCENE = 2 };
+// state : un cas = un matcher (exact: key_str|key_num ; range: at) + un visuel (glyphe symbol/color XOR
+// image src/w/h XOR scene scene/size). kind infere par le champ present (priorite scene>src>symbol).
 struct StateCase {
     bool     has_num_key;            // exact : la cle est numerique (key_num) ; sinon string (key_str)
     double   key_num;
     char     key_str[TEXT_LEN];
     float    at;                     // range : borne haute exclusive (num < at)
-    bool     has_src;                // true = visuel image ; false = visuel glyphe
+    uint8_t  kind;                   // StateKind : glyphe | image | scene (infere par le champ present)
     uint16_t symbol;                 // glyphe : index dans ICON_GLYPHS (view.cpp)
     uint32_t color;                  // glyphe : couleur (defaut 0xFFFFFF)
     char     src[ID_LEN];            // image : cle d'asset (/img/<src>.565a)
     int      w, h;                   // image : dimensions RGB565A8
+    uint8_t  scene;                  // scene : index dans SCENE_CATALOG (valide si kind == STATE_SCENE)
+    int      size;                   // scene : cote de la boite carree en px (defaut 120)
 };
 
 struct RingTrack { char bind[ID_LEN]; int vmin, vmax; uint32_t color; int32_t value; };
@@ -110,7 +113,8 @@ struct Component {
     int       state_case_count;
     StateCase state_default;                     // visuel si aucun cas ne matche (matcher ignore)
     bool      state_has_num;                     // dernier type recu : true=num (c.value), false=str (c.vstr)
-    bool      state_shown_is_img;                // kind du visuel rendu (detecte glyphe<->image au sync)
+    uint8_t   state_shown_kind;                  // StateKind du visuel rendu (detecte un changement au sync)
+    int       state_shown_case_idx;              // index du cas actuellement rendu ; -1 = defaut (detecte scene/color/size au sync)
     char      state_shown_src[ID_LEN];           // src de l'image actuellement chargee (recharge au changement)
 
     // button (effecteur set) : valeur ecrite dans bind au tap
@@ -228,6 +232,7 @@ int  dash_apply_update(Dashboard* d, const char* json, char* unknown_csv, size_t
 void dash_tick_countdown(Dashboard* d, uint32_t elapsed_s);
 void dash_tick_clock(Dashboard* d);   // marque les composants clock dirty (à appeler chaque seconde)
 void dash_tick_aimg(Dashboard* d, uint32_t now_ms);   // image_anim : avance la frame des composants en lecture
+void dash_tick_scene(Dashboard* d, uint32_t now_ms);   // state/scene : marque dirty les state dont le visuel actif est une scene
 void dash_set_context(Dashboard* d, const char* json, uint32_t now);
 // Écriture du contexte d'ORIGINE UI (effecteur) : écrit la var ET arme les sinks qui l'observent.
 void dash_ctx_write_ui_num(Dashboard* d, const char* var, double v, uint32_t now);

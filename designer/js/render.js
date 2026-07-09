@@ -6,6 +6,7 @@ import { previewUrl } from './image-asset.js';
 import { previewUrl as aimgPreviewUrl } from './image-anim-asset.js';
 import { qrModules } from './qr.js';
 import { ICONS } from '../vendor/icons/icons-data.js';
+import { SCENES, sceneFrameAt, sceneLayerColor } from './scenes.js';
 
 // Table nom d'icône -> glyphe MDI (rendu via @font-face 'mdi', parité firmware ICON_GLYPHS).
 export const ICON_CHAR = Object.fromEntries(ICONS.map(i => [i.name, i.ch]));
@@ -626,12 +627,57 @@ export function buildIcon(comp, mock = MOCKS.icon) {
   return n;
 }
 
-// State : affiche UN visuel (glyphe ou image) choisi par la valeur mock (resolveState). Parité firmware
-// build/sync_state : glyphe = <i class="mdi"> (comme buildIcon) ; image = <img> previewUrl (comme buildImage).
+// Applique une frame de scène aux N couches (spans .w-scene-layer) d'un nœud scène. Miroir de
+// apply_scene_frame (view.cpp) : position (cx,cy 0..100 -> % de size), transform rotate/scale, opacité.
+function paintSceneFrame(node, name, tMs) {
+  const fr = sceneFrameAt(name, tMs);
+  const size = node._sceneSize || 120;
+  const layers = node.querySelectorAll('.w-scene-layer');
+  fr.forEach((f, i) => {
+    const el = layers[i]; if (!el) return;
+    const dx = (f.cx - 50) / 100 * size, dy = (f.cy - 50) / 100 * size;
+    const rot = f.angleDdeg / 10;                       // 1/10 deg -> deg
+    el.style.transform = `translate(-50%,-50%) translate(${dx}px,${dy}px) rotate(${rot}deg) scale(${f.scale})`;
+    el.style.opacity = String(f.opa / 255);
+  });
+}
+
+// Boucle rAF auto-nettoyante : anime tant que le nœud est dans le DOM. Un re-render du canvas
+// détache l'ancien nœud (isConnected=false) -> la boucle s'arrête d'elle-même. Pas de registre global.
+function animateScene(node, name) {
+  const loop = () => { if (!node.isConnected) return; paintSceneFrame(node, name, performance.now()); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+}
+
+// State : affiche UN visuel (scène, glyphe ou image) choisi par la valeur mock (resolveState). Parité
+// firmware build/sync_state : scène = N couches animées ; glyphe = <i class="mdi"> (comme buildIcon) ;
+// image = <img> previewUrl (comme buildImage).
 export function buildState(comp, mock = MOCKS.state) {
   const idx = resolveState(comp, mock.value);
   const cases = comp.cases || [];
   const vis = idx < 0 ? (comp.default || {}) : cases[idx];
+  if (vis.scene && SCENES[vis.scene]) {                 // visuel scène (miroir buildState firmware)
+    const size = Number(vis.size) || 120;
+    const wrap = document.createElement('div');
+    wrap.className = 'w w-scene';
+    wrap.style.width = size + 'px'; wrap.style.height = size + 'px';
+    wrap.style.position = 'relative';
+    wrap._sceneSize = size;
+    const principal = vis.color || SCENES[vis.scene].color || '#FFFFFF';
+    SCENES[vis.scene].layers.forEach(L => {
+      const el = document.createElement('i');
+      el.className = 'mdi w-scene-layer';
+      el.textContent = ICON_CHAR[L.symbol] || '';
+      el.style.position = 'absolute'; el.style.left = '50%'; el.style.top = '50%';
+      el.style.fontSize = Math.round(L.scaleRel * size) + 'px';
+      el.style.color = sceneLayerColor(L, principal);
+      el.style.transformOrigin = (L.anim === 'swing') ? 'center top' : 'center center';
+      wrap.appendChild(el);
+    });
+    paintSceneFrame(wrap, vis.scene, 0);                // état initial
+    animateScene(wrap, vis.scene);                      // anime en direct sur le canvas
+    return wrap;
+  }
   if (vis.src) {                                       // visuel image (miroir buildImage)
     const wrap = document.createElement('div');
     wrap.className = 'w w-image';

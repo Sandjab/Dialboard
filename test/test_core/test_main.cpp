@@ -6,6 +6,7 @@
 #include <string.h>
 #include "format.h"
 #include "color.h"
+#include "scenes.h"
 #include "nav_logic.h"
 #include "dashboard.h"
 #include "context.h"
@@ -1428,6 +1429,69 @@ void test_state_resolve(void) {
     TEST_ASSERT_EQUAL_INT(-1, state_resolve(STATE_EXACT, cs, 0, false, 0, "Clear"));
 }
 
+void test_scene_catalog_sane(void) {
+    TEST_ASSERT_EQUAL_INT(9, scene_count());
+    // noms uniques + resolubles ; chaque scene a 1..MAX couches ; chaque glyphe existe dans le jeu MDI.
+    for (int i = 0; i < scene_count(); i++) {
+        const Scene& s = SCENE_CATALOG[i];
+        TEST_ASSERT_EQUAL_INT_MESSAGE(i, scene_name_index(s.name), s.name);
+        TEST_ASSERT_TRUE(s.count >= 1 && s.count <= MAX_SCENE_LAYERS);
+        for (int j = 0; j < s.count; j++) {
+            // le glyphe doit exister : round-trip sur le nom resolu (icon_symbol_index renvoie 0
+            // en cas de miss, pas -1 -> un nom fauté se resoudrait silencieusement vers l'index 0).
+            int gi = icon_symbol_index(s.layers[j].symbol);
+            TEST_ASSERT_EQUAL_STRING_MESSAGE(s.layers[j].symbol, ICON_SYMBOL_NAMES[gi], s.layers[j].symbol);
+        }
+    }
+    TEST_ASSERT_EQUAL_INT(-1, scene_name_index("nope"));
+    TEST_ASSERT_EQUAL_INT(-1, scene_name_index(nullptr));
+}
+
+void test_scene_frame_at(void) {
+    LayerFrame f[MAX_SCENE_LAYERS];
+    // scene invalide -> 0 couche
+    TEST_ASSERT_EQUAL_INT(0, scene_frame_at(-1, 0, f));
+    TEST_ASSERT_EQUAL_INT(0, scene_frame_at(999, 0, f));
+
+    int sunny = scene_name_index("sunny");
+    // ROTATE : angle 0 a t=0, ~180deg a demi-periode (7000ms -> 3500), periodicite.
+    int n = scene_frame_at(sunny, 0, f);
+    TEST_ASSERT_EQUAL_INT(1, n);
+    TEST_ASSERT_EQUAL_INT(0, f[0].angle_ddeg);
+    scene_frame_at(sunny, 3500, f);
+    TEST_ASSERT_TRUE(f[0].angle_ddeg > 1700 && f[0].angle_ddeg < 1900);   // ~1800 (180deg)
+    LayerFrame a[MAX_SCENE_LAYERS], b[MAX_SCENE_LAYERS];
+    scene_frame_at(sunny, 1234, a); scene_frame_at(sunny, 1234 + 7000, b);
+    TEST_ASSERT_EQUAL_INT(a[0].angle_ddeg, b[0].angle_ddeg);              // periodique
+
+    // TRANSLATE_LOOP (rain, couches 1..3) : cy varie, opa bornee, phases decalees.
+    int rain = scene_name_index("rain");
+    n = scene_frame_at(rain, 550, f);
+    TEST_ASSERT_EQUAL_INT(4, n);
+    TEST_ASSERT_EQUAL_FLOAT(38.0f, f[0].cy);                             // couche 0 STATIC (nuage) fixe
+    TEST_ASSERT_TRUE(f[1].opa <= 255);                                   // borne haute (type uint8 garantit >=0)
+    TEST_ASSERT_TRUE(f[1].cy != f[2].cy);                               // phases differentes -> positions differentes
+
+    // PULSE (alert) : scale >= 1, opa dans [0,255].
+    int alert = scene_name_index("alert");
+    scene_frame_at(alert, 700, f);
+    TEST_ASSERT_TRUE(f[0].scale >= 1.0f && f[0].scale <= 1.5f);
+
+    // STATIC (storm couche 0) : neutre.
+    int storm = scene_name_index("storm");
+    scene_frame_at(storm, 999, f);
+    TEST_ASSERT_EQUAL_INT(0, f[0].angle_ddeg);
+    TEST_ASSERT_EQUAL_FLOAT(1.0f, f[0].scale);
+    TEST_ASSERT_EQUAL_INT(255, f[0].opa);
+}
+
+void test_scene_layer_color(void) {
+    int storm = scene_name_index("storm");
+    const Scene& s = SCENE_CATALOG[storm];
+    TEST_ASSERT_EQUAL_HEX32(0x3399FF, scene_layer_color(&s.layers[0], 0x3399FF));   // principal -> suit
+    TEST_ASSERT_EQUAL_HEX32(0xF5C518, scene_layer_color(&s.layers[1], 0x3399FF));   // accent -> fixe
+}
+
 static const char* LAYOUT_ICON =
   "{\"components\":{"
     "\"i1\":{\"type\":\"icon\",\"symbol\":\"wifi\",\"color\":\"#00FF00\",\"font\":36,"
@@ -1465,7 +1529,8 @@ static const char* LAYOUT_STATE =
       "\"cases\":["
         "{\"key\":\"Clear\",\"symbol\":\"weather-sunny\",\"color\":\"#FFC02E\"},"
         "{\"key\":\"Rain\",\"symbol\":\"weather-pouring\"},"
-        "{\"key\":3,\"src\":\"abc123\",\"w\":120,\"h\":120}"
+        "{\"key\":3,\"src\":\"abc123\",\"w\":120,\"h\":120},"
+        "{\"key\":\"Storm\",\"scene\":\"storm\",\"color\":\"#8892A0\",\"size\":140}"
       "]},"
     "\"s2\":{\"type\":\"state\",\"match\":\"range\","
       "\"default\":{\"symbol\":\"weather-cloudy\"},"
@@ -1482,26 +1547,30 @@ void test_state_parsed(void) {
     TEST_ASSERT_EQUAL_INT(STATE_EXACT, a.state_match);
     TEST_ASSERT_EQUAL_INT(64, a.font);
     TEST_ASSERT_EQUAL_STRING("weather", a.bind);
-    TEST_ASSERT_FALSE(a.state_default.has_src);
+    TEST_ASSERT_EQUAL_INT(STATE_GLYPH, a.state_default.kind);
     TEST_ASSERT_EQUAL_STRING("weather-cloudy", ICON_SYMBOL_NAMES[a.state_default.symbol]);
     TEST_ASSERT_EQUAL_HEX32(0x9AA0AA, a.state_default.color);
-    TEST_ASSERT_EQUAL_INT(3, a.state_case_count);
+    TEST_ASSERT_EQUAL_INT(4, a.state_case_count);
     const StateCase* ac = &d.state_pool[a.state_cases_off];       // tranche de s1 dans le pool
     TEST_ASSERT_FALSE(ac[0].has_num_key);
     TEST_ASSERT_EQUAL_STRING("Clear", ac[0].key_str);
-    TEST_ASSERT_FALSE(ac[0].has_src);
+    TEST_ASSERT_EQUAL_INT(STATE_GLYPH, ac[0].kind);
     TEST_ASSERT_EQUAL_STRING("weather-sunny", ICON_SYMBOL_NAMES[ac[0].symbol]);
     TEST_ASSERT_EQUAL_HEX32(0xFFC02E, ac[0].color);
     TEST_ASSERT_EQUAL_HEX32(0xFFFFFF, ac[1].color);              // couleur omise -> blanc
     TEST_ASSERT_TRUE(ac[2].has_num_key);
     TEST_ASSERT_EQUAL_FLOAT(3.0f, ac[2].key_num);                // EQUAL_DOUBLE indispo (UNITY_INCLUDE_DOUBLE off)
-    TEST_ASSERT_TRUE(ac[2].has_src);
+    TEST_ASSERT_EQUAL_INT(STATE_IMAGE, ac[2].kind);
     TEST_ASSERT_EQUAL_STRING("abc123", ac[2].src);
     TEST_ASSERT_EQUAL_INT(120, ac[2].w);
+    TEST_ASSERT_EQUAL_INT(STATE_SCENE, ac[3].kind);
+    TEST_ASSERT_EQUAL_INT(scene_name_index("storm"), ac[3].scene);
+    TEST_ASSERT_EQUAL_INT(140, ac[3].size);
+    TEST_ASSERT_EQUAL_HEX32(0x8892A0, ac[3].color);
     int s2 = dash_find(&d, "s2");
     const Component& b = d.components[s2];
     TEST_ASSERT_EQUAL_INT(STATE_RANGE, b.state_match);
-    TEST_ASSERT_EQUAL_INT(3, b.state_cases_off);                 // tranche de s2 packee apres les 3 cas de s1
+    TEST_ASSERT_EQUAL_INT(4, b.state_cases_off);                 // tranche de s2 packee apres les 4 cas de s1
     TEST_ASSERT_EQUAL_FLOAT(10.0f, d.state_pool[b.state_cases_off].at);
 }
 
@@ -1887,6 +1956,9 @@ int main(int, char**) {
     RUN_TEST(test_schema_types_all_resolve);
     RUN_TEST(test_icon_resolve);
     RUN_TEST(test_state_resolve);
+    RUN_TEST(test_scene_catalog_sane);
+    RUN_TEST(test_scene_frame_at);
+    RUN_TEST(test_scene_layer_color);
     RUN_TEST(test_icon_parsed);
     RUN_TEST(test_state_parsed);
     RUN_TEST(test_state_pool_overflow);
