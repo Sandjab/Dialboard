@@ -1053,13 +1053,18 @@ static void apply_scene_frame(lv_obj_t* cont, const StateCase& v, uint32_t now_m
     LayerFrame fr[MAX_SCENE_LAYERS];
     int n = scene_frame_at(v.scene, now_ms, fr);
     int size = v.size ? v.size : 120;
+    const Scene& s = SCENE_CATALOG[v.scene];
     for (int i = 0; i < n; i++) {
         lv_obj_t* l = lv_obj_get_child(cont, i);
         if (!l) break;
+        // get_icon_font plafonne la police a 120px ; au-dela on compense via transform_scale pour
+        // garder la parite de taille avec le designer (qui rend a la taille native).
+        float px = s.layers[i].scale_rel * size;
+        float ssc = px > 120.0f ? px / 120.0f : 1.0f;
         lv_obj_align(l, LV_ALIGN_CENTER, (int)((fr[i].cx - 50.0f) / 100.0f * size),
                                          (int)((fr[i].cy - 50.0f) / 100.0f * size));
         lv_obj_set_style_transform_rotation(l, fr[i].angle_ddeg, 0);
-        lv_obj_set_style_transform_scale(l, (int)(fr[i].scale * 256.0f), 0);
+        lv_obj_set_style_transform_scale(l, (int)(fr[i].scale * ssc * 256.0f), 0);
         lv_obj_set_style_opa(l, fr[i].opa, 0);
     }
 }

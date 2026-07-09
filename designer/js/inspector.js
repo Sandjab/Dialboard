@@ -312,10 +312,14 @@ export function createInspector(root, model, { selection, rerenderCanvas, clearS
             const nm = document.createElement('span'); nm.className = 'insp-iconbtn-name';
             nm.textContent = t('scene.' + visual.scene);
             btn.appendChild(nm);
-            btn.addEventListener('click', () => openScenePicker({
+            btn.addEventListener('click', () => { btn.blur(); openScenePicker({
               current: visual.scene,
-              onPick: name => { if (name) { visual.scene = name; visual.color = visual.color || sceneDefaultColor(name); onCommit(visual); } },
-            }));
+              onPick: name => { if (name) {
+                if (!visual.color || visual.color === sceneDefaultColor(visual.scene)) visual.color = sceneDefaultColor(name);   // couleur non customisée -> suit le défaut de la nouvelle scène
+                visual.scene = name;
+                onCommit(visual);
+              } },
+            }); });
             const col = document.createElement('input'); col.type = 'color';
             col.value = visual.color || sceneDefaultColor(visual.scene);
             col.addEventListener('change', () => { clearPreview?.(); visual.color = col.value.toUpperCase(); onCommit(visual); });

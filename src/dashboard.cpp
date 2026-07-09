@@ -115,7 +115,8 @@ static void parse_state_visual(JsonVariantConst o, StateCase& sc) {
     if (si >= 0) {                                   // visuel scene (prioritaire)
         sc.kind = STATE_SCENE;
         sc.scene = (uint8_t)si;
-        sc.size = o["size"] | 120;
+        int sz = o["size"] | 120; if (sz < 8) sz = 8; else if (sz > 360) sz = 360;   // defense : un JSON pousse peut sortir du [8,360] du schema
+        sc.size = sz;
         sc.src[0] = '\0'; sc.w = sc.h = 0; sc.symbol = 0; sc.color = 0xFFFFFF;
         if (o["color"].is<const char*>()) sc.color = parse_hex_color(o["color"], 0xFFFFFF);
         return;
