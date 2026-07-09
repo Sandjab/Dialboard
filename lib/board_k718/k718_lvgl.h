@@ -1,6 +1,7 @@
 #pragma once
 
 #include <lvgl.h>
+#include <src/draw/lv_draw_buf_private.h>   // lv_draw_buf_handlers_t complet (champs buf_malloc_cb/buf_free_cb)
 #include "esp_lcd_panel_ops.h"
 #include "esp_timer.h"
 #include "k718_pins.h"
@@ -28,6 +29,22 @@ static void _k718_flush_cb(lv_display_t *disp, const lv_area_t *area,
                               area->x2 + 1, area->y2 + 1, px_map);
 }
 
+// Draw buffers (layers) en PSRAM.
+// Un widget transformé (transform_rotation/transform_scale hors identité) est rendu via un layer
+// intermédiaire que LVGL ne sait PAS découper en tranches : il alloue la bounding box entière
+// (w × h × 4 o). lv_draw_buf_create() passe par buf_malloc_cb, dont le défaut est lv_malloc() —
+// donc le pool builtin LV_MEM_SIZE (48 Ko). Au-delà, l'alloc échoue et lv_draw.c repart sur
+// "Try later" à chaque frame : le refresh ne progresse plus -> watchdog -> reset.
+// Les handlers font/image gardent le défaut (RAM interne, rapide) : seuls les layers vont en PSRAM.
+#ifdef BOARD_HAS_PSRAM
+static void *_k718_draw_buf_malloc(size_t size, lv_color_format_t cf) {
+    LV_UNUSED(cf);
+    // Sur-alloue la marge d'alignement, comme le handler par défaut (buf_align décale ensuite).
+    return heap_caps_malloc(size + LV_DRAW_BUF_ALIGN - 1, MALLOC_CAP_SPIRAM);
+}
+static void _k718_draw_buf_free(void *buf) { heap_caps_free(buf); }   // reçoit unaligned_data
+#endif
+
 // Rounder v9 : aligne l'aire invalidée sur des coordonnées paires (ancien rounder_cb).
 static void _k718_invalidate_area_cb(lv_event_t *e) {
     lv_area_t *area = (lv_area_t *)lv_event_get_param(e);
@@ -46,6 +63,15 @@ static void _k718_invalidate_area_cb(lv_event_t *e) {
 //
 static inline esp_lcd_panel_handle_t k718_lvgl_init(int buf_height = 36) {
     lv_init();
+
+#ifdef BOARD_HAS_PSRAM
+    // Juste après lv_init() (qui installe les handlers par défaut) et avant toute création de
+    // draw buf : lv_draw_buf_destroy() libère via les callbacks courants, ils doivent être
+    // appariés à celui qui a alloué.
+    lv_draw_buf_handlers_t *dbh = lv_draw_buf_get_handlers();
+    dbh->buf_malloc_cb = _k718_draw_buf_malloc;
+    dbh->buf_free_cb   = _k718_draw_buf_free;
+#endif
 
     _k718_disp = lv_display_create(LCD_H_RES, LCD_V_RES);
 

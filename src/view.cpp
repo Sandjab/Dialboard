@@ -1085,12 +1085,16 @@ static void state_make_child(lv_obj_t* cont, Component& c, int idx, const StateC
             lv_obj_set_style_text_font(l, get_icon_font(px), 0);
             lv_obj_set_style_text_color(l, lv_color_hex(scene_layer_color(&L, v.color)), 0);
             lv_label_set_text(l, ICON_GLYPHS[icon_symbol_index(L.symbol)]);
+            // Pivot en % : resolu au rendu sur la taille reelle du label. px/2 serait faux des que
+            // get_icon_font plafonne la police (px > 120) : le label mesure alors ~120, pas px, et le
+            // glyphe orbiterait au lieu de tourner sur lui-meme. Miroir du designer (render.js) :
+            // transform-origin = 'center top' (swing) sinon 'center center'.
             if (L.anim == SC_SWING) {                     // pivot haut-centre pour l'oscillation
-                lv_obj_set_style_transform_pivot_x(l, px / 2, 0);
+                lv_obj_set_style_transform_pivot_x(l, lv_pct(50), 0);
                 lv_obj_set_style_transform_pivot_y(l, 0, 0);
             } else {
-                lv_obj_set_style_transform_pivot_x(l, px / 2, 0);
-                lv_obj_set_style_transform_pivot_y(l, px / 2, 0);
+                lv_obj_set_style_transform_pivot_x(l, lv_pct(50), 0);
+                lv_obj_set_style_transform_pivot_y(l, lv_pct(50), 0);
             }
         }
         apply_scene_frame(cont, v, 0);                    // etat initial (t=0)
