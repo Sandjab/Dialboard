@@ -2,6 +2,7 @@
 
 #include <lvgl.h>
 #include <src/draw/lv_draw_buf_private.h>   // lv_draw_buf_handlers_t complet (champs buf_malloc_cb/buf_free_cb)
+#include <esp_heap_caps.h>                  // heap_caps_malloc/free + MALLOC_CAP_* (pas d'include transitif)
 #include "esp_lcd_panel_ops.h"
 #include "esp_timer.h"
 #include "k718_pins.h"
