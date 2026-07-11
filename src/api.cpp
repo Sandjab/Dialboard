@@ -17,6 +17,14 @@
 #include "asset_fs.h"
 #include "context.h"
 
+// Injectés par tools/version.py (extra_script). Fallback si build hors PlatformIO.
+#ifndef FW_VERSION
+#define FW_VERSION "unknown"
+#endif
+#ifndef FW_CHANNEL
+#define FW_CHANNEL "dev"
+#endif
+
 extern String g_layout_json;
 extern SemaphoreHandle_t g_ctx_mutex;
 
@@ -107,10 +115,14 @@ static void h_wifi_scan() {
 
 static void h_status() {
     JsonDocument doc;
+    doc["firmware"]   = FW_VERSION;   // ex "v0.1.0" (release) ou "v0.1.0-22-gabc123" (dev)
+    doc["channel"]    = FW_CHANNEL;   // "release" sur tag, "dev" sinon
     doc["ip"]         = WiFi.localIP().toString();
     doc["hostname"]   = String(MDNS_HOST) + ".local";
     doc["rssi"]       = WiFi.RSSI();
     doc["uptime_s"]   = (uint32_t)(millis() / 1000);
+    doc["internal_free"] = (uint32_t)heap_caps_get_free_size(MALLOC_CAP_INTERNAL);  // SRAM interne
+    doc["psram_free"]    = (uint32_t)heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
     doc["page"]       = D->active_page;
     doc["pages"]      = D->page_count;
     doc["components"] = D->comp_count;
